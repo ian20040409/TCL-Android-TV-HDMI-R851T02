@@ -102,22 +102,13 @@ If any of the following describes your home theater setup, this launcher was bui
 
 ## Tested Device
 
-- **Tested Model**: **TCL 65C715** (C715 Series 65" 4K QLED Android TV)
+- **Tested Model**: **TCL 65C715** (BeyondTV2)
 - **Chassis Platform**: **RTD2851 / R851T02**
-  - **Software / Firmware Version**: `V8-R851T02-LF1V701.000031`
-  - **TV+OS Version**: `V5.2.0 (V8-2112290-MF1V520)`
-  - **Client Platform ID**: `TCL-AP-RT2851-S1`
+  - **Firmware Version**: `V8-R851T02-LF1V662.019382`
+  - **TV+OS Version**: `V5.2.0 (V8-2204190-MF1V520)`
+  - **Client ID**: `TCL-AP-RT2851-S1`
   - **Product ID**: `660`
-  - **Linux Kernel**: `4.14.236+ #2 SMP PREEMPT Tue Jan 18 20:32:54 CST 2022 armv7l`
-  > [!NOTE]
-  > **About the R851T02 Platform:**  
-  > `R851T02` is TCL's widely deployed chipset and motherboard hardware architecture (Realtek RTD2851 SoC) across multiple mainstream Android TV series (including C715, P715, P615, S434, etc.). All models running the **R851T02 chassis architecture** share a unified low-level TV input service (`com.tcl.tvinput`) and Passthrough pipeline specification.
-- **Hardware Specs**:
-  - **Display Panel**: 65" 4K UHD (3840 × 2160) Quantum Dot QLED, 60Hz, Dolby Vision / HDR10+ support
-  - **HDMI Ports**: 3 physical HDMI 2.0 ports (HDCP 2.2, HDMI-ARC / CEC supported)
-  - **CPU & Architecture**: Quad-core ARM Cortex-A55 processor (32-bit user space armv7l), 2 GB RAM / 16 GB ROM
-  - **System OS**: Android TV 11 (Android R)
-  - **Test Results**: Sub-millisecond HDMI 1 ~ 3 input switching, automatic countdown transition, boot default input persistence, remote controls (number keys / menu / settings) 100% verified.
+  - **Android OS**: Android 9 (Kernel `4.14.76+`)
 
 ## Physical Device Input Mapping Table (R851T02 / C715 Tested)
 
