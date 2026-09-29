@@ -157,9 +157,9 @@
     <string name="oobe_countdown_prompt">Startup Countdown: %s</string>
     <string name="oobe_countdown_off">Disable Auto-Switch</string>
     <string name="oobe_action_next">Next Step</string>
-    <string name="oobe_system_title">System &amp; TV Optimization</string>
+    <string name="oobe_system_title">Accessibility Settings</string>
     <string name="oobe_system_breadcrumb">Initial Setup • 3/3</string>
-    <string name="oobe_system_description">Optimize your TCL TV for the best experience. You can also configure these anytime in Settings.</string>
+    <string name="oobe_system_description">Enable Accessibility Service to allow launcher override and wake guard, ensuring stable return upon waking. You can also configure this anytime in Settings.</string>
     <string name="oobe_action_wake_guard">Enable Accessibility Launcher Override &amp; Wake Guard</string>
     <string name="oobe_action_wake_guard_desc">Overrides stock Google TV launcher and guarantees 100% wake return</string>
     <string name="oobe_action_finish">Finish &amp; Start Using</string>

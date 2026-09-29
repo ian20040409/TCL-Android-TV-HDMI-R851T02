@@ -155,9 +155,9 @@
     <string name="oobe_countdown_prompt">自動啟動倒數: %s</string>
     <string name="oobe_countdown_off">關閉自動啟動</string>
     <string name="oobe_action_next">下一步</string>
-    <string name="oobe_system_title">系統設定與防假死守護</string>
+    <string name="oobe_system_title">無障礙設定</string>
     <string name="oobe_system_breadcrumb">開箱導覽 • 3/3</string>
-    <string name="oobe_system_description">最佳化 TCL 電視設定以獲得最佳體驗。您亦可隨時在設定中調整。</string>
+    <string name="oobe_system_description">啟用無障礙服務以實現桌面覆蓋與喚醒守護，確保電視待機喚醒穩定返回。您亦可隨時在設定中調整。</string>
     <string name="oobe_action_wake_guard">啟用無障礙桌面覆蓋與喚醒守護</string>
     <string name="oobe_action_wake_guard_desc">開啟無障礙服務，自動覆蓋 Google TV 原廠桌面並保證 100% 待機喚醒返回</string>
     <string name="oobe_action_finish">完成設定並開始使用</string>
