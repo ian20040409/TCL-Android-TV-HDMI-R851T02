@@ -79,3 +79,4 @@ crashlytics-build.properties
 /icon/tcl-hdmi Exports
 /icon/tcl-hdmi.icon
 *.zip
+*.pkg
