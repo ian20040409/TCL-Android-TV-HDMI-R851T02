@@ -23,6 +23,16 @@
     <queries>
         <package android:name="com.tcl.settings" />
         <package android:name="com.android.tv.settings" />
+        <package android:name="com.android.settings" />
+        <intent>
+            <action android:name="android.settings.SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.TV_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ACCESSIBILITY_SETTINGS" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -81,7 +91,15 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:theme="@style/Theme.PureBlackDarkOnly"
+            android:theme="@style/Theme.Settings"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
+
+        <!-- App 模式專屬設定頁面：獨立管理 App 模式偏好與自動啟動 -->
+        <activity
+            android:name=".AppModeSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Settings"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 

@@ -58,6 +58,12 @@
     <string name="setting_tcl_settings_desc">Picture, sound and display settings</string>
     <string name="setting_android_settings_title">Android System Settings</string>
     <string name="setting_android_settings_desc">Device preferences, network and accounts</string>
+    <string name="setting_reset_app_title">Reset App</string>
+    <string name="setting_reset_app_desc">Restore all launcher preferences to defaults and restart setup</string>
+    <string name="dialog_reset_app_title">Reset All Preferences</string>
+    <string name="dialog_reset_app_msg">Are you sure you want to reset all Launcher settings? All custom configurations will be cleared and the setup wizard will restart.</string>
+    <string name="dialog_reset_app_confirm">Reset</string>
+    <string name="toast_app_reset_completed">Launcher settings have been reset</string>
     <string name="setting_state_on">ON</string>
     <string name="setting_state_off">OFF</string>
     <string name="setting_state_enabled">Active</string>
@@ -99,6 +105,14 @@
     <string name="toast_wake_guard_hint">Tip: Standby Accessibility Wake is not enabled. Tap \"Accessibility Wake\" at the top to configure.</string>
 
     <!-- App Mode -->
+    <string name="app_mode_settings_title">App Mode Settings</string>
+    <string name="app_mode_settings_hint">[OK] Select / Toggle   •   [Back] Return</string>
+    <string name="setting_auto_open_delay_title">Auto-Start Delay</string>
+    <string name="setting_auto_open_delay_desc">Auto-starts app after %d seconds</string>
+    <string name="dialog_auto_open_delay_title">Auto-Start Delay Seconds</string>
+    <string name="dialog_select_auto_open_app">Select Auto-Start Application</string>
+    <string name="setting_hdmi_settings_title">HDMI &amp; General Settings</string>
+    <string name="setting_hdmi_settings_desc">Configure HDMI inputs, auto-switch timer and signal HUD</string>
     <string name="btn_app_mode_on">App Mode: On</string>
     <string name="btn_app_mode_off">App Mode: Off</string>
     <string name="btn_hdmi_selector">HDMI Input</string>
@@ -146,10 +160,8 @@
     <string name="oobe_system_title">System &amp; TV Optimization</string>
     <string name="oobe_system_breadcrumb">Initial Setup • 3/3</string>
     <string name="oobe_system_description">Optimize your TCL TV for the best experience. You can also configure these anytime in Settings.</string>
-    <string name="oobe_action_set_default_home">Set as Default TV Launcher</string>
-    <string name="oobe_action_set_default_home_desc">Prompts system Home app selector to replace stock launcher</string>
-    <string name="oobe_action_wake_guard">Enable Standby Wake Guard</string>
-    <string name="oobe_action_wake_guard_desc">Opens Accessibility settings (or System settings) to enable Wake Guard</string>
+    <string name="oobe_action_wake_guard">Enable Accessibility Launcher Override &amp; Wake Guard</string>
+    <string name="oobe_action_wake_guard_desc">Overrides stock Google TV launcher and guarantees 100% wake return</string>
     <string name="oobe_action_finish">Finish &amp; Start Using</string>
     <string name="oobe_action_finish_desc">Save configuration and enter Launcher</string>
     <string name="oobe_skip">Skip to Default</string>

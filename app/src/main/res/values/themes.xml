@@ -44,4 +44,13 @@
         <item name="guidedActionItemCheckmarkStyle">@style/OobeGuidedActionItemCheckmark</item>
         <item name="guidedActionsElevation">0dp</item>
     </style>
+
+    <!-- 原生 Leanback 設定頁面主題 -->
+    <style name="Theme.Settings" parent="Theme.Leanback.GuidedStep">
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="guidedActionItemCheckmarkStyle">@style/OobeGuidedActionItemCheckmark</item>
+        <item name="guidedActionsElevation">0dp</item>
+    </style>
 </resources>

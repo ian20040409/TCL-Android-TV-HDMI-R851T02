@@ -220,9 +220,8 @@ class OobeActivity : FragmentActivity() {
     class SystemStepFragment : GuidedStepSupportFragment() {
 
         companion object {
-            private const val ACTION_SET_DEFAULT_HOME = 1L
-            private const val ACTION_WAKE_GUARD = 2L
-            private const val ACTION_FINISH = 3L
+            private const val ACTION_WAKE_GUARD = 1L
+            private const val ACTION_FINISH = 2L
         }
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
@@ -230,21 +229,13 @@ class OobeActivity : FragmentActivity() {
                 getString(R.string.oobe_system_title),
                 getString(R.string.oobe_system_description),
                 getString(R.string.oobe_system_breadcrumb),
-                requireContext().getDrawable(R.drawable.settings_power_48px)
+                requireContext().getDrawable(R.drawable.accessibility_new_48px)
             )
         }
 
         override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
             val ctx = requireContext()
             val isWakeGuardEnabled = MainActivity.isAccessibilityServiceEnabled(ctx)
-
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_SET_DEFAULT_HOME)
-                    .title(getString(R.string.oobe_action_set_default_home))
-                    .description(getString(R.string.oobe_action_set_default_home_desc))
-                    .build()
-            )
 
             actions.add(
                 GuidedAction.Builder(ctx)
@@ -287,25 +278,8 @@ class OobeActivity : FragmentActivity() {
         override fun onGuidedActionClicked(action: GuidedAction) {
             val ctx = requireContext()
             when (action.id) {
-                ACTION_SET_DEFAULT_HOME -> {
-                    val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-                        addCategory(Intent.CATEGORY_HOME)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    try {
-                        startActivity(Intent.createChooser(homeIntent, getString(R.string.oobe_action_set_default_home)))
-                    } catch (_: Exception) {
-                        try {
-                            startActivity(homeIntent)
-                        } catch (_: Exception) {}
-                    }
-                }
                 ACTION_WAKE_GUARD -> {
-                    // 若無專用無障礙設定，MainActivity.openAccessibilitySettings 會自動開啟 Android 系統設定
-                    val openedDirect = MainActivity.openAccessibilitySettings(ctx)
-                    if (!openedDirect) {
-                        Toast.makeText(ctx, R.string.toast_accessibility_fallback_settings, Toast.LENGTH_LONG).show()
-                    }
+                    AccessibilityHelper.openAccessibilitySettings(ctx)
                 }
                 ACTION_FINISH -> {
                     MainActivity.setOobeCompleted(ctx, true)

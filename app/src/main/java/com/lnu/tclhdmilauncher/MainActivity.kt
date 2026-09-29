@@ -52,6 +52,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         private const val KEY_APP_MODE = "app_mode"
         private const val KEY_AUTO_OPEN_PKG = "auto_open_pkg"
         private const val KEY_AUTO_OPEN_LABEL = "auto_open_label"
+        private const val KEY_AUTO_OPEN_DELAY = "auto_open_delay"
         private const val KEY_SIGNAL_SEARCH_SCREEN = "signal_search_screen"
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
         private const val DEFAULT_COUNTDOWN_SECONDS = 3
@@ -89,6 +90,8 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         @Volatile
         private var cachedAutoOpenLabel: String? = null
         @Volatile
+        private var cachedAutoOpenDelay: Int? = null
+        @Volatile
         private var cachedSignalSearchScreen: Boolean? = null
         @Volatile
         private var cachedOobeCompleted: Boolean? = null
@@ -107,6 +110,20 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             cachedOobeCompleted = completed
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putBoolean(KEY_OOBE_COMPLETED, completed).apply()
+        }
+
+        fun resetAllSettings(context: Context) {
+            cachedDefaultPort = null
+            cachedCountdownSeconds = null
+            cachedAppMode = null
+            cachedAutoOpenPkg = null
+            cachedAutoOpenLabel = null
+            cachedAutoOpenDelay = null
+            cachedSignalSearchScreen = null
+            cachedOobeCompleted = null
+
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+            context.getSharedPreferences("app_list_recent", Context.MODE_PRIVATE).edit().clear().apply()
         }
 
         fun getDefaultPort(context: Context): Int {
@@ -191,9 +208,21 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         }
 
         fun getAutoOpenDelaySeconds(context: Context): Int {
-            val sec = cachedCountdownSeconds ?: context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getInt(KEY_COUNTDOWN_SECONDS, DEFAULT_COUNTDOWN_SECONDS).also { cachedCountdownSeconds = it }
-            return if (sec > 0) sec else DEFAULT_COUNTDOWN_SECONDS
+            cachedAutoOpenDelay?.let { return it }
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val sec = if (prefs.contains(KEY_AUTO_OPEN_DELAY)) {
+                prefs.getInt(KEY_AUTO_OPEN_DELAY, DEFAULT_COUNTDOWN_SECONDS)
+            } else {
+                prefs.getInt(KEY_COUNTDOWN_SECONDS, DEFAULT_COUNTDOWN_SECONDS)
+            }
+            cachedAutoOpenDelay = sec
+            return if (sec >= 0) sec else DEFAULT_COUNTDOWN_SECONDS
+        }
+
+        fun setAutoOpenDelaySeconds(context: Context, seconds: Int) {
+            cachedAutoOpenDelay = seconds
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putInt(KEY_AUTO_OPEN_DELAY, seconds).apply()
         }
 
         fun launchTclSettings(context: Context) {
@@ -228,88 +257,16 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             }
         }
 
-        fun launchAndroidSystemSettings(context: Context) {
-            val pm = context.packageManager
-            val candidates = listOf(
-                Intent("android.settings.TV_SETTINGS"),
-                Intent().setComponent(ComponentName("com.android.tv.settings", "com.android.tv.settings.MainSettings")),
-                pm.getLeanbackLaunchIntentForPackage("com.android.tv.settings"),
-                pm.getLaunchIntentForPackage("com.android.tv.settings"),
-                Intent(Settings.ACTION_SETTINGS)
-            )
-
-            for (candidate in candidates) {
-                if (candidate == null) continue
-                try {
-                    WakeAccessibilityService.temporarilyIgnorePackage("com.tcl.settings")
-                    WakeAccessibilityService.temporarilyIgnorePackage("com.android.tv.settings")
-                    candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(candidate)
-                    return
-                } catch (_: Exception) {
-                    // 繼續嘗試下一個候選 Intent
-                }
-            }
+        fun launchAndroidSystemSettings(context: Context): Boolean {
+            return AccessibilityHelper.openAndroidSystemSettings(context)
         }
 
         fun isAccessibilityServiceEnabled(context: Context): Boolean {
-            val expectedService = ComponentName(context, WakeAccessibilityService::class.java)
-            val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
-            if (am != null) {
-                try {
-                    val enabledServices = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-                    for (service in enabledServices) {
-                        if (service.resolveInfo?.serviceInfo?.packageName == context.packageName &&
-                            service.resolveInfo?.serviceInfo?.name == WakeAccessibilityService::class.java.name) {
-                            return true
-                        }
-                    }
-                } catch (_: Exception) {}
-            }
-
-            val enabledServicesSetting = try {
-                Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
-            } catch (_: Exception) {
-                null
-            } ?: return false
-
-            val colonSplitter = TextUtils.SimpleStringSplitter(':')
-            colonSplitter.setString(enabledServicesSetting)
-            while (colonSplitter.hasNext()) {
-                val componentNameString = colonSplitter.next()
-                val enabledService = ComponentName.unflattenFromString(componentNameString)
-                if (enabledService != null && enabledService == expectedService) {
-                    return true
-                }
-            }
-            return false
+            return AccessibilityHelper.isServiceEnabled(context)
         }
 
         fun openAccessibilitySettings(context: Context): Boolean {
-            val pm = context.packageManager
-            val directAccessibilityCandidates = listOf(
-                Intent().setComponent(ComponentName("com.android.tv.settings", "com.android.tv.settings.device.accessibility.AccessibilityActivity")),
-                Intent().setComponent(ComponentName("com.android.tv.settings", "com.android.tv.settings.accessibility.AccessibilityActivity")),
-                Intent("android.settings.ACCESSIBILITY_SETTINGS"),
-                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
-                Intent().setComponent(ComponentName("com.google.android.tv.frameworkpackagestubs", "com.android.tv.settings.device.accessibility.AccessibilityActivity"))
-            )
-
-            WakeAccessibilityService.temporarilyIgnorePackage("com.android.tv.settings")
-            WakeAccessibilityService.temporarilyIgnorePackage("com.tcl.settings")
-
-            for (candidate in directAccessibilityCandidates) {
-                try {
-                    candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    if (candidate.resolveActivity(pm) != null) {
-                        context.startActivity(candidate)
-                        return true
-                    }
-                } catch (_: Exception) {}
-            }
-            // 沒有找到專用無障礙設定，自動打開 Android 原生系統設定
-            launchAndroidSystemSettings(context)
-            return false
+            return AccessibilityHelper.openAccessibilitySettings(context)
         }
 
         @Volatile

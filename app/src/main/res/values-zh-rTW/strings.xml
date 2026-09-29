@@ -33,7 +33,7 @@
     <string name="dialog_cancel">取消</string>
 
     <!-- 設定頁面 (Settings Activity) -->
-    <string name="settings_title">設定</string>
+    <string name="settings_title">Launcher 設定</string>
     <string name="settings_hint">[OK] 調整 / 切換   •   [返回] 回首頁</string>
     <string name="setting_category_launcher">Launcher 偏好設定</string>
     <string name="setting_category_system">電視與系統設定</string>
@@ -58,6 +58,12 @@
     <string name="setting_tcl_settings_desc">開啟 TCL 原廠影像、音效與顯示設定</string>
     <string name="setting_android_settings_title">Android 系統設定</string>
     <string name="setting_android_settings_desc">開啟裝置偏好設定、網路與帳號</string>
+    <string name="setting_reset_app_title">重設 App</string>
+    <string name="setting_reset_app_desc">恢復所有 Launcher 預設值並重新執行設定</string>
+    <string name="dialog_reset_app_title">重設所有設定</string>
+    <string name="dialog_reset_app_msg">確定要重設 Launcher 所有設定嗎？這將清除所有自訂偏好，並重新執行開箱設定精靈。</string>
+    <string name="dialog_reset_app_confirm">重設</string>
+    <string name="toast_app_reset_completed">已重設 Launcher 所有設定</string>
     <string name="setting_state_on">開啟</string>
     <string name="setting_state_off">關閉</string>
     <string name="setting_state_enabled">已啟用</string>
@@ -92,13 +98,19 @@
     <string name="btn_wake_guard_off">無障礙喚醒: 未開啟</string>
     <string name="dialog_wake_guard_title">待機喚醒與 Home 鍵保障</string>
     <string name="dialog_wake_guard_msg_on">已啟用無障礙喚醒與 Home 鍵映射服務。\n\n• 電視睡眠喚醒 100% 強制返回本桌面\n• 按遙控器 Home 鍵一律直達本桌面</string>
-    <string name="dialog_wake_guard_msg_off">目前尚未開啟無障礙服務。\n\n啟用後，將獲得兩大系統級能力：\n1. 待機睡眠甦醒時 100% 強制返回本桌面（不掉入 AV 或無訊號）\n2. 啟用 Button Mapper 功能：遙控器 Home 鍵一律改為打開本 Launcher 桌面。\n\n點選「前往設定」後，若電視進入主設定頁，請依序進入：\n「裝置偏好設定」➔「無障礙」➔ 開啟本服務。</string>
+    <string name="dialog_wake_guard_msg_off">目前尚未開啟無障礙服務。\n\n啟用後，將獲得兩大系統級能力：\n1. 待機睡眠甦醒時 100% 強制返回本桌面（不掉入 AV 或無訊號）\n2. 啟用 Button Mapper 功能：遙控器 Home 鍵一律改為打開本 Launcher 桌面。\n\n點選「前往設定」後，若電視進入主設定頁，請依序進入：\n「裝置偏好設定」➔「無障礙 / 協助工具」➔ 開啟本服務。</string>
     <string name="dialog_btn_go_settings">前往設定</string>
     <string name="dialog_btn_manage">管理設定</string>
     <string name="dialog_btn_ok">確認</string>
     <string name="toast_wake_guard_hint">提示：尚未開啟待機無障礙喚醒，可點擊頂部「無障礙喚醒」進行設定</string>
 
     <!-- App Mode -->
+    <string name="app_mode_settings_title">App 模式設定</string>
+    <string name="app_mode_settings_hint">[OK] 調整 / 切換   •   [返回] 回上頁</string>
+    <string name="setting_auto_open_delay_title">自動啟動倒數秒數</string>
+    <string name="setting_auto_open_delay_desc">開機 / 喚醒後 %d 秒自動啟動</string>
+    <string name="dialog_auto_open_delay_title">自動啟動倒數秒數</string>
+    <string name="dialog_select_auto_open_app">選擇自動啟動應用程式</string>
     <string name="btn_app_mode_on">App 模式: 開啟</string>
     <string name="btn_app_mode_off">App 模式: 關閉</string>
     <string name="btn_hdmi_selector">HDMI 切換</string>
@@ -146,13 +158,11 @@
     <string name="oobe_system_title">系統設定與防假死守護</string>
     <string name="oobe_system_breadcrumb">開箱導覽 • 3/3</string>
     <string name="oobe_system_description">最佳化 TCL 電視設定以獲得最佳體驗。您亦可隨時在設定中調整。</string>
-    <string name="oobe_action_set_default_home">設為系統預設桌面</string>
-    <string name="oobe_action_set_default_home_desc">喚起系統主螢幕選擇器，取代原廠電視桌面</string>
-    <string name="oobe_action_wake_guard">啟用待機喚醒防假死守護</string>
-    <string name="oobe_action_wake_guard_desc">開啟無障礙設定（若無則自動打開系統設定）啟用守護服務</string>
+    <string name="oobe_action_wake_guard">啟用無障礙桌面覆蓋與喚醒守護</string>
+    <string name="oobe_action_wake_guard_desc">開啟無障礙服務，自動覆蓋 Google TV 原廠桌面並保證 100% 待機喚醒返回</string>
     <string name="oobe_action_finish">完成設定並開始使用</string>
     <string name="oobe_action_finish_desc">儲存所有設定並立即進入啟動器</string>
     <string name="oobe_skip">跳過設定（使用預設值）</string>
-    <string name="toast_accessibility_fallback_settings">未找到專用無障礙頁面，已自動為您開啟 Android 系統設定（請至 裝置偏好設定 > 無障礙）</string>
+    <string name="toast_accessibility_fallback_settings">未找到專用設定頁，已為您開啟系統設定（請至 裝置偏好設定 ➔ 無障礙 / 協助工具）</string>
 </resources>
 
