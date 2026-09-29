@@ -46,6 +46,9 @@ If any of the following describes your home theater setup, this launcher was bui
   - 🎮 **PlayStation 5 (PS5) / Xbox Series X / Nintendo Switch** — Next-gen 4K HDR gaming.
   - 📺 **Dedicated TV Boxes** (Chromecast with Google TV, NVIDIA Shield, Fire TV, etc.).
   - 💿 **4K UHD Blu-ray / DVD Players** or **AV Receivers (eARC)**.
+- **Plagued by TCL's Infamous HDMI-CEC Firmware Flaws**:
+  - **Reboot Loops & Standby Glitches**: When putting Apple TV into sleep, TCL's flawed firmware handles CEC standby frames by injecting two power button keycodes within 95ms, immediately waking the TV back up after shutting off.
+  - **AVR / Soundbar eARC Handshake Drops**: Bloated OEM background daemons congest CPU and bus cycles, causing CEC timing violations and audio dropouts or lost volume sync on external sound systems.
 - **Tired of Bloated & Ad-Heavy Stock Launchers**: The factory TCL launcher is slow to boot, clutters the screen with unwanted video recommendations, and consumes precious RAM and background CPU cycles.
 - **Want a True "Instant-On" Display Experience**: When you power on the TV, it should act like a traditional monitor or high-end display—automatically switching to your favorite input (e.g., Apple TV) within seconds without you ever having to touch a remote.
 - **Lightning-Fast Multi-Device Switching**: When switching between a gaming console (PS5) and a streaming box (Apple TV), you want instant switching at the press of a single remote number button (`1` / `2` / `3`), without navigating clunky input menus.

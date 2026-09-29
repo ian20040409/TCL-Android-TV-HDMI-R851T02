@@ -46,6 +46,9 @@
   - 🎮 **PlayStation 5 (PS5) / Xbox Series X / Switch** — 次世代 4K HDR 遊戲娛樂
   - 📺 **Android TV / Google TV 盒子**（Chromecast with Google TV、NVIDIA Shield 等）
   - 💿 **4K UHD 藍光 / DVD 播放機** 或 **家庭劇院擴大機 (AV Receiver)**
+- **深受 TCL 官方 HDMI-CEC 諸多致命 Bug 所苦**：
+  - 關機假死與反覆重開：Apple TV 待機時發送 CEC 休眠廣播，TCL 原廠韌體卻連發兩次電源鍵模擬，導致電視關機 1 秒內立刻被敲醒。
+  - 擴大機與 Soundbar eARC 握手不穩定：原廠背景服務佔滿 CPU 與記憶體，導致 CEC 握手逾時，外接音響設備時常無法聯動音量或無聲。
 - **厭惡內建首頁的臃腫與廣告**：TCL 原廠 Launcher 開機載入緩慢、首頁塞滿不需要的線上影音推薦、佔用有限的系統記憶體。
 - **想要「開機即用」的直覺體驗**：開啟電視後，希望像傳統電視或高階顯示器一樣，幾秒鐘內自動跳轉到最常看的訊號源（如 Apple TV），不必拿著遙控器在選單裡點來點去。
 - **多設備切換要求快速極致**：家裡同時接了 PS5 與 Apple TV，希望按個數字鍵 `1` 或 `2` 就能瞬間無縫切換，不用呼叫繁瑣的輸入來源選單。
