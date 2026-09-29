@@ -72,6 +72,19 @@
 8. **App 模式與應用程式自動啟動 (App Mode & Auto-Open)**：
    - 頂部狀態列提供「App 模式」一鍵切換。開啟後，開機或按 Home 鍵預設直達應用程式抽屜。
    - 在清單中「長按 OK」可將常用 App 設為「自動啟動」；開機倒數結束自動直達指定 App（如 YouTube、Netflix、動畫瘋等）。
+9. **自建原生 HDMI Viewer (`TvView`) — 完全擺脫 `com.tcl.tv` 依賴**：
+   - 內建全螢幕 HDMI 播放器（`HdmiViewerActivity`），直接由 Android 官方 TV Input Framework（`android.media.tv.TvView`）驅動。
+   - 徹底終結對 TCL 原廠電視播放器（`com.tcl.tv.TVActivity`）的依賴，零廣告、零原廠干擾橫幅。
+   - 完整支援 4K @ 60Hz、HDR10 與 Dolby Vision 硬體圖層直通解碼。
+   - **優雅搜尋訊號源 UI 與智慧診斷機制**：
+     - **搜尋動效**：切換時顯示純黑防閃動效與「正在搜尋訊號…」進度環。
+     - **連線回饋**：訊號就緒後平滑淡出，右上角自動彈出「HDMI X • 已連線」綠色膠囊標籤。
+     - **無訊號診斷**：若訊號源未開機或斷開，6 秒後自動切換至無訊號提示，支援按 **OK 重新整理**、**1/2/3 秒切** 或 **返回**。
+     - **動態熱插拔感知**：在無訊號狀態下開啟外接設備或插入 HDMI，晶片訊號就緒時自動無縫點亮。
+   - **獨立視窗架構與精準硬體埠對照 (Hardware ID Mapping)**：
+     - 採用獨立 Task 視窗架構（`FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_MULTIPLE_TASK` 與獨立 `taskAffinity`），播放畫面與桌面分層獨立管理。
+     - 針對 R851T02 平台精準鎖定實體晶片 Input ID（`HW1413744128`、`HW1413744384`、`HW1413744640`）並全面實作 `onNewIntent`，徹底修復官方 TIF 因納入 CEC/AV 字串排序偏移導致 HDMI 1/2 切換混淆或跳至 HDMI 3 的缺陷。
+   - 現在可以**安心直接停用 `com.tcl.tv` 整包原廠電視 App**，完全不影響 HDMI 畫面顯示！
 
 ---
 
@@ -103,7 +116,7 @@
   - **螢幕面板**：65" 4K UHD (3840 × 2160) 量子點 QLED、60Hz、支援 Dolby Vision / HDR10+
   - **HDMI 配置**：共 3 組實體 HDMI 2.0 端子（支援 HDCP 2.2、HDMI-ARC / CEC）
   - **處理器與架構**：4 核心 ARM Cortex-A55 處理器（32 位元用戶空間 armv7l）、2 GB RAM / 16 GB ROM
-  - **系統環境**：Android TV 9.0 / Android TV 11
+  - **系統環境**：Android TV 11 (Android R)
   - **實測結果**：HDMI 1 ~ 3 訊號源微秒級切換、倒數計時自動跳轉、開機預設、遙控器按鍵（數字鍵/選單鍵/設定鍵）均 100% 驗證通過。
 
 ## 實體裝置訊號源對照表（R851T02 / C715 實測驗證）
@@ -140,10 +153,10 @@ adb shell am start -a android.intent.action.VIEW \
 | **OK / 確認鍵** | 立即切換至當前焦點選取的 HDMI 訊號源（或啟動 App） |
 | **長按 OK 鍵 (主畫面)** | 將當前 HDMI 卡片設為**開機預設訊號源** |
 | **長按 OK 鍵 (App 清單)** | 開啟選單：**設為自動啟動**、解除安裝、停用、應用程式資訊 |
-| **數字鍵 `1` / `2` / `3`** | **秒切快捷鍵**：無視當前焦點，立即切換至對應 HDMI 1 / 2 / 3 |
-| **選單鍵 (MENU)** | 開啟「自動開啟訊號源倒數秒數」設定對話框 |
+| **數字鍵 `1` / `2` / `3`** | **秒切快捷鍵**：在 Launcher 桌面或 Viewer 播放器中均可直切 HDMI 1 / 2 / 3 |
+| **選單鍵 (MENU)** | 開啟倒數設定對話框（桌面）/ 關閉並返回桌面（播放器） |
 | **設定鍵 (SETTINGS)** | 一鍵呼叫 TCL 原生設定選單 (`com.tcl.settings`) |
-| **返回鍵 (BACK)** | 應用程式清單中返回主畫面 |
+| **返回鍵 (BACK)** | 離開對話框，或從播放器/應用程式清單返回桌面 |
 
 ---
 
@@ -228,35 +241,68 @@ adb shell pm disable-user --user 0 <tcl.launcher.package.name>
    - **第 1 次電源鍵**：電視螢幕關閉，進入休眠狀態（`interactive=false`）。
    - **第 2 次電源鍵**（約 95ms 後到達）：此時電視已在睡眠中，這第二下電源鍵**立刻把剛睡著的電視敲醒**（甚至被 Android 系統辨識為雙擊電源鍵手勢）！
 
-> [!CAUTION]
-> **⚠️ 絕對不要停用整個 `com.tcl.tv` 套件！**  
-> 在 TCL 電視上，HDMI 1/2/3 訊號源的直通播放與視訊渲染容器正是由 `com.tcl.tv.TVActivity` 負責。若直接執行 `pm disable com.tcl.tv`，將導致 HDMI 畫面完全黑屏無法顯示。
+#### 終極治本解法：直接完整停用 `com.tcl.tv`（現已 100% 安全！）
 
-> [!NOTE]
-> **為什麼不能使用 App 程式碼軟體防抖/自動熄屏看門狗？**  
-> 若在 Launcher App 內嘗試以軟體計時防抖或呼叫鎖定螢幕（`GLOBAL_ACTION_LOCK_SCREEN`），會因為 Android 待機喚醒與開機過程中系統電源狀態（`isInteractive`）轉換時序重疊，**反向導致 Launcher 在正常開機或喚醒時無法正常自動啟動**。因此，從系統層面精準停用異常組件，才是最乾淨、零副作用的根本解法。
+由於本專案現已內建原生 HDMI 播放器（`HdmiViewerActivity`，基於 Android TIF `android.media.tv.TvView` 獨立渲染），**系統已不再需要 `com.tcl.tv` 提供任何畫面！**
 
-#### 治本解法：透過 ADB 精準停用異常廣播組件（100% 不影響 HDMI 畫面）
-Android 支援**個別組件層級**的停用。執行以下指令**僅停用偷按電源鍵的廣播接收器**，即可杜絕連擊誤喚醒，同時 100% 完整保留 HDMI 畫面播放：
+您可以毫無顧忌地直接停用原廠整包電視 App，完全不必擔心 HDMI 畫面黑屏或無法顯示：
 
 ```bash
-# 1. 精準停用偷按電源鍵的廣播接收器（HDMI 視訊直通播放 100% 正常）
-adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver
+# 1. 完整停用整個 TCL 原廠電視 App 套件（徹底根除待機重啟與廣告騷擾）
+adb shell pm disable-user --user 0 com.tcl.tv
 
-# 2. （可選加強）停用背景按鍵注入服務
-adb shell pm disable com.tcl.tv/.service.GlobalKeyService
-
-# 3. （可選）關閉系統電源鍵雙擊手勢（防止 95ms 雙擊誤判定）
+# 2. （可選）關閉系統電源鍵雙擊手勢（防止 95ms 雙擊誤判定）
 adb shell settings put secure camera_double_tap_power_gesture_disabled 1
 ```
 
+> [!NOTE]
+> **重要概念區分：`com.tcl.tv` vs `com.tcl.tvinput`**  
+> - `com.tcl.tv`：原廠電視前台 App / UI 播放器（含 `TVActivity`、頻道橫幅廣告與惹禍的 `VoicePowerBroadcastReceiver`）。**現在可完全停用！**  
+> - `com.tcl.tvinput`：底層硬體驅動服務（`TvPassThroughService`），負責驅動晶片上的 HDMI Rx 實體訊號與 HDCP 解密。**此服務必須保留！**
+
 > [!TIP]
-> **隨時可無損還原：**  
-> 如日後需恢復 TCL 原廠預設行為，隨時可透過以下指令重新啟用：  
-> `adb shell pm enable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`  
-> `adb shell pm enable com.tcl.tv/.service.GlobalKeyService`
+> **替代方案：個別組件停用（若您仍想保留原廠電視 App 介面）：**  
+> 若您暫時不想停用整包 App，亦可僅停用偷按電源鍵的廣播接收器：  
+> `adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`  
+> `adb shell pm disable com.tcl.tv/.service.GlobalKeyService`
 
 ---
+
+### 步驟 7：（重要排查）解決 Dolby Vision / HDR 10 原廠 Toast 橫幅殘留與卡死問題
+
+#### 問題現象
+外接設備（如 Apple TV 4K、PS5、Xbox）切換為 Dolby Vision 或 HDR 格式時，電視畫面右上角會彈出原廠的 Dolby Vision / HDR 標籤。在非原廠電視 App 前台時，該橫幅往往**一直停留卡死在畫面上無法自動消失**，且即使執行過 `pm disable com.tcl.tv`，該橫幅依然會出現。
+
+#### 原因深度剖析（DEX 反編譯追蹤結果）
+1. **系統級常駐程序無法停用**：
+   `com.tcl.tv` 在系統中宣告為 `android:persistent="true"` 且使用系統最高權限 `uid=1000 (system)`。即使執行 `pm disable` 或 `kill`，Android Zygote 也會在幾毫秒內將其無條件自動拉起。
+2. **自動消失邏輯判斷失常**：
+   反編譯 `/product/app/TIF_LiveTV/TIF_LiveTV.apk`（`com.tcl.tv`）與 `/product/app/SystemSettings/SystemSettings.apk`（`com.tcl.settings`）的 DEX 字節碼發現：
+   - 當訊號源轉為 HDR / Dolby Vision 時，底層 `tcl_system_server` 會連續廣播 `com.tcl.Hdr`。
+   - `com.tcl.tv` 內部的 `DolbyToast` 會透過 `WindowManager.addView` 建立名為 `Toast` 的懸浮視窗（`CToast`）。
+   - 關鍵在於 `DolbyToast.checkShowDolby()` 檢查了 `isTVTop`（判斷目前前台是否為原廠 `com.tcl.tv.TVActivity`）。當使用第三方 Launcher 或獨立 HDMI Viewer 時，`isTVTop == false`，導致自動定時延遲移除（`mHide`）的邏輯失常、被覆蓋或取消，視窗因而**永久殘留懸掛在畫面上**。
+   - 同時 `com.tcl.settings.receiver.HdrReceiver` 也收到廣播並重複觸發 `Toast.show()`，造成多重橫幅覆蓋。
+
+#### 終極治本解法：透過 AppOps 精準封鎖浮動視窗與 Toast 權限
+
+Android 系統內建了強大的底層權限控管機制（`appops`）。經實測分析：
+- **`com.tcl.tv`**：原廠電視 App 的 DolbyToast 是透過自訂懸浮視窗（`CToast`，`SYSTEM_ALERT_WINDOW`）卡死在畫面上。**必須全面封鎖其懸浮視窗與 Toast 權限**。
+- **`com.tcl.settings`**：原廠畫質/音效設定選單本身是採用系統懸浮窗（`type:2003`）渲染，因此**必須保留 `SYSTEM_ALERT_WINDOW`，僅封鎖 `TOAST_WINDOW`**，即可精準阻絕其 `HdrReceiver` 彈出 Toast，同時 100% 完整保留右上角 TCL 原廠畫質/音效設定功能！
+
+請透過 ADB 執行以下精確配置：
+
+```bash
+# 1. 徹底封鎖 com.tcl.tv 彈出懸浮視窗與 Toast（解決 DolbyToast 卡死殘留）
+adb shell appops set com.tcl.tv SYSTEM_ALERT_WINDOW deny
+adb shell appops set com.tcl.tv TOAST_WINDOW deny
+
+# 2. 封鎖 com.tcl.settings 的 Toast 權限（保留系統懸浮窗以維持設定選單正常彈出）
+adb shell appops set com.tcl.settings TOAST_WINDOW deny
+adb shell appops set com.tcl.settings SYSTEM_ALERT_WINDOW allow
+```
+
+> [!NOTE]
+> `appops` 的設定會直接永久儲存在電視的 `/data/system/appops.xml` 中，**電視重新開機後依然永久生效**。
 
 ## 運作原理架構
 
@@ -264,39 +310,36 @@ adb shell settings put secure camera_double_tap_power_gesture_disabled 1
 電視開機 / 睡眠喚醒 / 按 Home 鍵
                 │
                 ▼
-      MainActivity.onCreate()
+       MainActivity.onCreate()
                 │
         ┌───────┴───────┐
         ▼               ▼
-  [無人操作 (預設)]  [用戶操作]
+   [無人操作 (預設)]  [用戶操作]
         │               │
    倒數 N 秒結束   遙控器按 1/2/3 或 OK
         │               │
         └───────┬───────┘
                 │
                 ▼
-TvContract.buildChannelUriForPassthroughInput(HDMI_INPUT_ID)
+    HdmiViewerActivity (TvView)
                 │
-                ├─ 成功 ──► startActivity(Intent(ACTION_VIEW, uri))
-                │             │
-                │             ▼
-                │        finishAndRemoveTask()
-                │       (記憶體 100% 釋放，TV 零常駐)
+                ├─ 直接調諧 ──► TvView.tune(inputId, channelUri)
+                │                      │
+                │                      ▼
+                │               硬體覆蓋層直通解碼
+                │          (4K 60Hz, HDR10, Dolby Vision)
+                │                      │
+                │             [按 1/2/3：秒切其他 HDMI]
+                │             [按 返回/選單：退出回桌面]
                 │
-                └─ 冷開機硬體未就緒
-                      │
-                      ▼
-                  Handler.postDelayed(1500ms)
-                      │
-                      ▼
-                  重試並完成跳轉
+                └─ 冷開機硬體未就緒 ──► 自動延遲重試最多 3 次 (1500ms)
 ```
 
 **關鍵設計原則：**
-- `finishAndRemoveTask()` — 切換成功後即刻終止 Activity，不佔用背景記憶體。
+- **零 OEM 原廠 App 依賴**：透過 `TvView.tune()` 直通 Android TIF 硬體 Passthrough 管線，徹底擺脫 `com.tcl.tv` 的臃腫、廣告與 Bug。
 - `excludeFromRecents="true"` — 不污染多工清單。
 - `singleTask` — 防止多重實例堆疊。
-- 非阻塞 Handler 重試 — 冷開機 TV 底層服務初始化時自動容錯。
+- 非阻塞 Handler 重試 — 冷開機 TV 底層硬體輸入服務初始化時自動容錯。
 
 ---
 

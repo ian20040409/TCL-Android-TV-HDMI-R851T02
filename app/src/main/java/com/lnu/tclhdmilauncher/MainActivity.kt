@@ -624,13 +624,8 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private fun switchTo(port: Int, fromTimer: Boolean) {
         if (fromTimer && (!isActivityResumed || !hasWindowFocus() || isFinishing)) return
 
-        val intent = when (port) {
-            1 -> INTENT_HDMI1
-            2 -> INTENT_HDMI2
-            else -> INTENT_HDMI3
-        }
-
         try {
+            val intent = HdmiViewerActivity.createIntent(this, port)
             startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Switch failed: ${e.message}")

@@ -73,6 +73,19 @@ If any of the following describes your home theater setup, this launcher was bui
 8. **App Mode & Auto-Open App**:
    - Single-click toggle for "App Mode" on the top status bar. When enabled, booting or pressing Home opens the App Drawer directly.
    - Long-press any app in the App Drawer to set it to "Auto-Open". After the countdown timer expires, it automatically launches that app (e.g. YouTube, Netflix, Plex).
+9. **Self-Contained Native HDMI Viewer (`TvView`) — Zero Dependency on `com.tcl.tv`**:
+   - Includes a built-in fullscreen HDMI Viewer (`HdmiViewerActivity`) powered directly by Android's TV Input Framework (`android.media.tv.TvView`).
+   - Completely eliminates dependency on TCL's factory TV player (`com.tcl.tv.TVActivity`).
+   - Full 4K @ 60Hz, HDR10, and Dolby Vision passthrough with hardware overlay decoding.
+   - **Signal Search UI & Smart Diagnostic Mechanism**:
+     - **Searching Animation**: Clean pure-black overlay with a rotating spinner and "Searching for signal…" during chip lock.
+     - **Connection Badge**: Smooth fade-out once signal locks, displaying a brief "HDMI X • Connected" badge in the top-right.
+     - **No-Signal Diagnostics**: Automatically displays troubleshooting hints if no signal after 6 seconds, supporting **OK to Refresh**, **1/2/3 to Switch**, or **Back to Exit**.
+     - **Hot-Plug & Power-On Detection**: Automatically wakes up and displays video seamlessly when a source device powers on.
+   - **Independent Task Window & Deterministic Hardware ID Mapping**:
+     - Utilizes an independent task window stack (`FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_MULTIPLE_TASK` with custom `taskAffinity`) to isolate playback lifecycle from the launcher.
+     - Maps directly to R851T02 hardware chip inputs (`HW1413744128`, `HW1413744384`, `HW1413744640`) with full `onNewIntent` handling, fixing the OEM TIF bug where CEC/AV inputs distorted string sorting and caused HDMI 1/2 to switch to HDMI 3.
+   - You can now **safely disable `com.tcl.tv` entirely** via ADB without losing HDMI display capability!
 
 ---
 
@@ -104,7 +117,7 @@ If any of the following describes your home theater setup, this launcher was bui
   - **Display Panel**: 65" 4K UHD (3840 × 2160) Quantum Dot QLED, 60Hz, Dolby Vision / HDR10+ support
   - **HDMI Ports**: 3 physical HDMI 2.0 ports (HDCP 2.2, HDMI-ARC / CEC supported)
   - **CPU & Architecture**: Quad-core ARM Cortex-A55 processor (32-bit user space armv7l), 2 GB RAM / 16 GB ROM
-  - **System OS**: Android TV 9.0 / Android TV 11
+  - **System OS**: Android TV 11 (Android R)
   - **Test Results**: Sub-millisecond HDMI 1 ~ 3 input switching, automatic countdown transition, boot default input persistence, remote controls (number keys / menu / settings) 100% verified.
 
 ## Physical Device Input Mapping Table (R851T02 / C715 Tested)
@@ -141,10 +154,10 @@ adb shell am start -a android.intent.action.VIEW \
 | **OK / Enter** | Switch immediately to focused HDMI input (or launch selected app) |
 | **Long-Press OK (Main View)** | Set currently focused HDMI port as the **default startup input** |
 | **Long-Press OK (App Drawer)** | Open management dialog: **Set as Auto-Open**, Uninstall, Disable, App Info |
-| **Number Keys `1` / `2` / `3`** | **Instant Switch**: Jump straight to HDMI 1 / 2 / 3 regardless of current focus |
-| **MENU** | Open the "Auto-Switch Countdown Timer" configuration dialog |
-| **SETTINGS** | Instantly launch native TCL settings (`com.tcl.settings`) |
-| **BACK** | Exit dialogs or return to launcher main view |
+| **Number Keys `1` / `2` / `3`** | **Instant Switch**: Jump straight to HDMI 1 / 2 / 3 in both Launcher and Viewer |
+| **MENU** | Open countdown settings (Launcher) / Return to Launcher (Viewer) |
+| **SETTINGS** | Launch native TCL settings (`com.tcl.settings`) |
+| **BACK** | Exit dialogs / return to launcher from Viewer or App Drawer |
 
 ---
 
@@ -229,33 +242,68 @@ When putting the TV into standby via Apple TV or other HDMI-CEC connected device
    - **First Key Press**: The TV screen turns off and enters sleep mode (`interactive=false`).  
    - **Second Key Press** (~95ms later): Arrives while the device is sleeping, which **immediately wakes the TV back up** (and can even trigger Android's double-press power button camera gesture)!
 
-> [!CAUTION]
-> **⚠️ Do NOT disable the entire `com.tcl.tv` package!**  
-> On TCL Android TVs, HDMI 1/2/3 passthrough playback and video rendering are hosted inside `com.tcl.tv.TVActivity`. Disabling the entire package will completely break HDMI video display.
+#### The Ultimate Solution: Completely Disable `com.tcl.tv` (Now 100% Safe!)
 
-> [!NOTE]
-> **Why an In-App Software Watchdog / Sleep Debounce is Not Recommended:**  
-> Attempting to detect this in an app and force sleep via `GLOBAL_ACTION_LOCK_SCREEN` or suppress wakeups with a debounce timer causes false positives due to overlapping `isInteractive` state transitions during normal boots and wakes—**preventing the Launcher from auto-starting reliably on legitimate power-ons**. Disabling the rogue component at the OS level is the only clean, side-effect-free solution.
+Because this app now includes a built-in native HDMI Viewer (`HdmiViewerActivity`) using Android TIF (`android.media.tv.TvView`), **you no longer need `com.tcl.tv` at all!**
 
-#### The Permanent Solution: Disable the Rogue Key-Injection Component via ADB
-Android allows disabling individual components within a package. Disabling **only the broadcast receiver that injects the duplicate power key** fixes the glitch completely without affecting HDMI passthrough playback:
+You can completely disable the entire factory TV package with zero fear of breaking HDMI video:
 
 ```bash
-# 1. Disable the rogue power broadcast receiver (HDMI video playback remains 100% intact)
-adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver
+# 1. Completely disable the entire factory com.tcl.tv package
+adb shell pm disable-user --user 0 com.tcl.tv
 
-# 2. (Optional) Disable the background key-injection service
-adb shell pm disable com.tcl.tv/.service.GlobalKeyService
-
-# 3. (Optional) Disable double-tap power camera gesture
+# 2. (Optional) Disable double-tap power camera gesture
 adb shell settings put secure camera_double_tap_power_gesture_disabled 1
 ```
 
+> [!NOTE]
+> **Difference between `com.tcl.tv` and `com.tcl.tvinput`:**  
+> - `com.tcl.tv`: OEM Live TV / UI player app containing `TVActivity`, ads, channel banners, and the buggy `VoicePowerBroadcastReceiver`. **Safe to disable!**  
+> - `com.tcl.tvinput`: Low-level hardware HAL service (`TvPassThroughService`) driving the Realtek RTD2851 HDMI Rx chip. **Must remain enabled.**
+
 > [!TIP]
-> **Reversible at any time:**  
-> If you ever want to restore factory default behavior, simply run:  
-> `adb shell pm enable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`  
-> `adb shell pm enable com.tcl.tv/.service.GlobalKeyService`
+> **Alternative Component-Only Disabling (If you still want to keep factory TV app):**  
+> If you prefer not to disable the entire package:  
+> `adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`  
+> `adb shell pm disable com.tcl.tv/.service.GlobalKeyService`
+
+---
+
+### Step 7: (Troubleshooting) Fix Stuck Dolby Vision / HDR 10 OEM Toast Notification
+
+#### Problem
+When switching an external source (Apple TV 4K, PS5, Xbox) to Dolby Vision or HDR formats, TCL's system overlays an OEM Dolby Vision / HDR banner in the top-right corner. When running a custom launcher or standalone viewer, this banner frequently **stays permanently frozen on the screen and never dismisses**, even if `com.tcl.tv` was disabled via `pm disable`.
+
+#### Root Cause (DEX Decompilation Analysis)
+1. **Persistent System UID Process Cannot Be Killed**:  
+   `com.tcl.tv` declares `android:persistent="true"` with system privilege `uid=1000 (system)`. Even after `pm disable` or `kill`, Android Zygote immediately respawns it within milliseconds.
+2. **Broken Auto-Dismissal Timer Logic**:  
+   Decompiling `/product/app/TIF_LiveTV/TIF_LiveTV.apk` (`com.tcl.tv`) and `/product/app/SystemSettings/SystemSettings.apk` (`com.tcl.settings`) reveals:
+   - When the hardware detects HDR/Dolby Vision mode changes, `tcl_system_server` broadcasts `com.tcl.Hdr`.
+   - `com.tcl.tv`'s `DolbyToast` class calls `WindowManager.addView` to insert a floating overlay (`CToast`).
+   - Critically, `DolbyToast.checkShowDolby()` checks `isTVTop` (whether `com.tcl.tv.TVActivity` is currently the foreground app). When a third-party launcher or standalone HDMI viewer is active, `isTVTop == false`. This breaks or cancels the scheduled dismiss timer (`mHide`), leaving the floating window **permanently stuck on screen**.
+   - Concurrently, `com.tcl.settings.receiver.HdrReceiver` intercepts the broadcast and invokes `Toast.show()`, compounding the visual clutter.
+
+#### The Ultimate Solution: Granular AppOps Permission Configuration
+
+Android features a powerful permission manager (`appops`). Detailed testing reveals:
+- **`com.tcl.tv`**: The stuck DolbyToast is a custom overlay window (`CToast`, `SYSTEM_ALERT_WINDOW`). **Both overlay and toast permissions must be denied.**
+- **`com.tcl.settings`**: The TCL picture/sound settings menu itself renders as a system overlay (`type:2003`). Therefore, **we must keep `SYSTEM_ALERT_WINDOW allow` and only deny `TOAST_WINDOW`**. This suppresses `HdrReceiver`'s toast while keeping the native picture/audio adjustment dialog 100% functional!
+
+Run the following commands via ADB:
+
+```bash
+# 1. Completely block overlay and toast permissions for com.tcl.tv (kills stuck DolbyToast)
+adb shell appops set com.tcl.tv SYSTEM_ALERT_WINDOW deny
+adb shell appops set com.tcl.tv TOAST_WINDOW deny
+
+# 2. Block only toast permission for com.tcl.settings (preserves native settings menu)
+adb shell appops set com.tcl.settings TOAST_WINDOW deny
+adb shell appops set com.tcl.settings SYSTEM_ALERT_WINDOW allow
+```
+
+> [!NOTE]
+> `appops` modifications are written directly to the TV's `/data/system/appops.xml` and **persist across reboots**.
 
 ---
 
@@ -265,7 +313,7 @@ adb shell settings put secure camera_double_tap_power_gesture_disabled 1
 TV Power-On / Sleep Wake / Home Button
                 │
                 ▼
-      MainActivity.onCreate()
+       MainActivity.onCreate()
                 │
         ┌───────┴───────┐
         ▼               ▼
@@ -276,28 +324,25 @@ TV Power-On / Sleep Wake / Home Button
         └───────┬───────┘
                 │
                 ▼
-TvContract.buildChannelUriForPassthroughInput(HDMI_INPUT_ID)
+    HdmiViewerActivity (TvView)
                 │
-                ├─ Success ──► startActivity(Intent(ACTION_VIEW, uri))
-                │               │
-                │               ▼
-                │          finishAndRemoveTask()
-                │       (Memory 100% freed, 0 background footprint)
+                ├─ Direct Tune ──► TvView.tune(inputId, channelUri)
+                │                         │
+                │                         ▼
+                │                  Hardware Overlay
+                │            (4K 60Hz, HDR10, Dolby Vision)
+                │                         │
+                │             [Press 1/2/3: Instant Switch]
+                │             [Press BACK:  Exit to Launcher]
                 │
-                └─ Hardware cold boot not ready
-                        │
-                        ▼
-                    Handler.postDelayed(1500ms)
-                        │
-                        ▼
-                    Retry switch to HDMI
+                └─ Cold boot not ready ──► Retry up to 3 times (1500ms delay)
 ```
 
 **Architectural Principles:**
-- `finishAndRemoveTask()` — Activity exits completely upon switching, freeing 100% memory.
+- **Zero OEM App Dependency**: Directly binds to Android TIF hardware passthrough pipeline via `TvView.tune()`, eliminating all `com.tcl.tv` bloat, ads, and bugs.
 - `excludeFromRecents="true"` — Prevents cluttering recent apps.
 - `singleTask` — Avoids duplicate Activity stack creation.
-- Non-blocking Handler retry — Built-in fault tolerance while system TV services initialize on cold boot.
+- Non-blocking Handler retry — Built-in fault tolerance while system TV input services initialize on cold boot.
 
 ---
 

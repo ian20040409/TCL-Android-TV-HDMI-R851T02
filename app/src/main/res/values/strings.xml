@@ -79,4 +79,9 @@
     <string name="toast_auto_open_cleared">Boot/wake auto-open app cleared</string>
     <string name="badge_auto_open">● Auto-Start</string>
     <string name="auto_open_countdown_banner">Auto-opening %2$s in %1$ds (Press D-pad to cancel)</string>
+
+    <!-- HDMI Status HUD -->
+    <string name="hdmi_searching_signal">HDMI %d • Searching for signal...</string>
+    <string name="hdmi_no_signal">HDMI %d • No Signal</string>
+    <string name="hdmi_signal_connected">HDMI %d • Connected</string>
 </resources>

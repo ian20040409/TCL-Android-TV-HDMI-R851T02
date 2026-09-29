@@ -66,7 +66,7 @@ class TclHdmiApplication : Application() {
                     val retryAction = object : Runnable {
                         var retriesLeft = 2
                         override fun run() {
-                            val isFocused = MainActivity.isForegroundFocused || AppListActivity.isForegroundFocused
+                            val isFocused = MainActivity.isForegroundFocused || AppListActivity.isForegroundFocused || HdmiViewerActivity.isForegroundFocused
                             if (!isFocused && retriesLeft > 0) {
                                 retriesLeft--
                                 Log.i(TAG, "Launcher not yet focused, re-asserting focus...")

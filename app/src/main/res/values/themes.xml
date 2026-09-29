@@ -17,4 +17,17 @@
         <!-- 關閉視窗轉場動畫：Activity 切換 0ms 瞬間完成，不觸發額外 GPU 合成幀 -->
         <item name="android:windowAnimationStyle">@null</item>
     </style>
+
+    <!-- HDMI 直通播放專用主題：
+         1. windowBackground 設為 @android:color/transparent，允許 TvView 的底層視訊 Overlay 穿透打洞 (Punch Hole)。
+         2. windowIsTranslucent=true，使 SurfaceView / Sideband 渲染緩衝區正確對接硬體層。 -->
+    <style name="Theme.HdmiViewer" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
 </resources>

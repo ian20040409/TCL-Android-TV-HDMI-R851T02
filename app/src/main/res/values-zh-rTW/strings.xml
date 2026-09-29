@@ -79,4 +79,9 @@
     <string name="toast_auto_open_cleared">已取消自動啟動 App</string>
     <string name="badge_auto_open">● 自動啟動</string>
     <string name="auto_open_countdown_banner">%1$d 秒後自動啟動 %2$s（按方向鍵取消）</string>
+
+    <!-- HDMI 狀態提示 HUD -->
+    <string name="hdmi_searching_signal">HDMI %d • 正在偵測訊號...</string>
+    <string name="hdmi_no_signal">HDMI %d • 無訊號</string>
+    <string name="hdmi_signal_connected">HDMI %d • 訊號已連線</string>
 </resources>
