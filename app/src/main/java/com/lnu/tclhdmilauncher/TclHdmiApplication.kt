@@ -20,8 +20,6 @@ class TclHdmiApplication : Application() {
 
     companion object {
         private const val TAG = "TclHdmiApp"
-        @Volatile
-        private var lastBootOrWakeTime = 0L
 
         /**
          * 強制啟動並拉回 Launcher 至最前景（依 App Mode 設定進入 AppListActivity 或 MainActivity）
@@ -47,17 +45,24 @@ class TclHdmiApplication : Application() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
+    private var pendingRetryRunnable: Runnable? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    // 螢幕熄滅時，取消等待中的重新聚焦重試任務，避免在待機中誤觸發
+                    cancelPendingRetries()
+                }
+
                 Intent.ACTION_SCREEN_ON,
                 Intent.ACTION_USER_PRESENT -> {
                     Log.i(TAG, "Screen ON / User present detected in Application, waking to Launcher...")
-                    // 1. 立即喚醒拉回（標記為待機喚醒事件）
+                    // 1. 立即喚醒拉回
                     wakeToLauncher(context)
 
                     // 2. 針對 TCL 等電視底層 TV 輸入服務的延遲初始化，於 400ms 與 800ms 進行重試奪回
+                    cancelPendingRetries()
                     val retryAction = object : Runnable {
                         var retriesLeft = 2
                         override fun run() {
@@ -70,9 +75,17 @@ class TclHdmiApplication : Application() {
                             }
                         }
                     }
+                    pendingRetryRunnable = retryAction
                     handler.postDelayed(retryAction, 400L)
                 }
             }
+        }
+    }
+
+    private fun cancelPendingRetries() {
+        pendingRetryRunnable?.let {
+            handler.removeCallbacks(it)
+            pendingRetryRunnable = null
         }
     }
 
@@ -80,6 +93,7 @@ class TclHdmiApplication : Application() {
         super.onCreate()
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_USER_PRESENT)
         }
         registerReceiver(screenReceiver, filter)

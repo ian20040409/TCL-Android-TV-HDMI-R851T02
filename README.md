@@ -70,6 +70,9 @@ If any of the following describes your home theater setup, this launcher was bui
 7. **Essential TV Features Preserved**:
    - **TCL Settings Shortcut**: Single-click access to native TCL picture/audio adjustment pages.
    - **Lightweight App Drawer**: An ultra-fast, on-demand list for occasional built-in or sideloaded TV apps with recents and long-press uninstall/disable management.
+8. **App Mode & Auto-Open App**:
+   - Single-click toggle for "App Mode" on the top status bar. When enabled, booting or pressing Home opens the App Drawer directly.
+   - Long-press any app in the App Drawer to set it to "Auto-Open". After the countdown timer expires, it automatically launches that app (e.g. YouTube, Netflix, Plex).
 
 ---
 
@@ -130,8 +133,9 @@ adb shell am start -a android.intent.action.VIEW \
 | Remote Button | Action & Behavior |
 |---|---|
 | **D-Pad (Arrows)** | Move card focus; pressing any arrow key during countdown **cancels auto-switch** |
-| **OK / Enter** | Switch immediately to the currently focused HDMI input |
-| **Long-Press OK** | Set the currently focused HDMI port as the **default startup input** |
+| **OK / Enter** | Switch immediately to focused HDMI input (or launch selected app) |
+| **Long-Press OK (Main View)** | Set currently focused HDMI port as the **default startup input** |
+| **Long-Press OK (App Drawer)** | Open management dialog: **Set as Auto-Open**, Uninstall, Disable, App Info |
 | **Number Keys `1` / `2` / `3`** | **Instant Switch**: Jump straight to HDMI 1 / 2 / 3 regardless of current focus |
 | **MENU** | Open the "Auto-Switch Countdown Timer" configuration dialog |
 | **SETTINGS** | Instantly launch native TCL settings (`com.tcl.settings`) |
@@ -193,7 +197,7 @@ adb shell pm disable-user --user 0 <tcl.launcher.package.name>
 
 ---
 
-### Step 4: (Highly Recommended) Enable "Wake Guard & Home Button Mapper"
+### Step 5: (Highly Recommended) Enable "Wake Guard & Home Button Mapper"
 
 Enabling the Accessibility Service grants two system-level capabilities:
 1. **Standby Wake Guard**: Guaranteed 100% return to this Launcher on sleep wake (preventing AV input / no signal).
@@ -202,6 +206,51 @@ Enabling the Accessibility Service grants two system-level capabilities:
 **How to enable:**
 - In the Launcher top bar, click the "Wake Guard" button (`⚠️ Wake Guard: Off`) and select "Open Settings" (or manually go to TV Settings ➔ Device Preferences ➔ Accessibility).
 - Toggle **"HDMI Launcher Wake & Home Button Mapper"** to ON.
+
+---
+
+### Step 6: (Troubleshooting) Fix Apple TV / HDMI-CEC Standby Wake Glitch (Double-Power-Key Bug)
+
+#### Problem
+When putting the TV into standby via Apple TV or other HDMI-CEC connected devices, certain TCL TVs (such as C715 / RTD2851 platforms) may briefly turn off the screen, only to turn right back on within 1 second and launch the TCL TV app, or appear not to turn off at all.
+
+#### Root Cause (Logcat Analysis)
+1. **Apple TV Dual CEC Standby Commands**:  
+   Per HDMI-CEC specifications, when Apple TV goes to sleep, it sends two consecutive Standby frames within ~79ms (a broadcast frame `4F:36` followed by a unicast frame `40:36`).
+2. **TCL Firmware Flaw**:  
+   TCL's `TclPowerManagerService` dispatches a `com.tcl.voicestandby` broadcast for every standby command received.  
+   The built-in `com.tcl.tv` package has a `VoicePowerBroadcastReceiver` that intercepts this broadcast and **simulates pressing the hardware power button (`keyCode 4000 -> 26 KEYCODE_POWER`)**.
+3. **Double Power Key Injection Within 95ms**:  
+   - **First Key Press**: The TV screen turns off and enters sleep mode (`interactive=false`).  
+   - **Second Key Press** (~95ms later): Arrives while the device is sleeping, which **immediately wakes the TV back up** (and can even trigger Android's double-press power button camera gesture)!
+
+> [!CAUTION]
+> **⚠️ Do NOT disable the entire `com.tcl.tv` package!**  
+> On TCL Android TVs, HDMI 1/2/3 passthrough playback and video rendering are hosted inside `com.tcl.tv.TVActivity`. Disabling the entire package will completely break HDMI video display.
+
+> [!NOTE]
+> **Why an In-App Software Watchdog / Sleep Debounce is Not Recommended:**  
+> Attempting to detect this in an app and force sleep via `GLOBAL_ACTION_LOCK_SCREEN` or suppress wakeups with a debounce timer causes false positives due to overlapping `isInteractive` state transitions during normal boots and wakes—**preventing the Launcher from auto-starting reliably on legitimate power-ons**. Disabling the rogue component at the OS level is the only clean, side-effect-free solution.
+
+#### The Permanent Solution: Disable the Rogue Key-Injection Component via ADB
+Android allows disabling individual components within a package. Disabling **only the broadcast receiver that injects the duplicate power key** fixes the glitch completely without affecting HDMI passthrough playback:
+
+```bash
+# 1. Disable the rogue power broadcast receiver (HDMI video playback remains 100% intact)
+adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver
+
+# 2. (Optional) Disable the background key-injection service
+adb shell pm disable com.tcl.tv/.service.GlobalKeyService
+
+# 3. (Optional) Disable double-tap power camera gesture
+adb shell settings put secure camera_double_tap_power_gesture_disabled 1
+```
+
+> [!TIP]
+> **Reversible at any time:**  
+> If you ever want to restore factory default behavior, simply run:  
+> `adb shell pm enable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`  
+> `adb shell pm enable com.tcl.tv/.service.GlobalKeyService`
 
 ---
 
@@ -258,12 +307,12 @@ TvContract.buildChannelUriForPassthroughInput(HDMI_INPUT_ID)
 | Parameter | Value |
 |---|---|
 | `minSdk` | 25 (Android 7.1) |
-| `targetSdk` | 37 |
+| `targetSdk` | 36 |
 | `compileSdk` | 37 |
 | AGP | 9.2.1 |
 | Gradle | 9.4.1 (Java 25 JBR / Android Studio Ladybug+) |
 | Dependencies | **0 external dependencies** (100% native Android SDK) |
 | Theme Design | **Pure Black (`#000000`)**, ForceDark disabled |
 | Localization | English, Traditional Chinese (繁體中文), Simplified Chinese (简体中文) |
-| Release APK Size | Only **~9.0 KB** after R8 fullMode optimization |
+| Release APK Size | Only **~300 KB** after R8 fullMode optimization |
 | Resident Memory | **0 MB** (Task self-terminates via `finishAndRemoveTask()`) |

@@ -3,6 +3,7 @@ package com.lnu.tclhdmilauncher
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 
 /**
  * 開機 / 睡眠喚醒時自動啟動 MainActivity。
@@ -18,6 +19,10 @@ import android.content.Intent
  */
 class BootAndWakeReceiver : BroadcastReceiver() {
 
+    companion object {
+        private const val TAG = "BootAndWakeReceiver"
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
@@ -25,6 +30,7 @@ class BootAndWakeReceiver : BroadcastReceiver() {
             "android.intent.action.QUICKBOOT_POWERON",
             "com.htc.intent.action.QUICKBOOT_POWERON",
             Intent.ACTION_DREAMING_STOPPED -> {
+                Log.i(TAG, "Boot or wake broadcast received: ${intent.action}, waking to launcher")
                 TclHdmiApplication.wakeToLauncher(context)
             }
         }

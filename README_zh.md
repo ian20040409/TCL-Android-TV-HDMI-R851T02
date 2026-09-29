@@ -69,6 +69,9 @@
 7. **完整保留必要電視功能**：
    - **TCL 設定快捷鍵**：右上角獨立按鈕，一鍵開啟 TCL 原廠電視畫質/音效設定頁。
    - **輕量應用程式抽屜 (App Drawer)**：若偶爾需開啟內建智慧電視 App，內建極速清單，支援 TV/手機側載分類、最近使用與長按解除安裝/停用。
+8. **App 模式與應用程式自動啟動 (App Mode & Auto-Open)**：
+   - 頂部狀態列提供「App 模式」一鍵切換。開啟後，開機或按 Home 鍵預設直達應用程式抽屜。
+   - 在清單中「長按 OK」可將常用 App 設為「自動啟動」；開機倒數結束自動直達指定 App（如 YouTube、Netflix、動畫瘋等）。
 
 ---
 
@@ -129,8 +132,9 @@ adb shell am start -a android.intent.action.VIEW \
 | 按鍵 | 操作效果 |
 |---|---|
 | **方向鍵 (D-Pad)** | 移動卡片焦點；在倒數進行時按任意方向鍵可**取消自動跳轉** |
-| **OK / 確認鍵** | 立即切換至當前焦點選取的 HDMI 訊號源 |
-| **長按 OK 鍵** | 將當前 HDMI 卡片設為**開機預設訊號源** |
+| **OK / 確認鍵** | 立即切換至當前焦點選取的 HDMI 訊號源（或啟動 App） |
+| **長按 OK 鍵 (主畫面)** | 將當前 HDMI 卡片設為**開機預設訊號源** |
+| **長按 OK 鍵 (App 清單)** | 開啟選單：**設為自動啟動**、解除安裝、停用、應用程式資訊 |
 | **數字鍵 `1` / `2` / `3`** | **秒切快捷鍵**：無視當前焦點，立即切換至對應 HDMI 1 / 2 / 3 |
 | **選單鍵 (MENU)** | 開啟「自動開啟訊號源倒數秒數」設定對話框 |
 | **設定鍵 (SETTINGS)** | 一鍵呼叫 TCL 原生設定選單 (`com.tcl.settings`) |
@@ -192,7 +196,7 @@ adb shell pm disable-user --user 0 <tcl.launcher.package.name>
 
 ---
 
-### 步驟 4：（強烈建議）開啟「待機喚醒與 Home 鍵映射」
+### 步驟 5：（強烈建議）開啟「待機喚醒與 Home 鍵映射」
 
 在 TCL 等 Android TV 上，開啟無障礙服務將為本 App 賦予系統最高保障：
 1. **待機喚醒防掉源**：電視睡眠喚醒時 100% 強制返回本 Launcher 桌面（徹底避免掉入 HDMI 無訊號或 AV 端子）。
@@ -201,6 +205,51 @@ adb shell pm disable-user --user 0 <tcl.launcher.package.name>
 **啟用方式：**
 - 開啟 Launcher，頂部狀態列的「喚醒保障」若顯示 `⚠️ 喚醒保障: 未開啟`，按確認點選「前往設定」（或手動至電視「設定」➔「裝置偏好設定」➔「無障礙」）。
 - 將 **「HDMI Launcher 待機喚醒與 Home 鍵映射」** 開啟即可。
+
+---
+
+### 步驟 6：（重要排查）解決 Apple TV / HDMI-CEC 關機後電視自動喚醒或螢幕沒關
+
+#### 問題現象
+使用 Apple TV 或其他外接設備透過 HDMI-CEC 關機/待機時，部分 TCL 電視（如 C715 / RTD2851 平台）會出現**螢幕剛暗下不到 1 秒又立刻亮起並開啟 TCL TV App**，或者**看似沒關機**。
+
+#### 原因深度剖析（Logcat 追蹤結果）
+1. **Apple TV 的 CEC 待機連發機制**：
+   根據 HDMI-CEC 規範，Apple TV 休眠時會在 ~79ms 內連續發送兩筆 Standby 指令（一筆廣播 `4F:36`、一筆單播 `40:36`）。
+2. **TCL 原廠韌體的異常處理**：
+   TCL 底層 `TclPowerManagerService` 收到每筆指令時均會發送 `com.tcl.voicestandby` 廣播。
+   系統內建的 `com.tcl.tv` 套件中的 `VoicePowerBroadcastReceiver` 監聽到廣播後，會調用內部方法並**模擬注入硬體電源鍵（`keyCode 4000 -> 26 KEYCODE_POWER`）**。
+3. **95ms 內連續兩次電源鍵**：
+   - **第 1 次電源鍵**：電視螢幕關閉，進入休眠狀態（`interactive=false`）。
+   - **第 2 次電源鍵**（約 95ms 後到達）：此時電視已在睡眠中，這第二下電源鍵**立刻把剛睡著的電視敲醒**（甚至被 Android 系統辨識為雙擊電源鍵手勢）！
+
+> [!CAUTION]
+> **⚠️ 絕對不要停用整個 `com.tcl.tv` 套件！**  
+> 在 TCL 電視上，HDMI 1/2/3 訊號源的直通播放與視訊渲染容器正是由 `com.tcl.tv.TVActivity` 負責。若直接執行 `pm disable com.tcl.tv`，將導致 HDMI 畫面完全黑屏無法顯示。
+
+> [!NOTE]
+> **為什麼不能使用 App 程式碼軟體防抖/自動熄屏看門狗？**  
+> 若在 Launcher App 內嘗試以軟體計時防抖或呼叫鎖定螢幕（`GLOBAL_ACTION_LOCK_SCREEN`），會因為 Android 待機喚醒與開機過程中系統電源狀態（`isInteractive`）轉換時序重疊，**反向導致 Launcher 在正常開機或喚醒時無法正常自動啟動**。因此，從系統層面精準停用異常組件，才是最乾淨、零副作用的根本解法。
+
+#### 治本解法：透過 ADB 精準停用異常廣播組件（100% 不影響 HDMI 畫面）
+Android 支援**個別組件層級**的停用。執行以下指令**僅停用偷按電源鍵的廣播接收器**，即可杜絕連擊誤喚醒，同時 100% 完整保留 HDMI 畫面播放：
+
+```bash
+# 1. 精準停用偷按電源鍵的廣播接收器（HDMI 視訊直通播放 100% 正常）
+adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver
+
+# 2. （可選加強）停用背景按鍵注入服務
+adb shell pm disable com.tcl.tv/.service.GlobalKeyService
+
+# 3. （可選）關閉系統電源鍵雙擊手勢（防止 95ms 雙擊誤判定）
+adb shell settings put secure camera_double_tap_power_gesture_disabled 1
+```
+
+> [!TIP]
+> **隨時可無損還原：**  
+> 如日後需恢復 TCL 原廠預設行為，隨時可透過以下指令重新啟用：  
+> `adb shell pm enable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`  
+> `adb shell pm enable com.tcl.tv/.service.GlobalKeyService`
 
 ---
 
@@ -257,12 +306,12 @@ TvContract.buildChannelUriForPassthroughInput(HDMI_INPUT_ID)
 | 項目 | 規格值 |
 |---|---|
 | `minSdk` | 25 (Android 7.1) |
-| `targetSdk` | 37 |
+| `targetSdk` | 36 |
 | `compileSdk` | 37 |
 | AGP | 9.2.1 |
 | Gradle | 9.4.1 (相容 Java 25 JBR / Android Studio Ladybug+) |
 | 第三方依賴 | **0 依賴**（100% Android SDK 原生呼叫） |
 | 主題規範 | **強制純黑 Pure Black (#000000)**，禁用 ForceDark |
 | 國際化 | 支援 English、繁體中文 (TW/HK)、簡體中文 (CN) |
-| Release 體積 | R8 fullMode 混淆壓縮後僅約 **9.0 KB** |
+| Release 體積 | R8 fullMode 混淆壓縮後僅約 **300 KB** |
 | 背景記憶體 | 跳轉後呼叫 `finishAndRemoveTask()`，**0 背景常駐** |
