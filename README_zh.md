@@ -90,14 +90,19 @@
 ## 實測驗證裝置 (Tested Device)
 
 - **測試機型**：**TCL 65C715**（C715 系列 65 吋 4K QLED Android TV）
-- **機芯平台 (Chassis Platform)**：**RTD2851 / R851T02**（韌體版本識別前綴如 `V8-R851T02-LF1...`）
+- **機芯平台 (Chassis Platform)**：**RTD2851 / R851T02**
+  - **軟體版本**：`V8-R851T02-LF1V701.000031`
+  - **TV+OS 版本**：`V5.2.0 (V8-2112290-MF1V520)`
+  - **用戶端平台識別**：`TCL-AP-RT2851-S1`
+  - **產品 ID**：`660`
+  - **Linux 核心版本**：`4.14.236+ #2 SMP PREEMPT Tue Jan 18 20:32:54 CST 2022 armv7l`
   > [!NOTE]
   > **關於 R851T02 平台：**  
   > `R851T02` 是 TCL 廣泛應用於多款主力 Android TV（涵蓋 C715、P715、P615、S434 等系列）的晶片與主機板架構（Realtek RTD2851 方案）。凡是搭載 **R851T02 機芯架構** 的機型，其底層電視訊號輸入服務（`com.tcl.tvinput`）與 Passthrough 直通架構規格均高度統一。
 - **機型規格摘要**：
   - **螢幕面板**：65" 4K UHD (3840 × 2160) 量子點 QLED、60Hz、支援 Dolby Vision / HDR10+
   - **HDMI 配置**：共 3 組實體 HDMI 2.0 端子（支援 HDCP 2.2、HDMI-ARC / CEC）
-  - **處理器與記憶體**：4 核心 ARM Cortex-A55 處理器、2 GB RAM / 16 GB ROM
+  - **處理器與架構**：4 核心 ARM Cortex-A55 處理器（32 位元用戶空間 armv7l）、2 GB RAM / 16 GB ROM
   - **系統環境**：Android TV 9.0 / Android TV 11
   - **實測結果**：HDMI 1 ~ 3 訊號源微秒級切換、倒數計時自動跳轉、開機預設、遙控器按鍵（數字鍵/選單鍵/設定鍵）均 100% 驗證通過。
 
