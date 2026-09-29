@@ -130,6 +130,26 @@ If any of the following describes your home theater setup, this launcher was bui
 
 ### ADB Testing for Input Switching
 
+This project supports two methods for switching HDMI ports via ADB:
+
+#### Method 1: Explicit Component Launch (Recommended, Instant Direct Jump)
+
+```bash
+# Switch to HDMI 1
+adb shell am start -n com.lnu.tclhdmilauncher/.HdmiViewerActivity --ei port 1
+
+# Switch to HDMI 2
+adb shell am start -n com.lnu.tclhdmilauncher/.HdmiViewerActivity --ei port 2
+
+# Switch to HDMI 3
+adb shell am start -n com.lnu.tclhdmilauncher/.HdmiViewerActivity --ei port 3
+```
+
+#### Method 2: Standard Android TV Passthrough Intent (Implicit Intent Resolution)
+
+> [!NOTE]
+> `HdmiViewerActivity` declares filters for `android.media.tv` and MIME types `vnd.android.cursor.item/channel` & `vnd.android.cursor.dir/channel`. Even with `com.tcl.tv` fully disabled, these standard Android TV passthrough intents will be automatically resolved and handled by `HdmiViewerActivity`:
+
 ```bash
 # Switch to HDMI 1
 adb shell am start -a android.intent.action.VIEW \
@@ -306,6 +326,31 @@ adb shell appops set com.tcl.settings SYSTEM_ALERT_WINDOW allow
 > `appops` modifications are written directly to the TV's `/data/system/appops.xml` and **persist across reboots**.
 
 ---
+
+### Step 8: (Troubleshooting) Fix TCL TvView Hardware Passthrough Black Screen, Remote Freeze & Ghost HUD / Previous App Image Retention
+
+#### Symptom 1: Screen Completely Black & Remote Buttons Frozen Upon Entering HDMI
+- When entering `HdmiViewerActivity`, the display stays completely black with no video output, and pressing remote Back / number keys does nothing.
+- **Root Cause**:
+  1. `TvView` in hardware passthrough mode relies on punching a hole through the window to display the underlying video overlay directly. An opaque window background (such as `#000000` or an opaque root layout) completely blocks the hardware video plane from view.
+  2. The window or `tvView` loses focus, causing remote inputs to be swallowed or dropped by the system, appearing as if the app is frozen.
+- **Solution**:
+  - Use a dedicated transparent theme for `HdmiViewerActivity` (`Theme.HdmiViewer`: `windowBackground=@android:color/transparent`, `windowIsTranslucent=true`, `window.setFormat(PixelFormat.TRANSLUCENT)`).
+  - Set root layout background to transparent and explicitly request focus on `tvView` across lifecycle callbacks (`requestFocus()`).
+
+#### Symptom 2: Signal Search HUD Lingers as a Semi-Transparent "Ghost Overlay" or Previous App Still Visible in Background
+- **The TCL TIF Hardware Compositor Traps**:
+  1. **GPU Compositor Cache Freezing**: In a `windowIsTranslucent=true` window, standard view fade animations (`.animate().alpha(0f)`) often fail to flush the final frame on Realtek TV SoCs (RTD2851). The hardware compositor freezes the semi-transparent frame indefinitely, leaving a persistent ghost HUD.
+  2. **Separate Overlay Activity Pauses TvView**: Attempting to launch a separate transparent Activity for the signal search status puts the underlying `HdmiViewerActivity` into `onPause()`. Android TV instantly halts video decoding for non-foreground `TvView` instances, preventing `onVideoAvailable()` from ever firing and causing an infinite black screen deadlock.
+  3. **Previous App Punch-Through Bleed**: When entering the transparent HDMI viewer before video has locked, the transparent window exposes the cached graphics buffer of the launcher or previously opened app.
+- **The Ultimate Fix (CPU-Rendered Black Cover + Zero-Animation Instant Removal)**:
+  - Inside `HdmiViewerActivity`, render a CPU-backed opaque black cover (`blackCoverLayout`) immediately upon entering to cleanly block any previous app residue.
+  - Display search progress on this cover.
+  - The instant `onVideoAvailable()` confirms video lock, **bypass all alpha fade animations** and directly invoke **`rootLayout.removeView(blackCoverLayout)`** to rip the layout out of the View Tree entirely.
+  - This completely sidesteps the TV GPU's translucent compositor caching bug, guaranteeing 0 residue, 0 ghost overlays, and pristine instant HDMI video rendering!
+
+---
+
 
 ## How It Works
 

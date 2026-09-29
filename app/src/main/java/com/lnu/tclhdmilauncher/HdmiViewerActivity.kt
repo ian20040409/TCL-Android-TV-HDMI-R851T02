@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.media.tv.TvContract
 import android.media.tv.TvView
 import android.net.Uri
@@ -37,6 +36,7 @@ import android.widget.Toast
  * 3. 內建遙控器 1 / 2 / 3 數字鍵直接切換訊號源（無需返回桌面）
  * 4. 內建冷開機硬體重試機制（容錯最多 3 次）
  * 5. 按返回鍵或選單鍵無縫返回 Launcher
+ * 6. 純 CPU 黑色蓋板：搜尋訊號時用純黑覆蓋畫面防止前一個 App 殘影；出訊號時直接 removeView 徹底拔除，保證 0 殘留
  */
 class HdmiViewerActivity : Activity() {
 
@@ -61,20 +61,17 @@ class HdmiViewerActivity : Activity() {
             internal set
     }
 
+    private lateinit var rootLayout: FrameLayout
     private lateinit var tvView: TvView
-    private lateinit var hudContainer: LinearLayout
-    private lateinit var hudProgressBar: ProgressBar
-    private lateinit var hudTextView: TextView
+    private var blackCoverLayout: FrameLayout? = null
+    private var statusProgressBar: ProgressBar? = null
+    private var statusTextView: TextView? = null
+
     private var currentPort = 3
     private val handler = Handler(Looper.getMainLooper())
     private var retryCount = 0
     private val maxRetries = 3
     private var isVideoAvailable = false
-    private val hideHudRunnable = Runnable {
-        hudContainer.animate().alpha(0f).setDuration(400).withEndAction {
-            hudContainer.visibility = View.GONE
-        }.start()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,7 +81,7 @@ class HdmiViewerActivity : Activity() {
         window.setFormat(android.graphics.PixelFormat.TRANSLUCENT)
         hideSystemUI()
 
-        val root = FrameLayout(this).apply {
+        rootLayout = FrameLayout(this).apply {
             setBackgroundColor(Color.TRANSPARENT)
             isFocusable = true
             isFocusableInTouchMode = true
@@ -97,109 +94,115 @@ class HdmiViewerActivity : Activity() {
             setCallback(object : TvView.TvInputCallback() {
                 override fun onConnectionFailed(inputId: String?) {
                     Log.e(TAG, "TvView onConnectionFailed: $inputId")
-                    showSignalStatus(SignalState.NO_SIGNAL)
+                    showNoSignal()
                     handleTuneFailure()
                 }
 
                 override fun onDisconnected(inputId: String?) {
                     Log.w(TAG, "TvView onDisconnected: $inputId")
-                    showSignalStatus(SignalState.NO_SIGNAL)
+                    showNoSignal()
                 }
 
                 override fun onVideoAvailable(inputId: String?) {
                     Log.i(TAG, "TvView onVideoAvailable: $inputId (video rendering active)")
                     retryCount = 0
-                    isVideoAvailable = true
-                    showSignalStatus(SignalState.CONNECTED)
+                    if (!isVideoAvailable) {
+                        isVideoAvailable = true
+                        onSignalReady()
+                    }
                     tvView.post { tvView.requestFocus() }
                 }
 
                 override fun onVideoUnavailable(inputId: String?, reason: Int) {
                     Log.w(TAG, "TvView onVideoUnavailable: inputId=$inputId, reason=$reason")
-                    isVideoAvailable = false
-                    showSignalStatus(SignalState.SEARCHING)
                 }
             })
         }
 
-        root.addView(tvView)
-
-        // 建置頂層半透明訊號狀態提示 HUD (HUD Status Overlay)
-        hudContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            val density = resources.displayMetrics.density
-            val padH = (20 * density).toInt()
-            val padV = (12 * density).toInt()
-            setPadding(padH, padV, padH, padV)
-            background = GradientDrawable().apply {
-                setColor(0xCC1E1E1E.toInt())
-                cornerRadius = 14 * density
-                setStroke((1 * density).toInt(), 0x44FFFFFF)
-            }
-            layoutParams = FrameLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-                gravity = Gravity.TOP or Gravity.START
-                val margin = (40 * density).toInt()
-                setMargins(margin, margin, margin, margin)
-            }
-            elevation = 20f
-        }
-
-        hudProgressBar = ProgressBar(this).apply {
-            val size = (24 * resources.displayMetrics.density).toInt()
-            layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                marginEnd = (14 * resources.displayMetrics.density).toInt()
-            }
-            isIndeterminate = true
-        }
-
-        hudTextView = TextView(this).apply {
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-            typeface = Typeface.DEFAULT_BOLD
-            text = getString(R.string.hdmi_searching_signal, currentPort)
-        }
-
-        hudContainer.addView(hudProgressBar)
-        hudContainer.addView(hudTextView)
-        root.addView(hudContainer)
-
-        setContentView(root)
+        rootLayout.addView(tvView)
+        setContentView(rootLayout)
         tvView.requestFocus()
 
         resolveAndTune(intent)
     }
 
-    private enum class SignalState {
-        SEARCHING,
-        CONNECTED,
-        NO_SIGNAL
+    /**
+     * 建立純黑不透明全螢幕蓋板（CPU 繪製，無透明度），遮住前一個 App 殘影
+     */
+    private fun showBlackCover(port: Int) {
+        if (blackCoverLayout == null) {
+            val density = resources.displayMetrics.density
+
+            blackCoverLayout = FrameLayout(this).apply {
+                setBackgroundColor(Color.BLACK) // 純黑不透明遮擋
+                layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+            }
+
+            val infoContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = FrameLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+                    gravity = Gravity.TOP or Gravity.START
+                    val margin = (40 * density).toInt()
+                    setMargins(margin, margin, margin, margin)
+                }
+            }
+
+            statusProgressBar = ProgressBar(this).apply {
+                val size = (28 * density).toInt()
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    marginEnd = (14 * density).toInt()
+                }
+                isIndeterminate = true
+            }
+
+            statusTextView = TextView(this).apply {
+                setTextColor(0xFFFDE047.toInt()) // 琥珀黃
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                typeface = Typeface.DEFAULT_BOLD
+                text = getString(R.string.hdmi_searching_signal, port)
+            }
+
+            infoContainer.addView(statusProgressBar)
+            infoContainer.addView(statusTextView)
+            blackCoverLayout?.addView(infoContainer)
+
+            rootLayout.addView(blackCoverLayout)
+        } else {
+            statusProgressBar?.visibility = View.VISIBLE
+            statusTextView?.setTextColor(0xFFFDE047.toInt())
+            statusTextView?.text = getString(R.string.hdmi_searching_signal, port)
+        }
     }
 
-    private fun showSignalStatus(state: SignalState) {
-        handler.removeCallbacks(hideHudRunnable)
-        hudContainer.animate().cancel()
-        hudContainer.alpha = 1f
-        hudContainer.visibility = View.VISIBLE
+    /**
+     * 訊號已到達：顯示綠色已連線，並在極短時間後從 View Tree 徹底 removeView 移除黑幕！
+     * 不用 alpha 動畫，保證 0 殘留、0 浮層、100% 露出底下硬體 TvView！
+     */
+    private fun onSignalReady() {
+        statusProgressBar?.visibility = View.GONE
+        statusTextView?.setTextColor(0xFF86EFAC.toInt()) // 綠色
+        statusTextView?.text = getString(R.string.hdmi_signal_connected, currentPort)
 
-        when (state) {
-            SignalState.SEARCHING -> {
-                hudProgressBar.visibility = View.VISIBLE
-                hudTextView.text = getString(R.string.hdmi_searching_signal, currentPort)
-                hudTextView.setTextColor(0xFFFDE047.toInt()) // 琥珀黃
-            }
-            SignalState.CONNECTED -> {
-                hudProgressBar.visibility = View.GONE
-                hudTextView.text = getString(R.string.hdmi_signal_connected, currentPort)
-                hudTextView.setTextColor(0xFF86EFAC.toInt()) // 淺綠色
-                // 連線成功後 2.5 秒平滑淡出
-                handler.postDelayed(hideHudRunnable, 2500L)
-            }
-            SignalState.NO_SIGNAL -> {
-                hudProgressBar.visibility = View.GONE
-                hudTextView.text = getString(R.string.hdmi_no_signal, currentPort)
-                hudTextView.setTextColor(0xFFF87171.toInt()) // 淺紅色
-            }
+        handler.postDelayed({
+            removeBlackCover()
+        }, 800L)
+    }
+
+    private fun showNoSignal() {
+        showBlackCover(currentPort)
+        statusProgressBar?.visibility = View.GONE
+        statusTextView?.setTextColor(0xFFF87171.toInt()) // 紅色
+        statusTextView?.text = getString(R.string.hdmi_no_signal, currentPort)
+    }
+
+    private fun removeBlackCover() {
+        blackCoverLayout?.let {
+            rootLayout.removeView(it)
+            blackCoverLayout = null
+            statusProgressBar = null
+            statusTextView = null
+            Log.i(TAG, "blackCoverLayout completely removed from root layout")
         }
     }
 
@@ -237,6 +240,7 @@ class HdmiViewerActivity : Activity() {
 
     private fun tuneToPort(port: Int) {
         currentPort = port
+        isVideoAvailable = false
         val inputId = when (port) {
             1 -> HW_HDMI1
             2 -> HW_HDMI2
@@ -244,7 +248,10 @@ class HdmiViewerActivity : Activity() {
         }
 
         Log.i(TAG, "Tuning TvView to HDMI $port ($inputId)...")
-        showSignalStatus(SignalState.SEARCHING)
+
+        // 搜尋訊號前先鋪上純黑蓋板（防殘留）
+        showBlackCover(port)
+
         try {
             tvView.reset()
             val uri = TvContract.buildChannelUriForPassthroughInput(inputId)
@@ -259,12 +266,11 @@ class HdmiViewerActivity : Activity() {
         if (retryCount < maxRetries) {
             retryCount++
             Log.i(TAG, "Retrying tune in 1500ms (attempt $retryCount/$maxRetries)...")
-            showSignalStatus(SignalState.SEARCHING)
             handler.postDelayed({
                 tuneToPort(currentPort)
             }, 1500L)
         } else {
-            showSignalStatus(SignalState.NO_SIGNAL)
+            showNoSignal()
             Toast.makeText(this, getString(R.string.toast_switch_failed, currentPort), Toast.LENGTH_SHORT).show()
         }
     }

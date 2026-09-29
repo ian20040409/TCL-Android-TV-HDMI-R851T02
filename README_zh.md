@@ -129,6 +129,26 @@
 
 ### ADB 測試各訊號源切換
 
+本專案支援兩種 ADB 切換方式：
+
+#### 方式一：顯式組件極速切換（推薦，微秒級直達）
+
+```bash
+# 切換至 HDMI 1
+adb shell am start -n com.lnu.tclhdmilauncher/.HdmiViewerActivity --ei port 1
+
+# 切換至 HDMI 2
+adb shell am start -n com.lnu.tclhdmilauncher/.HdmiViewerActivity --ei port 2
+
+# 切換至 HDMI 3
+adb shell am start -n com.lnu.tclhdmilauncher/.HdmiViewerActivity --ei port 3
+```
+
+#### 方式二：標準 Android TV Passthrough 意圖（隱式廣播接管）
+
+> [!NOTE]
+> 本專案已在 `AndroidManifest.xml` 中宣告接管 `android.media.tv` 與 `vnd.android.cursor.item/channel` 意圖。即使已停用原廠 `com.tcl.tv`，下列標準 Android TV 指令亦可自動被本專案之 `HdmiViewerActivity` 攔截並無縫切換：
+
 ```bash
 # 切換 HDMI 1
 adb shell am start -a android.intent.action.VIEW \
@@ -303,6 +323,30 @@ adb shell appops set com.tcl.settings SYSTEM_ALERT_WINDOW allow
 
 > [!NOTE]
 > `appops` 的設定會直接永久儲存在電視的 `/data/system/appops.xml` 中，**電視重新開機後依然永久生效**。
+
+---
+
+### 步驟 8：（重要排查）解決 TCL TvView 影像穿透黑屏凍結與 HUD/前一個 App 殘影問題
+
+#### 問題現象 1：進入 HDMI 畫面全黑、遙控器按鍵失靈（凍結）
+- 進入 `HdmiViewerActivity` 後電視全黑無影像，且按遙控器返回鍵或數字鍵毫無反應。
+- **原因**：
+  1. `TvView` 在硬體 Passthrough 模式下是依賴底層硬體 Surface 穿透（Punch-hole Overlay）直接顯示影像。若 Activity 或根佈局帶有不透明背景（如全域 `#000000` 或純色佈局），會將底層硬體視訊完全遮蓋。
+  2. 視窗及 `TvView` 失去焦點（Focus），導致遙控器輸入被系統阻斷或卡在底層，造成按鍵凍結。
+- **解法**：
+  - `HdmiViewerActivity` 採用專屬透明主題（`Theme.HdmiViewer`：`windowBackground=@android:color/transparent`、`windowIsTranslucent=true`、`window.setFormat(PixelFormat.TRANSLUCENT)`），使硬體視訊順利穿透。
+  - 根佈局背景設為透明，並為 `tvView` 加上 `isFocusable = true` 與多生命週期主動要求焦點（`requestFocus()`）。
+
+#### 問題現象 2：搜尋訊號 UI 殘留透明殘影，或前一個 App 影像留在底層
+- **TCL Input Bug 陷阱**：
+  1. **GPU Compositor 快取殘留**：在 `windowIsTranslucent=true` 視窗下，若使用常見的 View 漸變動畫（`.animate().alpha(0f)`）隱藏 HUD，TCL 電視晶片（如 RTD2851）的硬體合成器會凍結最後一幀半透明快取，造成搜尋 HUD 半透明「幽靈浮層」永久殘留。
+  2. **獨立 Activity 導致 TvView 斷流**：若嘗試用獨立 Activity 顯示搜尋狀態，最上層的 Activity 會導致底下的 `HdmiViewerActivity` 進入 `onPause()`。Android TV 系統偵測到 Activity 退居背景時，會立即中斷 `TvView` 的硬體訊號解碼，導致 `onVideoAvailable()` 永遠無法觸發而全黑卡死。
+  3. **透明視窗透出上一個 App**：電視底層視訊 Overlay 在剛切換且未出圖時，透明視窗會直接透出剛退出的前一個 App 或 Launcher 影像。
+- **終極解法（純黑蓋板 + 零動畫直接移除）**：
+  - 在 `HdmiViewerActivity` 同一 Activity 內建置一塊**純 CPU 繪製的純黑蓋板（`blackCoverLayout`）**，切換時即刻遮擋，完美解決前一個 App 的殘留影像。
+  - 當 `onVideoAvailable()` 收到 HDMI 訊號並握手成功後，**不走任何 Alpha 動畫**，而是直接呼叫 **`rootLayout.removeView(blackCoverLayout)`** 將蓋板徹底自 View Tree 中拔除。
+  - 完美避開電視 GPU 半透明合成快取 Bug，達成 0 殘留、0 浮層、瞬間還原乾淨流暢的 HDMI 視訊畫面！
+
 
 ## 運作原理架構
 

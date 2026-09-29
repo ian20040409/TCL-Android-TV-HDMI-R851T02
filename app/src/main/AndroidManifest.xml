@@ -86,7 +86,7 @@
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:launchMode="singleTask">
 
-            <!-- 系統標準 Passthrough 視訊意圖接管 -->
+            <!-- 系統標準 Passthrough 視訊意圖接管 (無 MIME Type 與含系統 TvProvider MIME Type) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -95,10 +95,25 @@
                     android:host="android.media.tv"
                     android:pathPrefix="/passthrough" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:scheme="content"
+                    android:host="android.media.tv"
+                    android:pathPrefix="/passthrough"
+                    android:mimeType="vnd.android.cursor.item/channel" />
+                <data
+                    android:scheme="content"
+                    android:host="android.media.tv"
+                    android:pathPrefix="/passthrough"
+                    android:mimeType="vnd.android.cursor.dir/channel" />
+            </intent-filter>
 
         </activity>
 
         <!-- 開機 / 睡眠喚醒自動啟動 Receiver -->
+
         <receiver
             android:name=".BootAndWakeReceiver"
             android:exported="true">
