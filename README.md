@@ -208,18 +208,16 @@ adb shell cmd package set-home-activity com.lnu.tclhdmilauncher/.MainActivity
 To completely prevent the factory launcher from running or waking in the background:
 
 ```bash
-# 1. Find TCL factory launcher package name
-adb shell pm list packages | grep -i launcher
-
-# 2. Disable the stock launcher (safe and reversible)
-adb shell pm disable-user --user 0 <tcl.launcher.package.name>
+# Disable the stock Android TV / Google TV Launcher (safe and reversible)
+adb shell pm disable-user --user 0 com.google.android.tvlauncher
+adb shell am force-stop com.google.android.tvlauncher
 ```
 
 > [!TIP]
 > **Completely Reversible:**  
-> If you ever want to restore the factory TCL launcher, simply run:
+> If you ever want to restore the factory launcher, simply run:
 > ```bash
-> adb shell pm enable <tcl.launcher.package.name>
+> adb shell pm enable com.google.android.tvlauncher
 > adb shell cmd package clear-preferred-activities com.lnu.tclhdmilauncher
 > ```
 

@@ -209,18 +209,16 @@ adb shell cmd package set-home-activity com.lnu.tclhdmilauncher/.MainActivity
 若希望杜絕原生 Launcher 任何後台喚醒與資源佔用，可安全停用（非刪除，日後可無損還原）：
 
 ```bash
-# 1. 查詢 TCL 內建 Launcher 套件名稱
-adb shell pm list packages | grep -i launcher
-
-# 2. 停用 TCL 內建 Launcher（以查詢到的套件名為準）
-adb shell pm disable-user --user 0 <tcl.launcher.package.name>
+# 停用 Android TV 原廠桌面（安全且無損可逆）
+adb shell pm disable-user --user 0 com.google.android.tvlauncher
+adb shell am force-stop com.google.android.tvlauncher
 ```
 
 > [!TIP]
 > **隨時可無損還原：**  
-> 若日後需要換回 TCL 原廠桌面，只需執行：
+> 若日後需要換回原生 Android TV 桌面，只需執行：
 > ```bash
-> adb shell pm enable <tcl.launcher.package.name>
+> adb shell pm enable com.google.android.tvlauncher
 > adb shell cmd package clear-preferred-activities com.lnu.tclhdmilauncher
 > ```
 
