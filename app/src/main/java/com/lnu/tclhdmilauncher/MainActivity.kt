@@ -29,7 +29,6 @@ import android.view.accessibility.AccessibilityManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 
 /**
  * TCL TV HDMI 1 / 2 / 3 原生極致輕量 Launcher
@@ -175,7 +174,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private var secondsLeft = DEFAULT_COUNTDOWN_SECONDS
     private var countdownDialog: AlertDialog? = null
     private var wakeGuardDialog: AlertDialog? = null
-    private var hasShownWakeToastInSession = false
 
     private val handler = Handler(Looper.getMainLooper())
     private val tickRunnable = object : Runnable {
@@ -219,11 +217,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         } else if (isAppMode) {
             openAppList(immediate = true)
             return
-        }
-
-        if (!isAccessibilityServiceEnabled() && !hasShownWakeToastInSession) {
-            hasShownWakeToastInSession = true
-            Toast.makeText(this, getString(R.string.toast_wake_guard_hint), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -402,13 +395,11 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         if (isAppMode) {
             cancelTimer()
             updateCountdownText()
-            Toast.makeText(this, getString(R.string.toast_app_mode_on), Toast.LENGTH_SHORT).show()
             openAppList(immediate = false)
         } else {
             secondsLeft = countdownDuration
             isCancelled = false
             updateCountdownText()
-            Toast.makeText(this, getString(R.string.toast_app_mode_off), Toast.LENGTH_SHORT).show()
             if (isActivityResumed && hasWindowFocus()) {
                 resumeTimerIfOnMainScreen()
             }
@@ -461,7 +452,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         updateButtonLabels()
         cancelTimer()
         tvCountdown.text = getString(R.string.msg_set_default, port)
-        Toast.makeText(this, getString(R.string.toast_set_default, port), Toast.LENGTH_SHORT).show()
     }
 
     private fun launchTclSettings() {
@@ -495,8 +485,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
                 // 繼續嘗試下一個候選 Intent
             }
         }
-
-        Toast.makeText(this, getString(R.string.toast_error_open_settings), Toast.LENGTH_SHORT).show()
     }
 
     private fun launchAndroidSystemSettings() {
@@ -522,8 +510,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
                 // 繼續嘗試下一個候選 Intent
             }
         }
-
-        Toast.makeText(this, getString(R.string.toast_error_open_settings), Toast.LENGTH_SHORT).show()
     }
 
     private fun pauseTimer() {
@@ -585,10 +571,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
                         2 -> cardHdmi2.requestFocus()
                         3 -> cardHdmi3.requestFocus()
                     }
-                    Toast.makeText(this, getString(R.string.toast_switching_hdmi, pressedPort), Toast.LENGTH_SHORT).show()
                     switchTo(pressedPort, fromTimer = false)
-                } else {
-                    Toast.makeText(this, getString(R.string.toast_hdmi_range_error), Toast.LENGTH_SHORT).show()
                 }
                 return true
             }
@@ -629,7 +612,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Switch failed: ${e.message}")
-            Toast.makeText(this, getString(R.string.toast_switch_failed, port), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -692,12 +674,10 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         if (seconds <= 0) {
             cancelTimer()
             tvCountdown.text = textDisabledCache.getOrElse(defaultPort) { textDisabledCache[3] }
-            Toast.makeText(this, getString(R.string.toast_countdown_off), Toast.LENGTH_SHORT).show()
         } else {
             secondsLeft = seconds
             isCancelled = false
             updateCountdownText()
-            Toast.makeText(this, getString(R.string.toast_countdown_set, seconds), Toast.LENGTH_SHORT).show()
             if (isActivityResumed && hasWindowFocus()) {
                 resumeTimerIfOnMainScreen()
             }

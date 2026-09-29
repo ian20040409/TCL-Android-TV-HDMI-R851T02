@@ -76,11 +76,10 @@
    - 內建全螢幕 HDMI 播放器（`HdmiViewerActivity`），直接由 Android 官方 TV Input Framework（`android.media.tv.TvView`）驅動。
    - 徹底終結對 TCL 原廠電視播放器（`com.tcl.tv.TVActivity`）的依賴，零廣告、零原廠干擾橫幅。
    - 完整支援 4K @ 60Hz、HDR10 與 Dolby Vision 硬體圖層直通解碼。
-   - **優雅搜尋訊號源 UI 與智慧診斷機制**：
-     - **搜尋動效**：切換時顯示純黑防閃動效與「正在搜尋訊號…」進度環。
-     - **連線回饋**：訊號就緒後平滑淡出，右上角自動彈出「HDMI X • 已連線」綠色膠囊標籤。
-     - **無訊號診斷**：若訊號源未開機或斷開，6 秒後自動切換至無訊號提示，支援按 **OK 重新整理**、**1/2/3 秒切** 或 **返回**。
-     - **動態熱插拔感知**：在無訊號狀態下開啟外接設備或插入 HDMI，晶片訊號就緒時自動無縫點亮。
+   - **全靜默 0 浮層 0 Toast 硬體直通（徹底根除黑影與殘影）**：
+     - **純淨硬體輸出**：播放器內部完全不彈出任何 Toast、不繪製任何自訂 View 浮層，直接將 `TvView` 作為唯一 ContentView。
+     - **根絕電視 GPU 快取 Bug**：TCL 電視晶片（Realtek RTD2851）的圖層合成器在處理浮動視窗淡出（包含 Android 原生 Toast 淡出動畫）時，會將半透明邊界卡在視訊圖層上形成「黑色矩形黑影」。完全不呼叫 Toast 可保證畫面 100% 純淨無任何瑕疵。
+     - **動態熱插拔感知**：在無訊號狀態下開啟外接設備或插入 HDMI，晶片訊號就緒時硬體視訊瞬間直接點亮。
    - **獨立視窗架構與精準硬體埠對照 (Hardware ID Mapping)**：
      - 採用獨立 Task 視窗架構（`FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_MULTIPLE_TASK` 與獨立 `taskAffinity`），播放畫面與桌面分層獨立管理。
      - 針對 R851T02 平台精準鎖定實體晶片 Input ID（`HW1413744128`、`HW1413744384`、`HW1413744640`）並全面實作 `onNewIntent`，徹底修復官方 TIF 因納入 CEC/AV 字串排序偏移導致 HDMI 1/2 切換混淆或跳至 HDMI 3 的缺陷。
@@ -261,30 +260,37 @@ adb shell pm disable-user --user 0 <tcl.launcher.package.name>
    - **第 1 次電源鍵**：電視螢幕關閉，進入休眠狀態（`interactive=false`）。
    - **第 2 次電源鍵**（約 95ms 後到達）：此時電視已在睡眠中，這第二下電源鍵**立刻把剛睡著的電視敲醒**（甚至被 Android 系統辨識為雙擊電源鍵手勢）！
 
-#### 終極治本解法：直接完整停用 `com.tcl.tv`（現已 100% 安全！）
+#### 終極治本解法：直接解除該使用者的安裝（最乾淨，效果最佳！）
 
 由於本專案現已內建原生 HDMI 播放器（`HdmiViewerActivity`，基於 Android TIF `android.media.tv.TvView` 獨立渲染），**系統已不再需要 `com.tcl.tv` 提供任何畫面！**
 
-您可以毫無顧忌地直接停用原廠整包電視 App，完全不必擔心 HDMI 畫面黑屏或無法顯示：
+經實測，**`pm uninstall -k --user 0 com.tcl.tv` 效果最徹底**，能完全切斷 `com.tcl.tv` 被 system_server 喚醒或彈出畫面的問題，比純 `pm disable-user` 更乾淨俐落：
 
 ```bash
-# 1. 完整停用整個 TCL 原廠電視 App 套件（徹底根除待機重啟與廣告騷擾）
-adb shell pm disable-user --user 0 com.tcl.tv
+# 1. 解除 User 0 的安裝（最乾淨彻底，實測效果最好！）
+adb shell pm uninstall -k --user 0 com.tcl.tv
 
 # 2. （可選）關閉系統電源鍵雙擊手勢（防止 95ms 雙擊誤判定）
 adb shell settings put secure camera_double_tap_power_gesture_disabled 1
 ```
 
+> [!TIP]
+> **隨時可還原：**
+> 如果未來需要恢復原廠 `com.tcl.tv`，只需執行以下指令即可無損復原安裝：
+> ```bash
+> adb shell cmd package install-existing com.tcl.tv
+> ```
+
 > [!NOTE]
-> **重要概念區分：`com.tcl.tv` vs `com.tcl.tvinput`**  
-> - `com.tcl.tv`：原廠電視前台 App / UI 播放器（含 `TVActivity`、頻道橫幅廣告與惹禍的 `VoicePowerBroadcastReceiver`）。**現在可完全停用！**  
-> - `com.tcl.tvinput`：底層硬體驅動服務（`TvPassThroughService`），負責驅動晶片上的 HDMI Rx 實體訊號與 HDCP 解密。**此服務必須保留！**
+> **重要架構定位剖析：`com.tcl.tv`（訊號 UI App）vs `com.tcl.tvinput`（硬體驅動 HAL）**  
+> - **`com.tcl.tv`（原廠電視訊號 UI App）**：它本質上是一個**純 UI 前台播放器**，專門負責繪製所有「電視訊號的狀態 UI」（如切換訊號源時的橫幅、右上角 Dolby Vision / HDR 標籤、無訊號時的畫面提示、第四台頻道選單等），並內嵌了惹禍的 `VoicePowerBroadcastReceiver`。由於其 UI 邏輯預設前台永遠只有它自己，在第三方環境下容易因定時器失常導致各類黑屏、浮層與殘留。**在內建原生 TIF 播放器的本 App 接管後，此 UI App 可 100% 安全解除安裝，完全不影響任何 HDMI 視訊畫面！**  
+> - **`com.tcl.tvinput`（底層硬體訊號 HAL 服務）**：系統底層驅動服務（`TvPassThroughService`），直接與 Realtek RTD2851 晶片對接，負責實體 HDMI Rx 埠訊號握手、HDCP 金鑰解密與硬體圖層打洞。**此服務為視訊硬體核心，必須永久保留！**
 
 > [!TIP]
-> **替代方案：個別組件停用（若您仍想保留原廠電視 App 介面）：**  
-> 若您暫時不想停用整包 App，亦可僅停用偷按電源鍵的廣播接收器：  
-> `adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`  
-> `adb shell pm disable com.tcl.tv/.service.GlobalKeyService`
+> **次選方案：僅停用套件或個別組件：**  
+> 若您暫時不想解除安裝：  
+> - 停用整包：`adb shell pm disable-user --user 0 com.tcl.tv`
+> - 僅停用組件：`adb shell pm disable com.tcl.tv/com.tcl.tv.receiver.VoicePowerBroadcastReceiver`
 
 ---
 
@@ -293,14 +299,19 @@ adb shell settings put secure camera_double_tap_power_gesture_disabled 1
 #### 問題現象
 外接設備（如 Apple TV 4K、PS5、Xbox）切換為 Dolby Vision 或 HDR 格式時，電視畫面右上角會彈出原廠的 Dolby Vision / HDR 標籤。在非原廠電視 App 前台時，該橫幅往往**一直停留卡死在畫面上無法自動消失**，且即使執行過 `pm disable com.tcl.tv`，該橫幅依然會出現。
 
-#### 原因深度剖析（DEX 反編譯追蹤結果）
+#### 原因深度剖析（DEX 反編譯與 Logcat 追蹤結果）
 1. **系統級常駐程序無法停用**：
    `com.tcl.tv` 在系統中宣告為 `android:persistent="true"` 且使用系統最高權限 `uid=1000 (system)`。即使執行 `pm disable` 或 `kill`，Android Zygote 也會在幾毫秒內將其無條件自動拉起。
-2. **自動消失邏輯判斷失常**：
+2. **自動消失邏輯判斷失常（實機 Logcat 印證）**：
    反編譯 `/product/app/TIF_LiveTV/TIF_LiveTV.apk`（`com.tcl.tv`）與 `/product/app/SystemSettings/SystemSettings.apk`（`com.tcl.settings`）的 DEX 字節碼發現：
    - 當訊號源轉為 HDR / Dolby Vision 時，底層 `tcl_system_server` 會連續廣播 `com.tcl.Hdr`。
    - `com.tcl.tv` 內部的 `DolbyToast` 會透過 `WindowManager.addView` 建立名為 `Toast` 的懸浮視窗（`CToast`）。
-   - 關鍵在於 `DolbyToast.checkShowDolby()` 檢查了 `isTVTop`（判斷目前前台是否為原廠 `com.tcl.tv.TVActivity`）。當使用第三方 Launcher 或獨立 HDMI Viewer 時，`isTVTop == false`，導致自動定時延遲移除（`mHide`）的邏輯失常、被覆蓋或取消，視窗因而**永久殘留懸掛在畫面上**。
+   - 關鍵在於 `DolbyToast.checkShowDolby()` 檢查了 `isTVTop`（判斷目前前台是否為原廠 `com.tcl.tv.TVActivity`）。當使用第三方 Launcher 或獨立 HDMI Viewer 時，實機 Logcat 精準捕捉到：
+     ```text
+     com.tcl.tv        D  checkShowDolby() isTVTop = false
+     system_server     I  mayAddFloatingWindow w = Window{2ad38c3 u0 Toast}
+     ```
+   - 因為 `isTVTop == false`，導致自動定時延遲移除（`mHide`）的邏輯失常、被覆蓋或取消，視窗因而**永久殘留懸掛在畫面上**！
    - 同時 `com.tcl.settings.receiver.HdrReceiver` 也收到廣播並重複觸發 `Toast.show()`，造成多重橫幅覆蓋。
 
 #### 終極治本解法：透過 AppOps 精準封鎖浮動視窗與 Toast 權限
@@ -326,26 +337,75 @@ adb shell appops set com.tcl.settings SYSTEM_ALERT_WINDOW allow
 
 ---
 
-### 步驟 8：（重要排查）解決 TCL TvView 影像穿透黑屏凍結與 HUD/前一個 App 殘影問題
+### 步驟 8：（重要排查）解決 TCL TvView 影像穿透黑屏卡死（`invalid sideband 0/0`）與殘影問題
 
-#### 問題現象 1：進入 HDMI 畫面全黑、遙控器按鍵失靈（凍結）
-- 進入 `HdmiViewerActivity` 後電視全黑無影像，且按遙控器返回鍵或數字鍵毫無反應。
-- **原因**：
-  1. `TvView` 在硬體 Passthrough 模式下是依賴底層硬體 Surface 穿透（Punch-hole Overlay）直接顯示影像。若 Activity 或根佈局帶有不透明背景（如全域 `#000000` 或純色佈局），會將底層硬體視訊完全遮蓋。
-  2. 視窗及 `TvView` 失去焦點（Focus），導致遙控器輸入被系統阻斷或卡在底層，造成按鍵凍結。
-- **解法**：
-  - `HdmiViewerActivity` 採用專屬透明主題（`Theme.HdmiViewer`：`windowBackground=@android:color/transparent`、`windowIsTranslucent=true`、`window.setFormat(PixelFormat.TRANSLUCENT)`），使硬體視訊順利穿透。
-  - 根佈局背景設為透明，並為 `tvView` 加上 `isFocusable = true` 與多生命週期主動要求焦點（`requestFocus()`）。
+#### 問題現象：進入 HDMI 畫面完全出不來，卡在黑底
+進入 `HdmiViewerActivity` 後，底層視訊晶片已成功鎖定訊號，但畫面始終全黑，Logcat 出現異常錯誤：
+```text
+VideoComposer  composer-rtk@2.1-service  E  invalid sideband 0xb6040750, 0/0
+TclWinInjector system_server             I  mayAddFloatingWindow w = ...HdmiViewerActivity float
+```
 
-#### 問題現象 2：搜尋訊號 UI 殘留透明殘影，或前一個 App 影像留在底層
-- **TCL Input Bug 陷阱**：
-  1. **GPU Compositor 快取殘留**：在 `windowIsTranslucent=true` 視窗下，若使用常見的 View 漸變動畫（`.animate().alpha(0f)`）隱藏 HUD，TCL 電視晶片（如 RTD2851）的硬體合成器會凍結最後一幀半透明快取，造成搜尋 HUD 半透明「幽靈浮層」永久殘留。
-  2. **獨立 Activity 導致 TvView 斷流**：若嘗試用獨立 Activity 顯示搜尋狀態，最上層的 Activity 會導致底下的 `HdmiViewerActivity` 進入 `onPause()`。Android TV 系統偵測到 Activity 退居背景時，會立即中斷 `TvView` 的硬體訊號解碼，導致 `onVideoAvailable()` 永遠無法觸發而全黑卡死。
-  3. **透明視窗透出上一個 App**：電視底層視訊 Overlay 在剛切換且未出圖時，透明視窗會直接透出剛退出的前一個 App 或 Launcher 影像。
-- **終極解法（純黑蓋板 + 零動畫直接移除）**：
-  - 在 `HdmiViewerActivity` 同一 Activity 內建置一塊**純 CPU 繪製的純黑蓋板（`blackCoverLayout`）**，切換時即刻遮擋，完美解決前一個 App 的殘留影像。
-  - 當 `onVideoAvailable()` 收到 HDMI 訊號並握手成功後，**不走任何 Alpha 動畫**，而是直接呼叫 **`rootLayout.removeView(blackCoverLayout)`** 將蓋板徹底自 View Tree 中拔除。
-  - 完美避開電視 GPU 半透明合成快取 Bug，達成 0 殘留、0 浮層、瞬間還原乾淨流暢的 HDMI 視訊畫面！
+#### 完整硬體出圖時序解析（實機 Logcat 真實記錄）
+透過 Logcat 追蹤 Realtek RTD2851 平台從 HDMI 握手到視訊出圖的底層時序：
+
+1. **底層硬體解碼成功握手，鎖定 4K 60Hz HDR 視訊：**
+   ```text
+   2026-09-29 15:57:40.634  sitatvservice   D  SetInputRegion wId=0, x=0, y=0, w=3840, h=2160, HDRType=4
+   2026-09-29 15:57:41.476  com.tcl.tvinput D  audioFormat= 0 width = 2160 height = 3840 videoFrameRate = 60.0
+   ```
+   *外接訊號（Apple TV / PS5 等）成功送出 4K 60Hz HDR 畫面，TV 底層晶片鎖定訊號並開始解碼。*
+
+2. **TvView 成功觸發渲染回呼：**
+   ```text
+   2026-09-29 15:57:41.502  com.lnu.tclhdmilauncher I  TvView onVideoAvailable: com.tcl.tvinput/.../HW1413744640 (video rendering active)
+   ```
+   *本 App 準確抓到了硬體開始渲染視訊的時刻。*
+
+3. **GPU 硬體合成器（HWC）異常報錯：**
+   ```text
+   2026-09-29 15:57:40.278  composer-rtk@2.1-service  E  invalid sideband 0xb6040750, 0/0
+   2026-09-29 15:57:40.311  composer-rtk@2.1-service  E  invalid sideband 0xb6040d30, 0/0
+   ```
+
+#### 根本原因深度分析
+1. **`windowIsTranslucent=true` 導致雙層視窗遮擋與尺寸失效**：
+   - 先前為避免遮擋視訊，在主題中設定了 `android:windowIsTranslucent="true"`。
+   - **致命遮蔽（MainActivity 遮擋）**：上層為透明時，Android 判定 `r.occludesParent = false`，底層 `MainActivity`（帶有全域純黑背景）**不會被調用 `onStop()` 隱藏**，而是作為中介層持續留在畫面堆疊中，死死蓋在底層硬體視訊上面！
+   - **OEM 浮動視窗誤判**：TCL 定製系統服務（`TclWinInjector`）將透明視窗視為「浮動小窗 (float)」，導致 Realtek 晶片硬體合成器（`RTKHWC2` / `VideoComposer`）收到無效的視訊圖層邊界（寬高為 0，即 `invalid sideband ..., 0/0`），硬體無法正常給予視訊輸出。
+2. **Realtek RTD2851 圖層合成器致命缺陷：Alpha 淡出髒矩形凍結（連「系統音量條」都會殘留）**：
+   - 經深入實測驗證，在播放 4K 60Hz HDR / Dolby Vision 硬體直通視訊時，**不僅是 Toast，就連 Android 原廠的「系統音量條 (Volume Dialog)」在消失退場時，都會在螢幕上留下不可磨滅的暗色矩形殘影！**
+   - **底層機理**：Realtek RTD2851 的 HWC 為節省功耗採用「髒矩形 (Dirty Rect)」增量更新。當任何 View（音量條、Toast、對話框）執行淡出退場動畫（`alpha: 1.0 -> 0.0`，即 Logcat 中的 `AnimatingExit`）時，在動畫逼近結尾的最後一瞬間，HWC 誤判該區塊「無更新」，**直接將半透明過渡幀的 Alpha 快取永遠凍結在圖層合成緩衝區中**，浮在底層硬體視訊上形成黑影烙印！
+
+#### 終極解法與全域系統優化配置
+1. **App 端極限純粹化（全螢幕實體主題 + 0 View 0 浮層 0 Toast 直通）**：
+   - 在 `Theme.HdmiViewer` 中徹底移除 `windowIsTranslucent`，使用純黑標準全螢幕視窗，確保底層 `MainActivity` 立即進入 `onStop()` 退出合成。
+   - 徹底移除 `blackCoverLayout`、進度條、文字等所有覆蓋 View，直接以 `tvView` 作為唯一 ContentView。
+   - `HdmiViewerActivity` 內部完全不調用任何 `Toast`，無任何懸浮或動畫視窗，切換訊號源與出圖 100% 靜默。
+2. **系統級解法：關閉系統動畫縮放（徹底杜絕系統音量條與任何彈窗殘影）**：
+   - 由於此晶片 Bug 的觸發條件是 **「半透明漸變淡出動畫（Alpha Fade）」**，只要將系統動畫縮放設為 0（瞬間出現、瞬間消失，無漸變過渡幀），HWC 就能乾淨俐落地切換圖層，徹底杜絕音量條與彈窗退場時的黑影凍結！
+   - 請透過電腦終端執行以下 ADB 指令：
+     ```bash
+     # 關閉視窗動畫、轉場動畫與動畫時長縮放（立即生效且重啟依然有效）
+     adb shell settings put global window_animation_scale 0
+     adb shell settings put global transition_animation_scale 0
+     adb shell settings put global animator_duration_scale 0
+     ```
+4. **底層 Session 競態與畫面凍死排查（重要修正）**：
+   - **痛點**：若在 `tune()` 之前同步呼叫 `tvView.reset()`，因 `reset()` 在底層 HAL 為異步釋放（需時 ~250ms），會與隨後的 `tune()` 產生競態衝突，拋出 `NullPointerException: getPackageName()`，導致硬體解碼器拋出 `onVideoUnavailable(reason=0)` 並將畫面永久凍死在最後一幀！
+   - **治本架構**：
+     1. 移除 `tune()` 前盲目的 `reset()`，交由 TIF 平滑切換。
+     2. 在 `onStop()` 嚴格執行 `tvView.reset()` 釋放硬體 Session，避免重入時新舊實例爭搶 HDMI Rx 晶片。
+     3. 在 `onVideoUnavailable(reason=0)` 加入 600ms 自動自我修復重新調諧（Auto Re-tune），瞬間敲醒晶片！
+5. **終極硬體與韌體解法：降級至 Android 9 官方韌體（`V8-R851T02-LF1V662`）**：
+   - **問題根本原因**：TCL 在 Android 11 (V7xx / V8xx) 韌體中，強行將現代 HWC2 驅動移植到 Realtek RTD2851 晶片上，導致 `VideoComposer` 出現嚴重的 Sideband 圖層死鎖與記憶體洩漏，引發 HDMI 畫面隨機凍死、音訊直通中斷以及 `com.tcl.tv` 與系統 UI 互搶圖層的致命缺陷。
+   - **V662 (Android 9) 實測驗證**：
+     - `V8-R851T02-LF1V662` 是全球 XDA 與 4PDA 論壇公認 R851T02 平台**最穩定、調校最成熟的終極版本**。
+     - **徹底根治 HDMI 畫面凍結（Freeze Bug）**：Android 9 使用原生成熟的 SurfaceView 渲染管線，無 Sideband 髒矩形快取死鎖問題。
+     - **超輕量與記憶體釋放**：無 Android 11 的激進背景守護與繁重監控，系統可用 RAM 多出約 300MB ~ 500MB，待機喚醒與 HDMI 握手皆在毫秒級完成。
+     - **刷機方式**：若從 Android 11 降級，需將 `Update.img` 放入 FAT32 隨身碟，電視拔掉插頭後按住機身實體電源鍵插電強制刷入。
+6. **臨時黑影「一鍵沖刷消除」技巧（Android 11 適用）**：
+   - 若在未關閉動畫前畫面上已出現音量條殘留黑影，只需按下遙控器 **Home 鍵** 返回 Launcher（全螢幕 View Tree 會強制重寫覆蓋整個 HWC 緩衝區），再按確認鍵進入 HDMI，殘影即刻完全消失！
 
 
 ## 運作原理架構

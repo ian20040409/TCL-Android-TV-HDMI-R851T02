@@ -36,7 +36,6 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import java.text.Collator
 import java.util.concurrent.Executors
 
@@ -264,10 +263,7 @@ class AppListActivity : Activity() {
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
                 startActivity(launchIntent)
             } catch (_: Exception) {
-                Toast.makeText(this, getString(R.string.toast_cannot_launch, label), Toast.LENGTH_SHORT).show()
             }
-        } else {
-            Toast.makeText(this, getString(R.string.toast_cannot_launch, label), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -452,11 +448,8 @@ class AppListActivity : Activity() {
         }
         updateAutoOpenButton()
         adapter.notifyDataSetChanged()
-        if (pkg.isNotBlank()) {
-            Toast.makeText(this, getString(R.string.toast_auto_open_set, label), Toast.LENGTH_SHORT).show()
-        } else {
+        if (pkg.isBlank()) {
             cancelAutoOpenCountdown()
-            Toast.makeText(this, getString(R.string.toast_auto_open_cleared), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -623,10 +616,7 @@ class AppListActivity : Activity() {
                     fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(fallback)
                 } catch (_: Exception) {
-                    Toast.makeText(this, getString(R.string.toast_cannot_launch, app.label), Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                Toast.makeText(this, getString(R.string.toast_cannot_launch, app.label), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -637,7 +627,6 @@ class AppListActivity : Activity() {
 
     private fun disableApp(app: ListItem.App) {
         openAppInfo(app)
-        Toast.makeText(this, getString(R.string.toast_disable_hint), Toast.LENGTH_LONG).show()
     }
 
     private fun openAppInfo(app: ListItem.App) {
@@ -682,8 +671,6 @@ class AppListActivity : Activity() {
         val newMode = !MainActivity.isAppModeEnabled(this)
         MainActivity.setAppModeEnabled(this, newMode)
         updateAppModeButton()
-        val msgRes = if (newMode) R.string.toast_app_mode_on else R.string.toast_app_mode_off
-        Toast.makeText(this, getString(msgRes), Toast.LENGTH_SHORT).show()
     }
 
     private fun returnToMainActivity() {

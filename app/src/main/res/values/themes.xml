@@ -19,12 +19,10 @@
     </style>
 
     <!-- HDMI 直通播放專用主題：
-         1. windowBackground 設為 @android:color/transparent，允許 TvView 的底層視訊 Overlay 穿透打洞 (Punch Hole)。
-         2. windowIsTranslucent=true，使 SurfaceView / Sideband 渲染緩衝區正確對接硬體層。 -->
+         標準全螢幕深色底，SurfaceView 硬體直通打洞渲染，不使用透明視窗防止下層 Activity 阻擋與系統誤判浮動視窗 -->
     <style name="Theme.HdmiViewer" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:colorBackground">@android:color/transparent</item>
-        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowAnimationStyle">@null</item>

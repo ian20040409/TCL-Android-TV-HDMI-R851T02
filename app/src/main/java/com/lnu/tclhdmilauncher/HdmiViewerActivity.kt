@@ -4,8 +4,6 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.Typeface
 import android.media.tv.TvContract
 import android.media.tv.TvView
 import android.net.Uri
@@ -14,18 +12,11 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.WindowManager
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
 
 /**
  * 原生硬體 HDMI 直通播放器 (HdmiViewerActivity)
@@ -33,10 +24,9 @@ import android.widget.Toast
  * 核心特色：
  * 1. 100% 透過 Android 官方 TV Input Framework (TvView) 驅動硬體 Passthrough，完全脫離 com.tcl.tv
  * 2. 支援硬體 HDR10、Dolby Vision、4K 60Hz 直通解碼
- * 3. 內建遙控器 1 / 2 / 3 數字鍵直接切換訊號源（無需返回桌面）
- * 4. 內建冷開機硬體重試機制（容錯最多 3 次）
- * 5. 按返回鍵或選單鍵無縫返回 Launcher
- * 6. 純 CPU 黑色蓋板：搜尋訊號時用純黑覆蓋畫面防止前一個 App 殘影；出訊號時直接 removeView 徹底拔除，保證 0 殘留
+ * 3. 遙控器 1 / 2 / 3 數字鍵直接切換訊號源（無需返回桌面）
+ * 4. 遙控器 SETTINGS 鍵呼叫原廠畫質設定，BACK / MENU 返回 Launcher
+ * 5. 全面靜默直通：0 View 覆蓋、0 Toast 浮層，徹底杜絕 TCL 電視 GPU 浮層淡出殘留黑影與半透明快取卡死問題
  */
 class HdmiViewerActivity : Activity() {
 
@@ -61,12 +51,7 @@ class HdmiViewerActivity : Activity() {
             internal set
     }
 
-    private lateinit var rootLayout: FrameLayout
     private lateinit var tvView: TvView
-    private var blackCoverLayout: FrameLayout? = null
-    private var statusProgressBar: ProgressBar? = null
-    private var statusTextView: TextView? = null
-
     private var currentPort = 3
     private val handler = Handler(Looper.getMainLooper())
     private var retryCount = 0
@@ -76,134 +61,52 @@ class HdmiViewerActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 螢幕常亮與隱藏系統 UI（全螢幕沉浸）
+        // 螢幕常亮與全螢幕沉浸
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        window.setFormat(android.graphics.PixelFormat.TRANSLUCENT)
         hideSystemUI()
 
-        rootLayout = FrameLayout(this).apply {
-            setBackgroundColor(Color.TRANSPARENT)
-            isFocusable = true
-            isFocusableInTouchMode = true
-        }
-
         tvView = TvView(this).apply {
-            layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+            layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
             isFocusable = true
             isFocusableInTouchMode = true
             setCallback(object : TvView.TvInputCallback() {
                 override fun onConnectionFailed(inputId: String?) {
                     Log.e(TAG, "TvView onConnectionFailed: $inputId")
-                    showNoSignal()
                     handleTuneFailure()
                 }
 
                 override fun onDisconnected(inputId: String?) {
                     Log.w(TAG, "TvView onDisconnected: $inputId")
-                    showNoSignal()
                 }
 
                 override fun onVideoAvailable(inputId: String?) {
                     Log.i(TAG, "TvView onVideoAvailable: $inputId (video rendering active)")
                     retryCount = 0
-                    if (!isVideoAvailable) {
-                        isVideoAvailable = true
-                        onSignalReady()
-                    }
+                    isVideoAvailable = true
                     tvView.post { tvView.requestFocus() }
                 }
 
                 override fun onVideoUnavailable(inputId: String?, reason: Int) {
                     Log.w(TAG, "TvView onVideoUnavailable: inputId=$inputId, reason=$reason")
+                    isVideoAvailable = false
+                    // reason=0 (REASON_UNKNOWN): 通常為底層驅動剛釋放舊 Session 的短暫衝突，延遲 600ms 自動自我修復重新調諧
+                    if (reason == 0 && !isFinishing && isForegroundFocused) {
+                        Log.i(TAG, "Hardware decoder busy/recovering, auto re-tuning in 600ms...")
+                        handler.removeCallbacksAndMessages(null)
+                        handler.postDelayed({
+                            if (!isVideoAvailable && !isFinishing && isForegroundFocused) {
+                                tuneToPort(currentPort)
+                            }
+                        }, 600L)
+                    }
                 }
             })
         }
 
-        rootLayout.addView(tvView)
-        setContentView(rootLayout)
+        setContentView(tvView)
         tvView.requestFocus()
 
         resolveAndTune(intent)
-    }
-
-    /**
-     * 建立純黑不透明全螢幕蓋板（CPU 繪製，無透明度），遮住前一個 App 殘影
-     */
-    private fun showBlackCover(port: Int) {
-        if (blackCoverLayout == null) {
-            val density = resources.displayMetrics.density
-
-            blackCoverLayout = FrameLayout(this).apply {
-                setBackgroundColor(Color.BLACK) // 純黑不透明遮擋
-                layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-            }
-
-            val infoContainer = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = FrameLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-                    gravity = Gravity.TOP or Gravity.START
-                    val margin = (40 * density).toInt()
-                    setMargins(margin, margin, margin, margin)
-                }
-            }
-
-            statusProgressBar = ProgressBar(this).apply {
-                val size = (28 * density).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                    marginEnd = (14 * density).toInt()
-                }
-                isIndeterminate = true
-            }
-
-            statusTextView = TextView(this).apply {
-                setTextColor(0xFFFDE047.toInt()) // 琥珀黃
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-                typeface = Typeface.DEFAULT_BOLD
-                text = getString(R.string.hdmi_searching_signal, port)
-            }
-
-            infoContainer.addView(statusProgressBar)
-            infoContainer.addView(statusTextView)
-            blackCoverLayout?.addView(infoContainer)
-
-            rootLayout.addView(blackCoverLayout)
-        } else {
-            statusProgressBar?.visibility = View.VISIBLE
-            statusTextView?.setTextColor(0xFFFDE047.toInt())
-            statusTextView?.text = getString(R.string.hdmi_searching_signal, port)
-        }
-    }
-
-    /**
-     * 訊號已到達：顯示綠色已連線，並在極短時間後從 View Tree 徹底 removeView 移除黑幕！
-     * 不用 alpha 動畫，保證 0 殘留、0 浮層、100% 露出底下硬體 TvView！
-     */
-    private fun onSignalReady() {
-        statusProgressBar?.visibility = View.GONE
-        statusTextView?.setTextColor(0xFF86EFAC.toInt()) // 綠色
-        statusTextView?.text = getString(R.string.hdmi_signal_connected, currentPort)
-
-        handler.postDelayed({
-            removeBlackCover()
-        }, 800L)
-    }
-
-    private fun showNoSignal() {
-        showBlackCover(currentPort)
-        statusProgressBar?.visibility = View.GONE
-        statusTextView?.setTextColor(0xFFF87171.toInt()) // 紅色
-        statusTextView?.text = getString(R.string.hdmi_no_signal, currentPort)
-    }
-
-    private fun removeBlackCover() {
-        blackCoverLayout?.let {
-            rootLayout.removeView(it)
-            blackCoverLayout = null
-            statusProgressBar = null
-            statusTextView = null
-            Log.i(TAG, "blackCoverLayout completely removed from root layout")
-        }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -249,11 +152,9 @@ class HdmiViewerActivity : Activity() {
 
         Log.i(TAG, "Tuning TvView to HDMI $port ($inputId)...")
 
-        // 搜尋訊號前先鋪上純黑蓋板（防殘留）
-        showBlackCover(port)
-
         try {
-            tvView.reset()
+            // 注意：絕不可在此處同步呼叫 tvView.reset()！
+            // reset() 為非同步釋放，會導致底層 HAL grantMediaResource 拋出 NullPointerException 並卡死畫面。
             val uri = TvContract.buildChannelUriForPassthroughInput(inputId)
             tvView.tune(inputId, uri)
         } catch (e: Exception) {
@@ -270,8 +171,7 @@ class HdmiViewerActivity : Activity() {
                 tuneToPort(currentPort)
             }, 1500L)
         } else {
-            showNoSignal()
-            Toast.makeText(this, getString(R.string.toast_switch_failed, currentPort), Toast.LENGTH_SHORT).show()
+            Log.w(TAG, "Max retries reached for HDMI $currentPort")
         }
     }
 
@@ -279,17 +179,14 @@ class HdmiViewerActivity : Activity() {
         if (event.action == KeyEvent.ACTION_DOWN) {
             when (event.keyCode) {
                 KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_NUMPAD_1 -> {
-                    Toast.makeText(this, getString(R.string.toast_switching_hdmi, 1), Toast.LENGTH_SHORT).show()
                     tuneToPort(1)
                     return true
                 }
                 KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_NUMPAD_2 -> {
-                    Toast.makeText(this, getString(R.string.toast_switching_hdmi, 2), Toast.LENGTH_SHORT).show()
                     tuneToPort(2)
                     return true
                 }
                 KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_NUMPAD_3 -> {
-                    Toast.makeText(this, getString(R.string.toast_switching_hdmi, 3), Toast.LENGTH_SHORT).show()
                     tuneToPort(3)
                     return true
                 }
@@ -350,6 +247,16 @@ class HdmiViewerActivity : Activity() {
         )
     }
 
+    override fun onStart() {
+        super.onStart()
+        // 若從背景（例如按 Home 或 Settings 後）返回前台且畫面未激活，重新調諧
+        if (!isVideoAvailable && !isFinishing) {
+            tvView.post {
+                tuneToPort(currentPort)
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         hideSystemUI()
@@ -370,6 +277,17 @@ class HdmiViewerActivity : Activity() {
         super.onPause()
         isForegroundFocused = false
         handler.removeCallbacksAndMessages(null)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        isForegroundFocused = false
+        handler.removeCallbacksAndMessages(null)
+        // 離開前台時釋放 TvView 硬體 Session，避免與其他 App 或重入時搶奪硬體解碼器
+        try {
+            tvView.reset()
+        } catch (_: Exception) {}
+        isVideoAvailable = false
     }
 
     override fun onDestroy() {
