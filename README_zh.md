@@ -89,20 +89,26 @@
 3. **長按 OK 鍵自由設定預設訊號源**：
    - 在任一 HDMI 卡片上「長按 OK 鍵」，即可將該埠標記為開機預設訊號源。
 4. **極致輕量、零後台常駐、零 GC 負載**：
-   - **混淆後僅約 9.0 KB**，全純程式碼 View 樹，0 XML 解析開銷、0 反射。
+   - 經 R8 fullMode 深度混淆壓縮、無用代碼剝離與資源縮減。
+   - 全純程式碼 View 樹，0 XML 解析開銷、0 反射。
    - 倒數計時熱路徑達成 **0 記憶體配置 (0 GC)**，絕不卡頓。
    - 切換訊號後立即執行 `finishAndRemoveTask()` 退出並釋放所有記憶體，將 TV 晶片算力 100% 留給 4K 影像解碼與音效處理。
 5. **純黑電視專用介面 (Pure Black #000000)**：
    - 專為暗室家庭劇院與 OLED / QLED 局部控光最佳化，絕無刺眼白色閃爍。
 6. **多國語言介面 (English / 繁體中文 / 簡體中文)**：
    - 依電視系統語言自動適配，無論全英環境或繁簡中文皆完美顯示。
-7. **完整保留必要電視功能**：
-   - **TCL 設定快捷鍵**：右上角獨立按鈕，一鍵開啟 TCL 原廠電視畫質/音效設定頁。
-   - **輕量應用程式抽屜 (App Drawer)**：若偶爾需開啟內建智慧電視 App，內建極速清單，支援 TV/手機側載分類、最近使用與長按解除安裝/停用。
+7. **原生 Leanback 設定與開箱導覽精靈 (OOBE)**：
+   - 採用 Android TV 官方標準 **Leanback `GuidedStepSupportFragment`** 設計，遵循 10 呎大螢幕 UI 規範與遙控器方向鍵焦點流暢導航。
+   - **首次開箱導覽 (OOBE)**：開箱引導使用者設定純顯示器 / App 模式、預設開機訊號源與啟用無障礙防假死守護。
+   - **App 模式專屬設定頁 (`AppModeSettingsActivity`)**：支援非同步讀取已安裝應用程式、直覺式選擇開機自動啟動 App，並自訂開機/喚醒後的延遲倒數秒數。
+   - **重設所有設定**：一鍵還原所有啟動器偏好設定並重新啟動開箱設定導覽精靈。
+   - 快速入口：一鍵開啟 TCL 原廠電視畫質/音效設定頁 (`com.tcl.settings`) 及 Android 系統設定。
 8. **App 模式與應用程式自動啟動 (App Mode & Auto-Open)**：
-   - 頂部狀態列提供「App 模式」一鍵切換。開啟後，開機或按 Home 鍵預設直達應用程式抽屜。
-   - 在清單中「長按 OK」可將常用 App 設為「自動啟動」；開機倒數結束自動直達指定 App（如 YouTube、Netflix、動畫瘋等）。
-9. **自建原生 HDMI Viewer (`TvView`) — 完全擺脫 `com.tcl.tv` 依賴**：
+   - 頂部狀態列或設定選單提供「App 模式」一鍵切換。開啟後，開機或按 Home 鍵預設直達應用程式抽屜。
+   - 可在清單中「長按 OK」或進入 **App 模式設定** 指定「自動啟動」App；開機/喚醒倒數結束自動直達指定 App（如 YouTube、Netflix、動畫瘋等）。
+9. **輕量應用程式抽屜 (App Drawer)**：
+   - 若偶爾需開啟內建智慧電視 App，內建極速清單，支援 TV/手機側載分類、最近使用與長按解除安裝/停用。
+10. **自建原生 HDMI Viewer (`TvView`) — 完全擺脫 `com.tcl.tv` 依賴**：
    - 內建全螢幕 HDMI 播放器（`HdmiViewerActivity`），直接由 Android 官方 TV Input Framework（`android.media.tv.TvView`）驅動。
    - 徹底終結對 TCL 原廠電視播放器（`com.tcl.tv.TVActivity`）的依賴，零廣告、零原廠干擾橫幅。
    - 完整支援 4K @ 60Hz、HDR10 與 Dolby Vision 硬體圖層直通解碼。
@@ -138,9 +144,9 @@
 | **長按 OK 鍵 (主畫面)** | 將當前 HDMI 卡片設為**開機預設訊號源** |
 | **長按 OK 鍵 (App 清單)** | 開啟選單：**設為自動啟動**、解除安裝、停用、應用程式資訊 |
 | **數字鍵 `1` / `2` / `3`** | **秒切快捷鍵**：在 Launcher 桌面或 Viewer 播放器中均可直切 HDMI 1 / 2 / 3 |
-| **選單鍵 (MENU)** | 開啟倒數設定對話框（桌面）/ 關閉並返回桌面（播放器） |
-| **設定鍵 (SETTINGS)** | 一鍵呼叫 TCL 原生設定選單 (`com.tcl.settings`) |
-| **返回鍵 (BACK)** | 離開對話框，或從播放器/應用程式清單返回桌面 |
+| **選單鍵 (MENU)** | 開啟設定選單（桌面）/ 關閉並返回桌面（播放器） |
+| **設定鍵 (SETTINGS)** | 開啟設定選單（桌面）/ 一鍵呼叫 TCL 原生設定選單 (`com.tcl.settings`) |
+| **返回鍵 (BACK)** | 離開對話框，或從播放器/設定頁/應用程式清單返回桌面 |
 
 ---
 
@@ -152,7 +158,7 @@
 # 建置 Debug APK
 ./gradlew assembleDebug
 
-# 或建置極限混淆 Release APK (僅 ~9.0 KB)
+# 或建置經 R8 深度最佳化的 Release APK
 ./gradlew assembleRelease
 ```
 
@@ -481,10 +487,10 @@ adb shell am start -a android.intent.action.VIEW \
 | `compileSdk` | 37 |
 | AGP | 9.2.1 |
 | Gradle | 9.4.1 (相容 Java 25 JBR / Android Studio Ladybug+) |
-| 第三方依賴 | **0 依賴**（100% Android SDK 原生呼叫） |
+| 第三方依賴 | 官方 AndroidX Leanback (`androidx.leanback:leanback:1.0.0`)、AndroidX AppCompat |
 | 主題規範 | **強制純黑 Pure Black (#000000)**，禁用 ForceDark |
 | 國際化 | 支援 English、繁體中文 (TW/HK)、簡體中文 (CN) |
-| Release 體積 | R8 fullMode 混淆壓縮後僅約 **9.0 KB** |
+| 代碼與資源最佳化 | R8 fullMode 深度混淆、無用代碼剝離與資源縮減 |
 | 背景記憶體 | 跳轉後呼叫 `finishAndRemoveTask()`，**0 背景常駐** |
 
 ---

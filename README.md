@@ -89,7 +89,7 @@ If any of the following describes your home theater setup, this launcher was bui
 3. **Set Default Boot Input (Long-Press OK)**:
    - Long-press the OK button on any HDMI card to set it as your persistent default startup input.
 4. **Ultra-Lightweight, Zero Background Services, Zero GC Pressure**:
-   - **Only ~9.0 KB** after full R8 minification and resource shrinking.
+   - Optimized with full R8 minification, dead-code stripping, and resource shrinking.
    - Built 100% in code (0 XML layout inflation overhead, 0 reflection).
    - Hot-path countdown timer achieves **0 heap memory allocations per second (0 GC)**.
    - Immediately calls `finishAndRemoveTask()` upon switching, leaving **zero background resident memory**—giving 100% of TV chipset resources to 4K video and audio decoding.
@@ -97,13 +97,18 @@ If any of the following describes your home theater setup, this launcher was bui
    - Eliminates blinding white flashes in dark home theater rooms and optimizes local dimming on QLED / Mini-LED panels.
 6. **Multi-Language Support**:
    - Fully localized in English, Traditional Chinese (繁體中文), and Simplified Chinese (简体中文) based on your system locale.
-7. **Essential TV Features Preserved**:
-   - **TCL Settings Shortcut**: Single-click access to native TCL picture/audio adjustment pages.
-   - **Lightweight App Drawer**: An ultra-fast, on-demand list for occasional built-in or sideloaded TV apps with recents and long-press uninstall/disable management.
+7. **Native Leanback Settings & OOBE Setup Wizard**:
+   - Built on Android TV's official **Leanback `GuidedStepSupportFragment`** for 100% native 10-foot TV UI ergonomics and D-pad remote navigation.
+   - **Out-of-the-Box Setup Wizard (OOBE)**: Automatically guides first-time users through choosing Monitor vs. App Mode, picking a default boot port, and enabling Accessibility Guard.
+   - **App Mode Settings**: Dedicated sub-settings activity (`AppModeSettingsActivity`) with asynchronous installed app scanning, app picker dialog, and configurable auto-launch delay timer.
+   - **Reset Preferences**: Safely restore all launcher settings to defaults and restart the setup wizard with one click.
+   - Single-click access to native TCL picture/audio adjustment pages (`com.tcl.settings`) and Android system preferences.
 8. **App Mode & Auto-Open App**:
-   - Single-click toggle for "App Mode" on the top status bar. When enabled, booting or pressing Home opens the App Drawer directly.
-   - Long-press any app in the App Drawer to set it to "Auto-Open". After the countdown timer expires, it automatically launches that app (e.g. YouTube, Netflix, Plex).
-9. **Self-Contained Native HDMI Viewer (`TvView`) — Zero Dependency on `com.tcl.tv`**:
+   - Single-click toggle for "App Mode" on the top status bar or via Settings. When enabled, booting or pressing Home opens the App Drawer directly.
+   - Pick an auto-launch app either from the App Drawer (hold OK) or in **App Mode Settings**, complete with configurable boot/wake delay seconds (e.g. YouTube, Netflix, Plex).
+9. **Lightweight App Drawer**:
+   - An ultra-fast, on-demand list for occasional built-in or sideloaded TV apps with recents and long-press uninstall/disable management.
+10. **Self-Contained Native HDMI Viewer (`TvView`) — Zero Dependency on `com.tcl.tv`**:
    - Includes a built-in fullscreen HDMI Viewer (`HdmiViewerActivity`) powered directly by Android's TV Input Framework (`android.media.tv.TvView`).
    - Completely eliminates dependency on TCL's factory TV player (`com.tcl.tv.TVActivity`).
    - Full 4K @ 60Hz, HDR10, and Dolby Vision passthrough with hardware overlay decoding.
@@ -139,9 +144,9 @@ If any of the following describes your home theater setup, this launcher was bui
 | **Long-Press OK (Main View)** | Set currently focused HDMI port as the **default startup input** |
 | **Long-Press OK (App Drawer)** | Open management dialog: **Set as Auto-Open**, Uninstall, Disable, App Info |
 | **Number Keys `1` / `2` / `3`** | **Instant Switch**: Jump straight to HDMI 1 / 2 / 3 in both Launcher and Viewer |
-| **MENU** | Open countdown settings (Launcher) / Return to Launcher (Viewer) |
-| **SETTINGS** | Launch native TCL settings (`com.tcl.settings`) |
-| **BACK** | Exit dialogs / return to launcher from Viewer or App Drawer |
+| **MENU** | Open Settings menu (Launcher) / Return to Launcher (Viewer) |
+| **SETTINGS** | Open Settings menu (Launcher) / Launch native TCL settings (`com.tcl.settings`) |
+| **BACK** | Exit dialogs / return to launcher from Viewer, Settings, or App Drawer |
 
 ---
 
@@ -153,7 +158,7 @@ If any of the following describes your home theater setup, this launcher was bui
 # Build Debug APK
 ./gradlew assembleDebug
 
-# Or build ultra-optimized Release APK (~9.0 KB)
+# Or build R8-optimized Release APK
 ./gradlew assembleRelease
 ```
 
@@ -482,10 +487,10 @@ TV Power-On / Sleep Wake / Home Button
 | `compileSdk` | 37 |
 | AGP | 9.2.1 |
 | Gradle | 9.4.1 (Java 25 JBR / Android Studio Ladybug+) |
-| Dependencies | **0 external dependencies** (100% native Android SDK) |
+| Dependencies | AndroidX Leanback (`androidx.leanback:leanback:1.0.0`), AndroidX AppCompat |
 | Theme Design | **Pure Black (`#000000`)**, ForceDark disabled |
 | Localization | English, Traditional Chinese (繁體中文), Simplified Chinese (简体中文) |
-| Release APK Size | Only **~9.0 KB** after R8 fullMode optimization |
+| Optimization | R8 fullMode minification, dead-code stripping & resource shrinking |
 | Resident Memory | **0 MB** (Task self-terminates via `finishAndRemoveTask()`) |
 
 ---
