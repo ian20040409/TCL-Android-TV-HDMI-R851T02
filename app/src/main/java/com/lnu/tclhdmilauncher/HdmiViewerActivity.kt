@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
 import android.media.tv.TvContract
 import android.media.tv.TvView
 import android.net.Uri
@@ -12,11 +14,16 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 
 /**
  * 原生硬體 HDMI 直通播放器 (HdmiViewerActivity)
@@ -52,6 +59,8 @@ class HdmiViewerActivity : Activity() {
     }
 
     private lateinit var tvView: TvView
+    private var signalOverlay: LinearLayout? = null
+    private var tvSignalStatus: TextView? = null
     private var currentPort = 3
     private val handler = Handler(Looper.getMainLooper())
     private var retryCount = 0
@@ -72,6 +81,7 @@ class HdmiViewerActivity : Activity() {
             setCallback(object : TvView.TvInputCallback() {
                 override fun onConnectionFailed(inputId: String?) {
                     Log.e(TAG, "TvView onConnectionFailed: $inputId")
+                    updateSignalOverlay(getString(R.string.hdmi_no_signal, currentPort))
                     handleTuneFailure()
                 }
 
@@ -83,12 +93,14 @@ class HdmiViewerActivity : Activity() {
                     Log.i(TAG, "TvView onVideoAvailable: $inputId (video rendering active)")
                     retryCount = 0
                     isVideoAvailable = true
+                    hideSignalOverlay()
                     tvView.post { tvView.requestFocus() }
                 }
 
                 override fun onVideoUnavailable(inputId: String?, reason: Int) {
                     Log.w(TAG, "TvView onVideoUnavailable: inputId=$inputId, reason=$reason")
                     isVideoAvailable = false
+                    updateSignalOverlay(getString(R.string.hdmi_searching_signal, currentPort))
                     // reason=0 (REASON_UNKNOWN): 通常為底層驅動剛釋放舊 Session 的短暫衝突，延遲 600ms 自動自我修復重新調諧
                     if (reason == 0 && !isFinishing && isForegroundFocused) {
                         Log.i(TAG, "Hardware decoder busy/recovering, auto re-tuning in 600ms...")
@@ -103,7 +115,19 @@ class HdmiViewerActivity : Activity() {
             })
         }
 
-        setContentView(tvView)
+        // 使用 FrameLayout 包裹 TvView 與訊號搜尋 Overlay
+        val root = FrameLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+        }
+        root.addView(tvView)
+
+        // 建構訊號搜尋 Overlay（半透明黑底 + 居中文字）
+        val overlay = buildSignalOverlay()
+        signalOverlay = overlay
+        root.addView(overlay, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        overlay.visibility = View.GONE
+
+        setContentView(root)
         tvView.requestFocus()
 
         resolveAndTune(intent)
@@ -151,6 +175,7 @@ class HdmiViewerActivity : Activity() {
         }
 
         Log.i(TAG, "Tuning TvView to HDMI $port ($inputId)...")
+        updateSignalOverlay(getString(R.string.hdmi_searching_signal, port))
 
         try {
             // 注意：絕不可在此處同步呼叫 tvView.reset()！
@@ -232,6 +257,47 @@ class HdmiViewerActivity : Activity() {
             } catch (_: Exception) {
             }
         }
+    }
+
+    // ── 訊號搜尋 Overlay ──────────────────────────────────────────────────
+    private fun buildSignalOverlay(): LinearLayout {
+        val density = resources.displayMetrics.density
+        fun dp(v: Float): Int = (v * density + 0.5f).toInt()
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(0xE6000000.toInt()) // 90% 不透明黑底
+            isClickable = false
+            isFocusable = false
+        }
+
+        val tvStatus = TextView(this).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(0xFFE2E8F0.toInt())
+            gravity = Gravity.CENTER
+        }
+        tvSignalStatus = tvStatus
+        container.addView(tvStatus, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
+
+        return container
+    }
+
+    private fun updateSignalOverlay(text: String) {
+        if (!MainActivity.isSignalSearchScreenEnabled(this)) {
+            signalOverlay?.visibility = View.GONE
+            return
+        }
+        tvSignalStatus?.text = text
+        signalOverlay?.visibility = View.VISIBLE
+    }
+
+    private fun hideSignalOverlay() {
+        signalOverlay?.visibility = View.GONE
     }
 
     private fun hideSystemUI() {

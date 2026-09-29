@@ -7,8 +7,9 @@
     <string name="btn_countdown_seconds">倒數: %d秒</string>
     <string name="btn_tcl_settings">TCL 設定</string>
     <string name="btn_apps">應用程式</string>
+    <string name="btn_settings">設定</string>
     <string name="card_default_badge">● 預設</string>
-    <string name="bottom_hint">[OK] 立即切換   •   [1 / 2 / 3] 直達訊號   •   [選單] 倒數設定   •   [長按 OK] 設為預設</string>
+    <string name="bottom_hint">[OK] 立即切換   •   [1 / 2 / 3] 直達訊號   •   [選單] 設定   •   [長按 OK] 設為預設</string>
     <string name="countdown_active">%1$d 秒後自動進入 HDMI %2$d（按方向鍵取消）</string>
     <string name="text_cancelled">請選擇訊號源（長按 OK 可設為預設）</string>
     <string name="countdown_disabled">自動開啟已關閉（預設 HDMI %d）</string>
@@ -30,6 +31,42 @@
     <string name="toast_countdown_off">已關閉自動開啟訊號源</string>
     <string name="toast_countdown_set">倒數秒數已設為 %d 秒</string>
     <string name="dialog_cancel">取消</string>
+
+    <!-- 設定頁面 (Settings Activity) -->
+    <string name="settings_title">設定</string>
+    <string name="settings_hint">[OK] 調整 / 切換   •   [返回] 回首頁</string>
+    <string name="setting_category_launcher">Launcher 偏好設定</string>
+    <string name="setting_category_system">電視與系統設定</string>
+    <string name="setting_app_mode_title">App 模式</string>
+    <string name="setting_app_mode_desc_on">首頁預設開啟應用程式清單</string>
+    <string name="setting_app_mode_desc_off">首頁預設開啟 HDMI 訊號源切換</string>
+    <string name="setting_countdown_title">自動倒數秒數</string>
+    <string name="setting_countdown_desc">開機 %d 秒後自動進入預設訊號源</string>
+    <string name="setting_countdown_desc_off">關閉自動進入（停留在訊號源選單）</string>
+    <string name="setting_default_port_title">預設訊號源</string>
+    <string name="setting_default_port_desc">目前預設進入：HDMI %d</string>
+    <string name="setting_signal_search_title">訊號搜尋畫面</string>
+    <string name="setting_signal_search_desc_on">切換訊號源時顯示偵測提示 HUD</string>
+    <string name="setting_signal_search_desc_off">直接硬體直通播放，不顯示提示 HUD</string>
+    <string name="setting_wake_guard_title">待機喚醒與 Home 鍵保障</string>
+    <string name="setting_wake_guard_desc_on">無障礙服務已啟用（100% 待機喚醒返回）</string>
+    <string name="setting_wake_guard_desc_off">服務未開啟（強烈建議開啟避免喚醒黑屏）</string>
+    <string name="setting_auto_open_title">自動啟動 App</string>
+    <string name="setting_auto_open_desc_none">未設定（開機停留在應用程式清單）</string>
+    <string name="setting_auto_open_desc_app">開機 / 喚醒後自動啟動：%s</string>
+    <string name="setting_tcl_settings_title">TCL 電視設定</string>
+    <string name="setting_tcl_settings_desc">開啟 TCL 原廠影像、音效與顯示設定</string>
+    <string name="setting_android_settings_title">Android 系統設定</string>
+    <string name="setting_android_settings_desc">開啟裝置偏好設定、網路與帳號</string>
+    <string name="setting_state_on">開啟</string>
+    <string name="setting_state_off">關閉</string>
+    <string name="setting_state_enabled">已啟用</string>
+    <string name="setting_state_disabled">未開啟</string>
+    <string name="setting_action_open">開啟</string>
+    <string name="dialog_default_port_title">選擇開機預設訊號源</string>
+    <string name="port_hdmi_1">HDMI 1</string>
+    <string name="port_hdmi_2">HDMI 2</string>
+    <string name="port_hdmi_3">HDMI 3</string>
 
     <!-- App Drawer (AppListActivity) -->
     <string name="app_list_title">應用程式</string>
@@ -84,4 +121,38 @@
     <string name="hdmi_searching_signal">HDMI %d • 正在偵測訊號...</string>
     <string name="hdmi_no_signal">HDMI %d • 無訊號</string>
     <string name="hdmi_signal_connected">HDMI %d • 訊號已連線</string>
+
+    <!-- 訊號搜尋畫面 -->
+    <string name="btn_signal_search_on">訊號搜尋畫面: 開啟</string>
+    <string name="btn_signal_search_off">訊號搜尋畫面: 關閉</string>
+
+    <!-- OOBE 開箱設定體驗 -->
+    <string name="setting_oobe_title">首次開箱設定精靈 (OOBE)</string>
+    <string name="setting_oobe_desc">重新執行開箱引導設定流程</string>
+    <string name="oobe_welcome_title">歡迎使用 HDMI 啟動器</string>
+    <string name="oobe_welcome_breadcrumb">開箱導覽 • 1/3</string>
+    <string name="oobe_welcome_description">將您的 TCL 電視打造為極速純淨的外接螢幕。請選擇您的首選開機模式：</string>
+    <string name="oobe_mode_pure_title">純顯示器模式（推薦）</string>
+    <string name="oobe_mode_pure_desc">開機直接切換至外接設備（Apple TV / PS5 等），零背景干擾</string>
+    <string name="oobe_mode_app_title">App 桌面模式</string>
+    <string name="oobe_mode_app_desc">開機預設開啟電視應用程式清單，並保留 HDMI 快捷卡片</string>
+    <string name="oobe_config_title">預設訊號源與自動啟動</string>
+    <string name="oobe_config_breadcrumb">開箱導覽 • 2/3</string>
+    <string name="oobe_config_description">請選擇開機預設切換的 HDMI 訊號源與倒數計時秒數：</string>
+    <string name="oobe_port_prompt">預設訊號源: HDMI %d</string>
+    <string name="oobe_countdown_prompt">自動啟動倒數: %s</string>
+    <string name="oobe_countdown_off">關閉自動啟動</string>
+    <string name="oobe_action_next">下一步</string>
+    <string name="oobe_system_title">系統設定與防假死守護</string>
+    <string name="oobe_system_breadcrumb">開箱導覽 • 3/3</string>
+    <string name="oobe_system_description">最佳化 TCL 電視設定以獲得最佳體驗。您亦可隨時在設定中調整。</string>
+    <string name="oobe_action_set_default_home">設為系統預設桌面</string>
+    <string name="oobe_action_set_default_home_desc">喚起系統主螢幕選擇器，取代原廠電視桌面</string>
+    <string name="oobe_action_wake_guard">啟用待機喚醒防假死守護</string>
+    <string name="oobe_action_wake_guard_desc">開啟無障礙設定（若無則自動打開系統設定）啟用守護服務</string>
+    <string name="oobe_action_finish">完成設定並開始使用</string>
+    <string name="oobe_action_finish_desc">儲存所有設定並立即進入啟動器</string>
+    <string name="oobe_skip">跳過設定（使用預設值）</string>
+    <string name="toast_accessibility_fallback_settings">未找到專用無障礙頁面，已自動為您開啟 Android 系統設定（請至 裝置偏好設定 > 無障礙）</string>
 </resources>
+

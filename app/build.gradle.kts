@@ -10,8 +10,8 @@ android {
         applicationId = "com.lnu.tclhdmilauncher"
         minSdk        = 25
         targetSdk     = 36
-        versionCode   = 8
-        versionName   = "2.0.2"
+        versionCode   = 11
+        versionName   = "2.1.1"
     }
 
     buildTypes {
@@ -50,6 +50,8 @@ android {
     }
 }
 
-// 零外部依賴：完全依賴 Android 系統原生的 Activity, Intent, TvContract, Handler
-// 不常駐記憶體、不消耗背景 CPU
-dependencies { }
+// 引入 Android TV 官方 Leanback 支援庫（供 GuidedStepSupportFragment OOBE 精靈使用）
+dependencies {
+    implementation("androidx.leanback:leanback:1.0.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+}

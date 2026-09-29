@@ -28,4 +28,20 @@
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowDisablePreview">true</item>
     </style>
+
+    <!-- OOBE Checkmark 隱藏樣式：無 parent，直接定義寬高為 0dp 且隱藏 -->
+    <style name="OobeGuidedActionItemCheckmark">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">0dp</item>
+        <item name="android:visibility">gone</item>
+    </style>
+
+    <!-- OOBE 開箱設定引導專用主題：純黑、無 Radio Button Checkmark -->
+    <style name="Theme.Oobe" parent="Theme.Leanback.GuidedStep">
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="guidedActionItemCheckmarkStyle">@style/OobeGuidedActionItemCheckmark</item>
+        <item name="guidedActionsElevation">0dp</item>
+    </style>
 </resources>

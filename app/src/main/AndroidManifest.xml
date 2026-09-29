@@ -77,6 +77,24 @@
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 
+        <!-- 集中設定頁面：管理 Launcher 全部偏好與系統捷徑 -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PureBlackDarkOnly"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
+
+        <!-- 首次開箱設定引導精靈 (OOBE) -->
+        <activity
+            android:name=".OobeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Oobe"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
+
+
+
         <!-- 原生硬體 HDMI 直通播放器：TvView 渲染，完全脫離 com.tcl.tv -->
         <activity
             android:name=".HdmiViewerActivity"

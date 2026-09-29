@@ -7,8 +7,9 @@
     <string name="btn_countdown_seconds">倒计时: %d秒</string>
     <string name="btn_tcl_settings">TCL 设置</string>
     <string name="btn_apps">应用程序</string>
+    <string name="btn_settings">设置</string>
     <string name="card_default_badge">● 默认</string>
-    <string name="bottom_hint">[OK] 立即切换   •   [1 / 2 / 3] 直达信号   •   [菜单] 倒计时设置   •   [长按 OK] 设为默认</string>
+    <string name="bottom_hint">[OK] 立即切换   •   [1 / 2 / 3] 直达信号   •   [菜单] 设置   •   [长按 OK] 设为默认</string>
     <string name="countdown_active">%1$d 秒后自动进入 HDMI %2$d（按方向键取消）</string>
     <string name="text_cancelled">请选择信号源（长按 OK 可设为默认）</string>
     <string name="countdown_disabled">自动切换已关闭（默认 HDMI %d）</string>
@@ -30,6 +31,42 @@
     <string name="toast_countdown_off">已关闭自动切换信号源</string>
     <string name="toast_countdown_set">倒计时秒数已设为 %d 秒</string>
     <string name="dialog_cancel">取消</string>
+
+    <!-- 设置页面 (Settings Activity) -->
+    <string name="settings_title">设置</string>
+    <string name="settings_hint">[OK] 调整 / 切换   •   [返回] 返回主页</string>
+    <string name="setting_category_launcher">Launcher 偏好设置</string>
+    <string name="setting_category_system">电视与系统设置</string>
+    <string name="setting_app_mode_title">App 模式</string>
+    <string name="setting_app_mode_desc_on">主页默认打开应用程序列表</string>
+    <string name="setting_app_mode_desc_off">主页默认打开 HDMI 信号源切换</string>
+    <string name="setting_countdown_title">自动倒计时秒数</string>
+    <string name="setting_countdown_desc">开机 %d 秒后自动进入默认信号源</string>
+    <string name="setting_countdown_desc_off">关闭自动进入（停留在信号源菜单）</string>
+    <string name="setting_default_port_title">默认信号源</string>
+    <string name="setting_default_port_desc">当前默认进入：HDMI %d</string>
+    <string name="setting_signal_search_title">信号搜索画面</string>
+    <string name="setting_signal_search_desc_on">切换信号源时显示检测提示 HUD</string>
+    <string name="setting_signal_search_desc_off">直接硬件直通播放，不显示提示 HUD</string>
+    <string name="setting_wake_guard_title">待机唤醒与 Home 键保障</string>
+    <string name="setting_wake_guard_desc_on">无障碍服务已启用（100% 待机唤醒返回）</string>
+    <string name="setting_wake_guard_desc_off">服务未开启（强烈建议开启避免唤醒黑屏）</string>
+    <string name="setting_auto_open_title">自动启动 App</string>
+    <string name="setting_auto_open_desc_none">未设置（开机停留在应用程序列表）</string>
+    <string name="setting_auto_open_desc_app">开机 / 唤醒后自动启动：%s</string>
+    <string name="setting_tcl_settings_title">TCL 电视设置</string>
+    <string name="setting_tcl_settings_desc">打开 TCL 原厂图像、声音与显示设置</string>
+    <string name="setting_android_settings_title">Android 系统设置</string>
+    <string name="setting_android_settings_desc">打开设备偏好设置、网络与账号</string>
+    <string name="setting_state_on">开启</string>
+    <string name="setting_state_off">关闭</string>
+    <string name="setting_state_enabled">已启用</string>
+    <string name="setting_state_disabled">未开启</string>
+    <string name="setting_action_open">打开</string>
+    <string name="dialog_default_port_title">选择开机默认信号源</string>
+    <string name="port_hdmi_1">HDMI 1</string>
+    <string name="port_hdmi_2">HDMI 2</string>
+    <string name="port_hdmi_3">HDMI 3</string>
 
     <!-- App Drawer (AppListActivity) -->
     <string name="app_list_title">应用程序</string>
@@ -79,4 +116,43 @@
     <string name="toast_auto_open_cleared">已取消自动启动 App</string>
     <string name="badge_auto_open">● 自动启动</string>
     <string name="auto_open_countdown_banner">%1$d 秒后自动启动 %2$s（按方向键取消）</string>
+
+    <!-- 信号搜索画面 -->
+    <string name="btn_signal_search_on">信号搜索画面: 开启</string>
+    <string name="btn_signal_search_off">信号搜索画面: 关闭</string>
+
+    <!-- HDMI 状态提示 HUD -->
+    <string name="hdmi_searching_signal">HDMI %d • 正在搜索信号...</string>
+    <string name="hdmi_no_signal">HDMI %d • 无信号</string>
+    <string name="hdmi_signal_connected">HDMI %d • 信号已连接</string>
+
+    <!-- OOBE 开箱设置向导 -->
+    <string name="setting_oobe_title">首次开箱设置向导 (OOBE)</string>
+    <string name="setting_oobe_desc">重新执行开箱引导设置流程</string>
+    <string name="oobe_welcome_title">欢迎使用 HDMI 启动器</string>
+    <string name="oobe_welcome_breadcrumb">开箱导览 • 1/3</string>
+    <string name="oobe_welcome_description">将您的 TCL 电视打造为极速纯净的外接屏幕。请选择您的首选开机模式：</string>
+    <string name="oobe_mode_pure_title">纯显示器模式（推荐）</string>
+    <string name="oobe_mode_pure_desc">开机直接切换至外接设备（Apple TV / PS5 等），零后台干扰</string>
+    <string name="oobe_mode_app_title">App 桌面模式</string>
+    <string name="oobe_mode_app_desc">开机默认打开电视应用程序列表，并保留 HDMI 快捷卡片</string>
+    <string name="oobe_config_title">默认信号源与自动启动</string>
+    <string name="oobe_config_breadcrumb">开箱导览 • 2/3</string>
+    <string name="oobe_config_description">请选择开机默认切换的 HDMI 信号源与倒计时秒数：</string>
+    <string name="oobe_port_prompt">默认信号源: HDMI %d</string>
+    <string name="oobe_countdown_prompt">自动启动倒数: %s</string>
+    <string name="oobe_countdown_off">关闭自动启动</string>
+    <string name="oobe_action_next">下一步</string>
+    <string name="oobe_system_title">系统设置与防假死守护</string>
+    <string name="oobe_system_breadcrumb">开箱导览 • 3/3</string>
+    <string name="oobe_system_description">优化 TCL 电视设置以获得最佳体验。您亦可随时在设置中调整。</string>
+    <string name="oobe_action_set_default_home">设为系统默认桌面</string>
+    <string name="oobe_action_set_default_home_desc">唤起系统主屏幕选择器，替换原厂电视桌面</string>
+    <string name="oobe_action_wake_guard">启用待机唤醒防假死守护</string>
+    <string name="oobe_action_wake_guard_desc">打开无障碍设置（若无则自动打开系统设置）启用守护服务</string>
+    <string name="oobe_action_finish">完成设置并开始使用</string>
+    <string name="oobe_action_finish_desc">保存所有设置并立即进入启动器</string>
+    <string name="oobe_skip">跳过设置（使用默认值）</string>
+    <string name="toast_accessibility_fallback_settings">未找到专用无障碍页面，已自动为您打开 Android 系统设置（请前往 设备偏好设置 > 无障碍）</string>
 </resources>
+

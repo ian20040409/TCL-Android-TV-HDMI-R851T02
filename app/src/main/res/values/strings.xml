@@ -7,8 +7,9 @@
     <string name="btn_countdown_seconds">Countdown: %ds</string>
     <string name="btn_tcl_settings">TCL Settings</string>
     <string name="btn_apps">Apps</string>
+    <string name="btn_settings">Settings</string>
     <string name="card_default_badge">● Default</string>
-    <string name="bottom_hint">[OK] Switch   •   [1 / 2 / 3] Direct Input   •   [Menu] Timer Settings   •   [Hold OK] Set Default</string>
+    <string name="bottom_hint">[OK] Switch   •   [1 / 2 / 3] Direct Input   •   [Menu] Settings   •   [Hold OK] Set Default</string>
     <string name="countdown_active">Switching to HDMI %2$d in %1$ds (Press D-pad to cancel)</string>
     <string name="text_cancelled">Select an input (Long-press OK to set default)</string>
     <string name="countdown_disabled">Auto-switch disabled (Default HDMI %d)</string>
@@ -30,6 +31,42 @@
     <string name="toast_countdown_off">Auto-switch disabled</string>
     <string name="toast_countdown_set">Countdown set to %d seconds</string>
     <string name="dialog_cancel">Cancel</string>
+
+    <!-- Settings Activity -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_hint">[OK] Select / Toggle   •   [Back] Return to Home</string>
+    <string name="setting_category_launcher">Launcher Preferences</string>
+    <string name="setting_category_system">TV &amp; System Settings</string>
+    <string name="setting_app_mode_title">App Mode</string>
+    <string name="setting_app_mode_desc_on">Home screen defaults to App List</string>
+    <string name="setting_app_mode_desc_off">Home screen defaults to HDMI Input Selector</string>
+    <string name="setting_countdown_title">Auto-Switch Countdown</string>
+    <string name="setting_countdown_desc">Switch to default HDMI in %d seconds</string>
+    <string name="setting_countdown_desc_off">Auto-switch disabled</string>
+    <string name="setting_default_port_title">Default HDMI Input</string>
+    <string name="setting_default_port_desc">Current default: HDMI %d</string>
+    <string name="setting_signal_search_title">Signal Search HUD</string>
+    <string name="setting_signal_search_desc_on">Show searching HUD overlay on switch</string>
+    <string name="setting_signal_search_desc_off">Direct hardware pass-through without HUD</string>
+    <string name="setting_wake_guard_title">Standby Wake &amp; Home Button</string>
+    <string name="setting_wake_guard_desc_on">Accessibility service active (100% wake return)</string>
+    <string name="setting_wake_guard_desc_off">Not enabled (Recommended to avoid sleep issues)</string>
+    <string name="setting_auto_open_title">Auto-Start App</string>
+    <string name="setting_auto_open_desc_none">No app set (Stay on App List)</string>
+    <string name="setting_auto_open_desc_app">Auto-starts %s on boot / wake</string>
+    <string name="setting_tcl_settings_title">TCL TV Settings</string>
+    <string name="setting_tcl_settings_desc">Picture, sound and display settings</string>
+    <string name="setting_android_settings_title">Android System Settings</string>
+    <string name="setting_android_settings_desc">Device preferences, network and accounts</string>
+    <string name="setting_state_on">ON</string>
+    <string name="setting_state_off">OFF</string>
+    <string name="setting_state_enabled">Active</string>
+    <string name="setting_state_disabled">Disabled</string>
+    <string name="setting_action_open">Open</string>
+    <string name="dialog_default_port_title">Select Default HDMI Input</string>
+    <string name="port_hdmi_1">HDMI 1</string>
+    <string name="port_hdmi_2">HDMI 2</string>
+    <string name="port_hdmi_3">HDMI 3</string>
 
     <!-- App Drawer (AppListActivity) -->
     <string name="app_list_title">Applications</string>
@@ -84,4 +121,38 @@
     <string name="hdmi_searching_signal">HDMI %d • Searching for signal...</string>
     <string name="hdmi_no_signal">HDMI %d • No Signal</string>
     <string name="hdmi_signal_connected">HDMI %d • Connected</string>
+
+    <!-- Signal Search Screen -->
+    <string name="btn_signal_search_on">Signal HUD: On</string>
+    <string name="btn_signal_search_off">Signal HUD: Off</string>
+
+    <!-- OOBE Experience -->
+    <string name="setting_oobe_title">Setup Wizard (OOBE)</string>
+    <string name="setting_oobe_desc">Re-run the initial setup walkthrough</string>
+    <string name="oobe_welcome_title">Welcome to HDMI Launcher</string>
+    <string name="oobe_welcome_breadcrumb">Initial Setup • 1/3</string>
+    <string name="oobe_welcome_description">Turn your TCL TV into a dedicated ultra-fast monitor. Choose your preferred startup mode:</string>
+    <string name="oobe_mode_pure_title">Pure Monitor Mode (Recommended)</string>
+    <string name="oobe_mode_pure_desc">Directly boots into your external device (Apple TV / PS5). Zero background overhead.</string>
+    <string name="oobe_mode_app_title">App Launcher Mode</string>
+    <string name="oobe_mode_app_desc">Opens installed TV apps grid on startup while keeping quick HDMI cards.</string>
+    <string name="oobe_config_title">Default Input &amp; Timer</string>
+    <string name="oobe_config_breadcrumb">Initial Setup • 2/3</string>
+    <string name="oobe_config_description">Select the primary HDMI port for your external source and auto-switch delay:</string>
+    <string name="oobe_port_prompt">Primary HDMI Port: HDMI %d</string>
+    <string name="oobe_countdown_prompt">Startup Countdown: %s</string>
+    <string name="oobe_countdown_off">Disable Auto-Switch</string>
+    <string name="oobe_action_next">Next Step</string>
+    <string name="oobe_system_title">System &amp; TV Optimization</string>
+    <string name="oobe_system_breadcrumb">Initial Setup • 3/3</string>
+    <string name="oobe_system_description">Optimize your TCL TV for the best experience. You can also configure these anytime in Settings.</string>
+    <string name="oobe_action_set_default_home">Set as Default TV Launcher</string>
+    <string name="oobe_action_set_default_home_desc">Prompts system Home app selector to replace stock launcher</string>
+    <string name="oobe_action_wake_guard">Enable Standby Wake Guard</string>
+    <string name="oobe_action_wake_guard_desc">Opens Accessibility settings (or System settings) to enable Wake Guard</string>
+    <string name="oobe_action_finish">Finish &amp; Start Using</string>
+    <string name="oobe_action_finish_desc">Save configuration and enter Launcher</string>
+    <string name="oobe_skip">Skip to Default</string>
+    <string name="toast_accessibility_fallback_settings">Dedicated accessibility page not found. Opened Android System Settings instead.</string>
 </resources>
+
