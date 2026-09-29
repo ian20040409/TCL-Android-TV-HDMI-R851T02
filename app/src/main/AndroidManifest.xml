@@ -11,6 +11,12 @@
 
     <!-- 開機廣播權限（API 33 以下自動授予；API 33+ 安裝時自動批准） -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.DEVICE_POWER" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
 
     <!-- Android 11+ (API 30+) Launcher 查詢所有已安裝 TV / 手機 App 必備權限 -->
     <uses-permission
@@ -108,6 +114,7 @@
             android:name=".OobeActivity"
             android:exported="false"
             android:theme="@style/Theme.Oobe"
+            android:noHistory="true"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 
@@ -163,6 +170,8 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
                 <!-- 螢幕保護 / 待機結束 → TV 從睡眠喚醒 -->
                 <action android:name="android.intent.action.DREAMING_STOPPED" />
+                <!-- CEC 喚醒 -->
+                <action android:name="com.tcl.action.cec.MSG_VIEW_ON" />
             </intent-filter>
         </receiver>
 
@@ -180,6 +189,21 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <service android:name=".CecLogReaderService"
+                 android:exported="false" />
+
+        <receiver
+            android:name=".MyAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

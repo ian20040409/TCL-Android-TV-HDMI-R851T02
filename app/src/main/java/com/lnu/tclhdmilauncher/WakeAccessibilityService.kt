@@ -70,6 +70,47 @@ class WakeAccessibilityService : AccessibilityService() {
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "ACTION_SLEEP") {
+            Log.i(TAG, "收到休眠請求，嘗試關閉螢幕")
+            try {
+                // 先嘗試 GLOBAL_ACTION_LOCK_SCREEN (8)
+                var success = false
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    success = performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+                    Log.i(TAG, "GLOBAL_ACTION_LOCK_SCREEN 結果: $success")
+                }
+                
+                // 如果失敗，退而求其次使用 POWER_DIALOG + 幽靈點擊
+                if (!success) {
+                    success = performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
+                    Log.i(TAG, "GLOBAL_ACTION_POWER_DIALOG 結果: $success")
+                    if (success) {
+                        PowerMenuClicker.clickPowerOff(this)
+                    }
+                }
+
+                // 根據使用者要求：間隔 1 秒重試，直到螢幕關閉
+                handler.postDelayed({
+                    val displayManager = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
+                    val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
+                    if (isScreenOn) {
+                        Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
+                        val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {
+                            action = "ACTION_SLEEP"
+                        }
+                        startService(retryIntent)
+                    } else {
+                        Log.i(TAG, "螢幕已成功關閉，停止重試。")
+                    }
+                }, 1000)
+            } catch (e: Exception) {
+                Log.e(TAG, "執行休眠動作失敗", e)
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     private fun updateStockLauncherPackages() {
         try {
             val intent = Intent(Intent.ACTION_MAIN).apply {

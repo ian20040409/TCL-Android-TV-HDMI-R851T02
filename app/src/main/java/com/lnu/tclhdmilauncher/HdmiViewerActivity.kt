@@ -136,6 +136,13 @@ class HdmiViewerActivity : Activity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+        
+        val newPort = intent?.getIntExtra(EXTRA_PORT, -1) ?: -1
+        if (newPort != -1 && newPort == currentPort) {
+            Log.i(TAG, "onNewIntent: Ignoring request for port $newPort because it is already active.")
+            return
+        }
+        
         intent?.let { resolveAndTune(it) }
     }
 

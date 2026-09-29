@@ -29,8 +29,24 @@ class BootAndWakeReceiver : BroadcastReceiver() {
             Intent.ACTION_LOCKED_BOOT_COMPLETED,
             "android.intent.action.QUICKBOOT_POWERON",
             "com.htc.intent.action.QUICKBOOT_POWERON",
-            Intent.ACTION_DREAMING_STOPPED -> {
-                Log.i(TAG, "Boot or wake broadcast received: ${intent.action}, waking to launcher")
+            Intent.ACTION_DREAMING_STOPPED,
+            "com.tcl.action.cec.MSG_VIEW_ON" -> {
+                Log.i(TAG, "Boot or wake broadcast received: ${intent.action}")
+
+                if (intent.action == "com.tcl.action.cec.MSG_VIEW_ON") {
+                    Log.i(TAG, "Native MSG_VIEW_ON received, updating lastCecWakeTime and waking screen only.")
+                    TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
+                    TclHdmiApplication.wakeScreen(context)
+                    return // 直接返回，不要強制切回 Launcher
+                }
+
+                if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 3000) {
+                    Log.i(TAG, "Ignoring wake to launcher because CEC woke the screen recently.")
+                    return
+                }
+
+                Log.i(TAG, "waking to launcher")
+                TclHdmiApplication.wakeScreen(context)
                 TclHdmiApplication.wakeToLauncher(context)
             }
         }

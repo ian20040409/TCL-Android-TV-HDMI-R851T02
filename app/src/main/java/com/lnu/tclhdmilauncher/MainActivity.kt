@@ -326,6 +326,22 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             return
         }
 
+        if (!isAccessibilityServiceEnabled(this)) {
+            val dialog = android.app.AlertDialog.Builder(this)
+                .setTitle("無障礙服務未啟用")
+                .setMessage("自動休眠 (STR) 與 Home 鍵重定向功能需要無障礙服務權限。\n請至系統設定中開啟「TCL HDMI Launcher」。")
+                .setPositiveButton("開啟設定") { _, _ ->
+                    openAccessibilitySettings(this)
+                }
+                .setNegativeButton("略過", null)
+                .create()
+            
+            dialog.setOnShowListener {
+                dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)?.requestFocus()
+            }
+            dialog.show()
+        }
+
         loadPreferencesFromCache()
         initTextCaches()
         secondsLeft = countdownDuration
@@ -406,6 +422,11 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         if (hasWindowFocus()) {
             resumeTimerIfOnMainScreen()
         }
+    }
+
+    override fun onBackPressed() {
+        // Do nothing, as this is the Home Launcher.
+        // This prevents going back to OobeActivity or closing the launcher.
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

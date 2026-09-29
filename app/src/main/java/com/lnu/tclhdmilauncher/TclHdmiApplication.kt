@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 
 /**
@@ -20,6 +21,9 @@ class TclHdmiApplication : Application() {
 
     companion object {
         private const val TAG = "TclHdmiApp"
+
+        @Volatile
+        var lastCecWakeTime: Long = 0
 
         /**
          * 強制啟動並拉回 Launcher 至最前景（依 App Mode 設定進入 AppListActivity 或 MainActivity）
@@ -42,6 +46,27 @@ class TclHdmiApplication : Application() {
                 Log.e(TAG, "Failed to start MainActivity: ${e.message}")
             }
         }
+
+        /**
+         * 點亮螢幕
+         */
+        fun wakeScreen(context: Context) {
+            try {
+                val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                if (!pm.isInteractive) {
+                    val wl = pm.newWakeLock(
+                        PowerManager.FULL_WAKE_LOCK or
+                        PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                        PowerManager.ON_AFTER_RELEASE,
+                        "TclHdmiApp:CecWakeLock"
+                    )
+                    wl.acquire(3000) // 點亮螢幕，3秒後釋放
+                    Log.i(TAG, "wakeScreen: WakeLock acquired to turn on screen")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "wakeScreen: failed to acquire wake lock", e)
+            }
+        }
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -56,8 +81,23 @@ class TclHdmiApplication : Application() {
                 }
 
                 Intent.ACTION_SCREEN_ON,
-                Intent.ACTION_USER_PRESENT -> {
-                    Log.i(TAG, "Screen ON / User present detected in Application, waking to Launcher...")
+                Intent.ACTION_USER_PRESENT,
+                "com.tcl.action.cec.MSG_VIEW_ON" -> {
+                    Log.i(TAG, "Screen ON / Wake / CEC broadcast received: ${intent.action}")
+
+                    if (intent.action == "com.tcl.action.cec.MSG_VIEW_ON") {
+                        Log.i(TAG, "Native MSG_VIEW_ON received, updating lastCecWakeTime and waking screen only.")
+                        lastCecWakeTime = System.currentTimeMillis()
+                        wakeScreen(context)
+                        return // 直接返回，不要強制切回 Launcher，保留給 CEC 訊號源
+                    }
+
+                    if (System.currentTimeMillis() - lastCecWakeTime < 3000) {
+                        Log.i(TAG, "Ignoring wake to launcher because CEC woke the screen recently.")
+                        return
+                    }
+
+                    Log.i(TAG, "waking to Launcher...")
                     // 1. 立即喚醒拉回
                     wakeToLauncher(context)
 
@@ -95,7 +135,20 @@ class TclHdmiApplication : Application() {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_USER_PRESENT)
+            addAction("com.tcl.action.cec.MSG_VIEW_ON")
         }
         registerReceiver(screenReceiver, filter)
+
+        // 啟動 CEC 監控服務
+        try {
+            val serviceIntent = Intent(this, CecLogReaderService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start CecLogReaderService", e)
+        }
     }
 }

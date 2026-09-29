@@ -249,7 +249,12 @@ class SettingsActivity : FragmentActivity() {
                 .setNegativeButton(getString(R.string.dialog_cancel)) { d, _ ->
                     d.dismiss()
                 }
-                .create().also { it.show() }
+                .create().also { dialog ->
+                    dialog.setOnShowListener {
+                        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.requestFocus()
+                    }
+                    dialog.show()
+                }
         }
 
         private fun showCountdownDialog() {
