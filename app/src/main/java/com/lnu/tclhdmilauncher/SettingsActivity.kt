@@ -46,11 +46,7 @@ class SettingsActivity : FragmentActivity() {
             private const val ACTION_RESET_APP = 8L
             private const val ACTION_CEC_DEBUG = 9L
             private const val ACTION_BUTTON_MAPPER = 10L
-            private const val ACTION_MAPPER_HOME_ON = 1001L
-            private const val ACTION_MAPPER_HOME_OFF = 1002L
-            private const val ACTION_MAPPER_INPUT_ON = 1003L
-            private const val ACTION_MAPPER_INPUT_OFF = 1004L
-            private const val ACTION_MAPPER_ACCESSIBILITY = 1005L
+            private const val ACTION_AUTO_SLEEP = 11L
 
             private const val ACTION_SIGNAL_SEARCH_ENABLE = 5001L
             private const val ACTION_SIGNAL_SEARCH_DISABLE = 5002L
@@ -80,7 +76,11 @@ class SettingsActivity : FragmentActivity() {
         }
 
         override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
-            val ctx = requireContext()
+            actions.addAll(buildActions(requireContext()))
+        }
+
+        private fun buildActions(ctx: Context): List<GuidedAction> {
+            val actions = mutableListOf<GuidedAction>()
 
             // 1. App 模式設定入口 (點擊進入專屬獨立的 AppModeSettingsActivity)
             val appModeDesc = getAppModeSummaryText(ctx)
@@ -147,16 +147,18 @@ class SettingsActivity : FragmentActivity() {
                     .build()
             )
 
-            // 5. 待機喚醒與 Home 鍵保障 (無障礙)
+            // 5. 待機喚醒與 Home 鍵保障 (無障礙) - ONLY SHOW IF NOT ENABLED
             val wakeGuard = AccessibilityHelper.isServiceEnabled(ctx)
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_WAKE_GUARD)
-                    .title(getString(R.string.setting_wake_guard_title))
-                    .description(getString(if (wakeGuard) R.string.setting_wake_guard_desc_on else R.string.setting_wake_guard_desc_off))
-                    .icon(ctx.getDrawable(R.drawable.accessibility_new_48px))
-                    .build()
-            )
+            if (!wakeGuard) {
+                actions.add(
+                    GuidedAction.Builder(ctx)
+                        .id(ACTION_WAKE_GUARD)
+                        .title(getString(R.string.setting_wake_guard_title))
+                        .description(getString(R.string.setting_wake_guard_desc_off))
+                        .icon(ctx.getDrawable(R.drawable.accessibility_new_48px))
+                        .build()
+                )
+            }
 
             actions.add(
                 GuidedAction.Builder(ctx)
@@ -173,7 +175,6 @@ class SettingsActivity : FragmentActivity() {
                     .title(getString(R.string.setting_button_mapper_title))
                     .description(buttonMapperSummary(ctx))
                     .icon(ctx.getDrawable(R.drawable.accessibility_new_48px))
-                    .subActions(buttonMapperSubActions(ctx))
                     .build()
             )
 
@@ -206,31 +207,13 @@ class SettingsActivity : FragmentActivity() {
                     .icon(ctx.getDrawable(R.drawable.delete_48px))
                     .build()
             )
-        }
 
+            return actions
+        }
         override fun onResume() {
             super.onResume()
             val ctx = context ?: return
-
-            // 喚醒保護狀態動態更新
-            val wakeGuard = AccessibilityHelper.isServiceEnabled(ctx)
-            val wakeAction = findActionById(ACTION_WAKE_GUARD)
-            if (wakeAction != null) {
-                wakeAction.description = getString(if (wakeGuard) R.string.setting_wake_guard_desc_on else R.string.setting_wake_guard_desc_off)
-                notifyActionChanged(findActionPositionById(ACTION_WAKE_GUARD))
-            }
-
-            // App 模式狀態動態更新
-            val appModeAction = findActionById(ACTION_APP_MODE_PARENT)
-            if (appModeAction != null) {
-                appModeAction.description = getAppModeSummaryText(ctx)
-                notifyActionChanged(findActionPositionById(ACTION_APP_MODE_PARENT))
-            }
-            val mapperAction = findActionById(ACTION_BUTTON_MAPPER)
-            if (mapperAction != null) {
-                mapperAction.description = buttonMapperSummary(ctx)
-                notifyActionChanged(findActionPositionById(ACTION_BUTTON_MAPPER))
-            }
+            setActions(buildActions(ctx))
         }
 
         override fun onGuidedActionClicked(action: GuidedAction) {
@@ -252,7 +235,7 @@ class SettingsActivity : FragmentActivity() {
                     startActivity(Intent(ctx, CecDebugActivity::class.java))
                 }
                 ACTION_BUTTON_MAPPER -> {
-                    AccessibilityHelper.openAccessibilitySettings(ctx)
+                    startActivity(Intent(ctx, ButtonMapperSettingsActivity::class.java))
                 }
                 ACTION_TCL_SETTINGS -> {
                     MainActivity.launchTclSettings(ctx)
@@ -272,13 +255,6 @@ class SettingsActivity : FragmentActivity() {
             return getString(R.string.setting_button_mapper_summary, home, input)
         }
 
-        private fun buttonMapperSubActions(ctx: Context) = listOf(
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_HOME_ON).title(getString(R.string.setting_mapper_home_on)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_HOME_OFF).title(getString(R.string.setting_mapper_home_off)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_INPUT_ON).title(getString(R.string.setting_mapper_input_on)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_INPUT_OFF).title(getString(R.string.setting_mapper_input_off)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_ACCESSIBILITY).title(getString(R.string.setting_mapper_accessibility)).build()
-        )
 
         private fun showResetAppDialog() {
             val ctx = context ?: return
@@ -386,16 +362,13 @@ class SettingsActivity : FragmentActivity() {
                 .create().also { it.show() }
         }
 
+
         override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
             val ctx = requireContext()
 
             // 訊號搜尋次選項
             when (action.id) {
-                ACTION_MAPPER_HOME_ON -> MainActivity.setHomeButtonOverrideEnabled(ctx, true)
-                ACTION_MAPPER_HOME_OFF -> MainActivity.setHomeButtonOverrideEnabled(ctx, false)
-                ACTION_MAPPER_INPUT_ON -> MainActivity.setInputButtonOverrideEnabled(ctx, true)
-                ACTION_MAPPER_INPUT_OFF -> MainActivity.setInputButtonOverrideEnabled(ctx, false)
-                ACTION_MAPPER_ACCESSIBILITY -> AccessibilityHelper.openAccessibilitySettings(ctx)
+
                 ACTION_SIGNAL_SEARCH_ENABLE -> {
                     MainActivity.setSignalSearchScreenEnabled(ctx, true)
                     val parentAction = findActionById(ACTION_SIGNAL_SEARCH_PARENT)
@@ -416,13 +389,6 @@ class SettingsActivity : FragmentActivity() {
                 }
             }
 
-            if (action.id in ACTION_MAPPER_HOME_ON..ACTION_MAPPER_ACCESSIBILITY) {
-                findActionById(ACTION_BUTTON_MAPPER)?.let {
-                    it.description = buttonMapperSummary(ctx)
-                    notifyActionChanged(findActionPositionById(ACTION_BUTTON_MAPPER))
-                }
-                return true
-            }
 
             return super.onSubGuidedActionClicked(action)
         }

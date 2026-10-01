@@ -57,7 +57,9 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
         private const val KEY_OVERRIDE_HOME_BUTTON = "override_home_button"
         private const val KEY_OVERRIDE_INPUT_BUTTON = "override_input_button"
+        private const val KEY_AUTO_SLEEP_SECONDS = "auto_sleep_seconds"
         private const val DEFAULT_COUNTDOWN_SECONDS = 3
+        private const val DEFAULT_AUTO_SLEEP_SECONDS = 30
         const val EXTRA_FROM_APP_LIST = "from_app_list"
 
 
@@ -98,6 +100,8 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         @Volatile
         private var cachedOobeCompleted: Boolean? = null
         @Volatile
+        private var cachedAutoSleepSeconds: Int? = null
+        @Volatile
         private var isFirstLaunchInProcess: Boolean = true
 
         fun isOobeCompleted(context: Context): Boolean {
@@ -123,6 +127,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             cachedAutoOpenDelay = null
             cachedSignalSearchScreen = null
             cachedOobeCompleted = null
+            cachedAutoSleepSeconds = null
 
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
             context.getSharedPreferences("app_list_recent", Context.MODE_PRIVATE).edit().clear().apply()
@@ -172,6 +177,20 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             cachedCountdownSeconds = seconds
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putInt(KEY_COUNTDOWN_SECONDS, seconds).apply()
+        }
+
+        fun getAutoSleepSeconds(context: Context): Int {
+            cachedAutoSleepSeconds?.let { return it }
+            val sec = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getInt(KEY_AUTO_SLEEP_SECONDS, DEFAULT_AUTO_SLEEP_SECONDS)
+            cachedAutoSleepSeconds = sec
+            return sec
+        }
+
+        fun setAutoSleepSeconds(context: Context, seconds: Int) {
+            cachedAutoSleepSeconds = seconds
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putInt(KEY_AUTO_SLEEP_SECONDS, seconds).apply()
         }
 
         fun isAppModeEnabled(context: Context): Boolean {

@@ -97,6 +97,14 @@
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 
+        <!-- Button Mapper 專屬設定頁面：按鍵映射與無障礙權限 -->
+        <activity
+            android:name=".ButtonMapperSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Settings"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
+
         <!-- 集中設定頁面：管理 Launcher 全部偏好與系統捷徑 -->
         <activity
             android:name=".SettingsActivity"

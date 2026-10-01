@@ -67,6 +67,17 @@ class HdmiViewerActivity : Activity() {
     private val maxRetries = 3
     private var isVideoAvailable = false
 
+    private val autoSleepHandler = Handler(Looper.getMainLooper())
+    private val autoSleepRunnable = Runnable {
+        if (!isVideoAvailable && !isFinishing) {
+            Log.i(TAG, "No signal for 2 minutes, auto sleeping...")
+            val sleepIntent = Intent(this, WakeAccessibilityService::class.java).apply {
+                action = "ACTION_SLEEP"
+            }
+            startService(sleepIntent)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -93,6 +104,7 @@ class HdmiViewerActivity : Activity() {
                     Log.i(TAG, "TvView onVideoAvailable: $inputId (video rendering active)")
                     retryCount = 0
                     isVideoAvailable = true
+                    autoSleepHandler.removeCallbacks(autoSleepRunnable)
                     hideSignalOverlay()
                     tvView.post { tvView.requestFocus() }
                 }
@@ -100,6 +112,12 @@ class HdmiViewerActivity : Activity() {
                 override fun onVideoUnavailable(inputId: String?, reason: Int) {
                     Log.w(TAG, "TvView onVideoUnavailable: inputId=$inputId, reason=$reason")
                     isVideoAvailable = false
+                    if (!autoSleepHandler.hasCallbacks(autoSleepRunnable)) {
+                        val sleepSeconds = MainActivity.getAutoSleepSeconds(this@HdmiViewerActivity)
+                        if (sleepSeconds > 0) {
+                            autoSleepHandler.postDelayed(autoSleepRunnable, sleepSeconds * 1000L)
+                        }
+                    }
                     updateSignalOverlay(getString(R.string.hdmi_searching_signal, currentPort))
                     // reason=0 (REASON_UNKNOWN): 通常為底層驅動剛釋放舊 Session 的短暫衝突，延遲 600ms 自動自我修復重新調諧
                     if (reason == 0 && !isFinishing && isForegroundFocused) {
@@ -175,6 +193,7 @@ class HdmiViewerActivity : Activity() {
     private fun tuneToPort(port: Int) {
         currentPort = port
         isVideoAvailable = false
+        autoSleepHandler.removeCallbacks(autoSleepRunnable)
         val inputId = when (port) {
             1 -> HW_HDMI1
             2 -> HW_HDMI2
@@ -364,6 +383,7 @@ class HdmiViewerActivity : Activity() {
         super.onStop()
         isForegroundFocused = false
         handler.removeCallbacksAndMessages(null)
+        autoSleepHandler.removeCallbacks(autoSleepRunnable)
         // 離開前台時釋放 TvView 硬體 Session，避免與其他 App 或重入時搶奪硬體解碼器
         try {
             tvView.reset()
@@ -374,6 +394,7 @@ class HdmiViewerActivity : Activity() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
+        autoSleepHandler.removeCallbacks(autoSleepRunnable)
         try {
             tvView.reset()
         } catch (_: Exception) {}

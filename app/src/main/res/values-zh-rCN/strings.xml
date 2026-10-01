@@ -54,10 +54,8 @@
     <string name="setting_button_mapper_title">Button Mapper 按键映射设置</string>
     <string name="setting_button_mapper_desc">在无障碍设置启用 HDMI Launcher，即可映射 Home 与输入源按键。</string>
     <string name="setting_button_mapper_summary">Home：%1$s · 输入源：%2$s</string>
-    <string name="setting_mapper_home_on">覆盖 Home 键：开启</string>
-    <string name="setting_mapper_home_off">覆盖 Home 键：关闭</string>
-    <string name="setting_mapper_input_on">覆盖输入源键：开启</string>
-    <string name="setting_mapper_input_off">覆盖输入源键：关闭</string>
+    <string name="setting_mapper_home_title">覆盖 Home 键</string>
+    <string name="setting_mapper_input_title">覆盖输入源键</string>
     <string name="setting_mapper_accessibility">打开无障碍设置</string>
     <string name="setting_auto_open_title">自动启动 App</string>
     <string name="setting_auto_open_desc_none">未设置（开机停留在应用程序列表）</string>
@@ -172,4 +170,7 @@
     <string name="oobe_action_finish_desc">保存所有设置并立即进入启动器</string>
     <string name="oobe_skip">跳过设置（使用默认值）</string>
     <string name="toast_accessibility_fallback_settings">未找到专用设置页，已为您打开系统设置（请前往 设备偏好设置 ➔ 无障碍 / 协助工具）</string>
+    <string name="dialog_accessibility_req_title">需要无障碍服务</string>
+    <string name="dialog_accessibility_req_msg">此功能需要无障碍服务权限才能正常运行。\n请至系统设置中开启“TCL HDMI Launcher”。</string>
+    <string name="dialog_accessibility_req_go">前往设置</string>
 </resources>

@@ -137,6 +137,12 @@ class CecLogReaderService : Service() {
                     TclHdmiApplication.wakeScreen(context)
                     extractPortFromIntent(intent)?.let { switchHdmiPort(context, it, short) }
                 }
+
+                "com.tcl.voicestandby" -> {
+                    Log.i(TAG, "（前台服務）收到 com.tcl.voicestandby 廣播！準備關閉螢幕...")
+                    CecDebugLog.add(context, "MSG_STANDBY (com.tcl.voicestandby) → requesting sleep")
+                    goToSleep()
+                }
             }
         }
     }
@@ -167,6 +173,7 @@ class CecLogReaderService : Service() {
                 addAction("com.tcl.action.cec.MSG_ACTIVE_SOURCE")
                 addAction("com.tcl.action.cec.MSG_ROUTING_CHANGE")
                 addAction("com.tcl.action.cec.MSG_SET_STREAM_PATH")
+                addAction("com.tcl.voicestandby") // 由 TclPowerManagerService 發出的待機廣播
             }
             // MSG_VIEW_ON originates from TCL's system process, so the dynamically
             // registered receiver must be exported on Android 13+.
@@ -176,7 +183,7 @@ class CecLogReaderService : Service() {
                 registerReceiver(cecBroadcastReceiver, cecFilter)
             }
             isCecReceiverRegistered = true
-            Log.i(TAG, "已註冊動態 CEC 廣播接收器 (MSG_VIEW_ON, MSG_ACTIVE_SOURCE, MSG_ROUTING_CHANGE, MSG_SET_STREAM_PATH)")
+            Log.i(TAG, "已註冊動態 CEC 廣播接收器 (MSG_VIEW_ON, MSG_ACTIVE_SOURCE, MSG_ROUTING_CHANGE, MSG_SET_STREAM_PATH, voicestandby)")
         }
 
         // 註冊 TvInputManager callback 監聽 HDMI 輸入狀態變化
@@ -390,10 +397,19 @@ class CecLogReaderService : Service() {
     }
 
     private fun goToSleep() {
+        if (!MainActivity.isAccessibilityServiceEnabled(this)) {
+            Log.w(TAG, "無障礙服務未啟用，無法執行休眠指令")
+            CecDebugLog.add(this, "Standby failed: WakeGuard Accessibility Service is disabled")
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(this, "無法休眠：請至系統設定開啟無障礙服務", android.widget.Toast.LENGTH_LONG).show()
+            }
+            return
+        }
         CecDebugLog.add(this, "Standby / Inactive Source → request screen lock")
         // 利用無障礙服務模擬按下電源鍵 (如果是 Android 9+)
         val intent = Intent(this, WakeAccessibilityService::class.java)
         intent.action = "ACTION_SLEEP"
+        intent.putExtra("RETRY_COUNT", 0)
         startService(intent)
     }
 

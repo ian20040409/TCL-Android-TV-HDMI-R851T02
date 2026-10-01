@@ -54,10 +54,8 @@
     <string name="setting_button_mapper_title">Button Mapper Setup</string>
     <string name="setting_button_mapper_desc">Enable HDMI Launcher in Accessibility to map Home and Input keys.</string>
     <string name="setting_button_mapper_summary">Home: %1$s · Input: %2$s</string>
-    <string name="setting_mapper_home_on">Home button override: On</string>
-    <string name="setting_mapper_home_off">Home button override: Off</string>
-    <string name="setting_mapper_input_on">Input button override: On</string>
-    <string name="setting_mapper_input_off">Input button override: Off</string>
+    <string name="setting_mapper_home_title">Override Home button</string>
+    <string name="setting_mapper_input_title">Override Input button</string>
     <string name="setting_mapper_accessibility">Open Accessibility settings</string>
     <string name="setting_auto_open_title">Auto-Start App</string>
     <string name="setting_auto_open_desc_none">No app set (Stay on App List)</string>
@@ -143,6 +141,10 @@
     <string name="hdmi_searching_signal">HDMI %d • Searching for signal...</string>
     <string name="hdmi_no_signal">HDMI %d • No Signal</string>
     <string name="hdmi_signal_connected">HDMI %d • Connected</string>
+    <string name="setting_auto_sleep_title">Auto Sleep (No Signal)</string>
+    <string name="setting_auto_sleep_desc">Auto sleep after %d seconds of no signal</string>
+    <string name="setting_auto_sleep_desc_off">Disabled</string>
+    <string name="dialog_auto_sleep_title">Auto Sleep Timeout</string>
 
     <!-- Signal Search Screen -->
     <string name="btn_signal_search_on">Signal HUD: On</string>
@@ -174,4 +176,7 @@
     <string name="oobe_action_finish_desc">Save configuration and enter Launcher</string>
     <string name="oobe_skip">Skip to Default</string>
     <string name="toast_accessibility_fallback_settings">Dedicated accessibility page not found. Opened Android System Settings instead.</string>
+    <string name="dialog_accessibility_req_title">Accessibility Required</string>
+    <string name="dialog_accessibility_req_msg">This feature requires Accessibility Service to function properly.\nPlease enable "TCL HDMI Launcher" in System Settings.</string>
+    <string name="dialog_accessibility_req_go">Go to Settings</string>
 </resources>

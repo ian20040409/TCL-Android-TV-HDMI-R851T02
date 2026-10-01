@@ -89,7 +89,13 @@ class WakeAccessibilityService : AccessibilityService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "ACTION_SLEEP") {
-            Log.i(TAG, "收到休眠請求，嘗試關閉螢幕")
+            val retryCount = intent.getIntExtra("RETRY_COUNT", 0)
+            if (retryCount > 3) {
+                Log.w(TAG, "休眠重試次數達上限 ($retryCount)，放棄重試。")
+                return super.onStartCommand(intent, flags, startId)
+            }
+
+            Log.i(TAG, "收到休眠請求，嘗試關閉螢幕 (第 $retryCount 次重試)")
             try {
                 // 先嘗試 GLOBAL_ACTION_LOCK_SCREEN (8)
                 var success = false
@@ -107,6 +113,29 @@ class WakeAccessibilityService : AccessibilityService() {
                     }
                 }
 
+                // 若上述皆失敗，直接呼叫 shell 指令模擬遙控器按下電源鍵 (KEYCODE_POWER = 26) / 休眠鍵 (KEYCODE_SLEEP = 223)
+                if (!success) {
+                    Log.i(TAG, "嘗試透過 shell 執行 input keyevent 223 (模擬遙控器休眠鍵)")
+                    try {
+                        val process = Runtime.getRuntime().exec("input keyevent 223")
+                        process.waitFor()
+                        success = process.exitValue() == 0
+                        Log.i(TAG, "input keyevent 223 執行結果: $success")
+                        
+                        if (!success) {
+                            Log.i(TAG, "延遲 500ms 後嘗試 input keyevent 26")
+                            Thread.sleep(500)
+                            Log.i(TAG, "嘗試透過 shell 執行 input keyevent 26 (模擬遙控器電源鍵)")
+                            val process2 = Runtime.getRuntime().exec("input keyevent 26")
+                            process2.waitFor()
+                            success = process2.exitValue() == 0
+                            Log.i(TAG, "input keyevent 26 執行結果: $success")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "input keyevent 執行失敗", e)
+                    }
+                }
+
                 // 根據使用者要求：間隔 1 秒重試，直到螢幕關閉
                 handler.postDelayed({
                     val displayManager = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
@@ -115,6 +144,7 @@ class WakeAccessibilityService : AccessibilityService() {
                         Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
                         val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {
                             action = "ACTION_SLEEP"
+                            putExtra("RETRY_COUNT", retryCount + 1)
                         }
                         startService(retryIntent)
                     } else {

@@ -223,10 +223,8 @@ class OobeActivity : FragmentActivity() {
             private const val ACTION_WAKE_GUARD = 1L
             private const val ACTION_FINISH = 2L
             private const val ACTION_BUTTON_MAPPER = 3L
-            private const val ACTION_MAPPER_HOME_ON = 101L
-            private const val ACTION_MAPPER_HOME_OFF = 102L
-            private const val ACTION_MAPPER_INPUT_ON = 103L
-            private const val ACTION_MAPPER_INPUT_OFF = 104L
+            private const val ACTION_MAPPER_HOME_TOGGLE = 101L
+            private const val ACTION_MAPPER_INPUT_TOGGLE = 102L
             private const val ACTION_MAPPER_ACCESSIBILITY = 105L
         }
 
@@ -313,10 +311,8 @@ class OobeActivity : FragmentActivity() {
         override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
             val ctx = requireContext()
             when (action.id) {
-                ACTION_MAPPER_HOME_ON -> MainActivity.setHomeButtonOverrideEnabled(ctx, true)
-                ACTION_MAPPER_HOME_OFF -> MainActivity.setHomeButtonOverrideEnabled(ctx, false)
-                ACTION_MAPPER_INPUT_ON -> MainActivity.setInputButtonOverrideEnabled(ctx, true)
-                ACTION_MAPPER_INPUT_OFF -> MainActivity.setInputButtonOverrideEnabled(ctx, false)
+                ACTION_MAPPER_HOME_TOGGLE -> MainActivity.setHomeButtonOverrideEnabled(ctx, action.isChecked)
+                ACTION_MAPPER_INPUT_TOGGLE -> MainActivity.setInputButtonOverrideEnabled(ctx, action.isChecked)
                 ACTION_MAPPER_ACCESSIBILITY -> AccessibilityHelper.openAccessibilitySettings(ctx)
                 else -> return super.onSubGuidedActionClicked(action)
             }
@@ -334,11 +330,22 @@ class OobeActivity : FragmentActivity() {
         }
 
         private fun buttonMapperSubActions(ctx: Context) = listOf(
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_HOME_ON).title(getString(R.string.setting_mapper_home_on)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_HOME_OFF).title(getString(R.string.setting_mapper_home_off)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_INPUT_ON).title(getString(R.string.setting_mapper_input_on)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_INPUT_OFF).title(getString(R.string.setting_mapper_input_off)).build(),
-            GuidedAction.Builder(ctx).id(ACTION_MAPPER_ACCESSIBILITY).title(getString(R.string.setting_mapper_accessibility)).build()
+            GuidedAction.Builder(ctx)
+                .id(ACTION_MAPPER_HOME_TOGGLE)
+                .title(getString(R.string.setting_mapper_home_title))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(MainActivity.isHomeButtonOverrideEnabled(ctx))
+                .build(),
+            GuidedAction.Builder(ctx)
+                .id(ACTION_MAPPER_INPUT_TOGGLE)
+                .title(getString(R.string.setting_mapper_input_title))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(MainActivity.isInputButtonOverrideEnabled(ctx))
+                .build(),
+            GuidedAction.Builder(ctx)
+                .id(ACTION_MAPPER_ACCESSIBILITY)
+                .title(getString(R.string.setting_mapper_accessibility))
+                .build()
         )
     }
 }
