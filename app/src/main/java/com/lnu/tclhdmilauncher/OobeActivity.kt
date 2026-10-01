@@ -247,6 +247,7 @@ class OobeActivity : FragmentActivity() {
             private const val ACTION_FINISH = 1L
             private const val ACTION_OPEN_ACCESSIBILITY = 2L
             private const val ACTION_BUTTON_MAPPER = 3L
+            private const val ACTION_SHIZUKU = 4L
         }
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
@@ -298,6 +299,19 @@ class OobeActivity : FragmentActivity() {
                         .build()
                 )
             }
+
+            val isAppMode = MainActivity.isAppModeEnabled(ctx)
+            if (!isAppMode && !ShizukuHelper.isShizukuPermissionGranted()) {
+                newActions.add(
+                    GuidedAction.Builder(ctx)
+                        .id(ACTION_SHIZUKU)
+                        .title(getString(R.string.setting_shizuku_title))
+                        .description(getString(R.string.setting_shizuku_desc))
+                        .icon(ctx.getDrawable(R.drawable.open_in_new_48px))
+                        .build()
+                )
+            }
+
             return newActions
         }
 
@@ -324,6 +338,10 @@ class OobeActivity : FragmentActivity() {
                 }
                 ACTION_BUTTON_MAPPER -> {
                     val intent = Intent(ctx, ButtonMapperSettingsActivity::class.java)
+                    startActivity(intent)
+                }
+                ACTION_SHIZUKU -> {
+                    val intent = Intent(ctx, ShizukuSettingsActivity::class.java)
                     startActivity(intent)
                 }
             }

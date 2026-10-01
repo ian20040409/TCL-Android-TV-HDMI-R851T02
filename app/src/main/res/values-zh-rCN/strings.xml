@@ -174,9 +174,9 @@
     <string name="oobe_action_finish">完成设置并开始使用</string>
     <string name="oobe_action_finish_desc">保存所有设置并立即进入启动器</string>
     <string name="oobe_skip">跳过设置（使用默认值）</string>
-    <string name="toast_accessibility_fallback_settings">未找到专用设置页，已为您打开系统设置（请前往 设备偏好设置 ➔ 无障碍 / 协助工具）</string>
+    <string name="toast_accessibility_fallback_settings">未找到专用设置页，已为您打开系统设置</string>
     <string name="dialog_accessibility_req_title">需要无障碍服务</string>
-    <string name="dialog_accessibility_req_msg">此功能需要无障碍服务权限才能正常运行。\n请至系统设置中开启“TCL HDMI Launcher”。</string>
+    <string name="dialog_accessibility_req_msg">自动休眠 (STR) 与按键映射功能需要无障碍服务权限才能正常运行。\n\n【系统设置开启路径】\n设备偏好设置（或系统）➔ 无障碍 / 协助工具 ➔ 开启“TCL HDMI Launcher”</string>
     <string name="dialog_accessibility_req_go">前往设置</string>
 
     <!-- Shizuku Management -->

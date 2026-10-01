@@ -70,7 +70,8 @@ class HdmiViewerActivity : Activity() {
     private val autoSleepHandler = Handler(Looper.getMainLooper())
     private val autoSleepRunnable = Runnable {
         if (!isVideoAvailable && !isFinishing) {
-            Log.i(TAG, "No signal for 2 minutes, auto sleeping...")
+            val sleepSeconds = MainActivity.getAutoSleepSeconds(this@HdmiViewerActivity)
+            Log.i(TAG, "No signal for $sleepSeconds seconds, auto sleeping...")
             val sleepIntent = Intent(this, WakeAccessibilityService::class.java).apply {
                 action = "ACTION_SLEEP"
             }

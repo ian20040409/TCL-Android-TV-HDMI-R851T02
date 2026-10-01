@@ -66,6 +66,36 @@ class TclHdmiApplication : Application() {
                     )
                     wl.acquire(3000) // 點亮螢幕，3秒後釋放
                     Log.i(TAG, "wakeScreen: WakeLock acquired to turn on screen")
+                    
+                    // 額外嘗試透過 Shizuku 執行強制喚醒 (input keyevent 224)
+                    Thread {
+                        try {
+                            // 先試 224 (KEYCODE_WAKEUP)
+                            if (ShizukuHelper.isShizukuPermissionGranted()) {
+                                Log.i(TAG, "使用 Shizuku 執行 input keyevent 224 嘗試喚醒螢幕")
+                                ShizukuHelper.executeShellCommand("input keyevent 224")
+                            } else {
+                                Log.i(TAG, "Shizuku 不可用，改用 Runtime 執行 input keyevent 224")
+                                Runtime.getRuntime().exec("input keyevent 224")
+                            }
+                            
+                            // 延遲檢查是否喚醒成功，若失敗則補發 26
+                            Thread.sleep(500)
+                            val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
+                            val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
+                            
+                            if (!isScreenOn) {
+                                Log.i(TAG, "螢幕仍未點亮，嘗試保底指令 input keyevent 26")
+                                if (ShizukuHelper.isShizukuPermissionGranted()) {
+                                    ShizukuHelper.executeShellCommand("input keyevent 26")
+                                } else {
+                                    Runtime.getRuntime().exec("input keyevent 26")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "input keyevent 喚醒執行失敗", e)
+                        }
+                    }.start()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "wakeScreen: failed to acquire wake lock", e)

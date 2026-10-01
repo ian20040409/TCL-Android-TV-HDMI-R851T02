@@ -219,19 +219,18 @@ class SettingsActivity : FragmentActivity() {
         private fun showAutoSleepDialog() {
             val ctx = requireContext()
             val current = MainActivity.getAutoSleepSeconds(ctx)
-            val options = intArrayOf(0, 300, 600, 900, 1800, 3600, 7200)
-            val titles = arrayOf(
-                "Off",
-                "5 Minutes",
-                "10 Minutes",
-                "15 Minutes",
-                "30 Minutes",
-                "1 Hour",
-                "2 Hours"
-            )
+            val options = intArrayOf(0, 1, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200)
+            val titles = options.map { sec ->
+                when {
+                    sec == 0 -> getString(R.string.setting_auto_sleep_desc_off)
+                    sec < 60 -> "$sec s"
+                    sec % 3600 == 0 -> "${sec / 3600} h"
+                    else -> "${sec / 60} min"
+                }
+            }.toTypedArray()
 
             var selectedIndex = options.indexOf(current)
-            if (selectedIndex < 0) selectedIndex = 2 // Default to 10 Minutes if not found
+            if (selectedIndex < 0) selectedIndex = 3 // Default to 30s if not found
 
             autoSleepDialog?.dismiss()
             autoSleepDialog = AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)

@@ -182,7 +182,7 @@
     <string name="oobe_skip">Skip to Default</string>
     <string name="toast_accessibility_fallback_settings">Dedicated accessibility page not found. Opened Android System Settings instead.</string>
     <string name="dialog_accessibility_req_title">Accessibility Required</string>
-    <string name="dialog_accessibility_req_msg">This feature requires Accessibility Service to function properly.\nPlease enable "TCL HDMI Launcher" in System Settings.</string>
+    <string name="dialog_accessibility_req_msg">Auto-sleep (STR) and Button Mapping require Accessibility Service permissions to function properly.\n\n[System Settings Path]\nDevice Preferences (or System) ➔ Accessibility ➔ Enable "TCL HDMI Launcher"</string>
     <string name="dialog_accessibility_req_go">Go to Settings</string>
 
     <!-- Shizuku Management -->

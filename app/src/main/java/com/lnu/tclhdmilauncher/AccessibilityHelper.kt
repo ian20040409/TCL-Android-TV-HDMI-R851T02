@@ -4,8 +4,6 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
@@ -108,22 +106,50 @@ object AccessibilityHelper {
     }
 
     /**
-     * 開啟無障礙設定
-     *
-     * 因 Android TV 捷徑被拔除，直接打開系統主設定 (MainSettings)，並跳出 Toast 提示導航路徑
-     * @return true 若成功打開；false 若失敗
+     * 彈出 Alert 對話框顯示無障礙服務開啟教學與路徑，點選「前往設定」後再切換至系統設定
      */
-    fun openAccessibilitySettings(context: Context): Boolean {
-        val opened = openAndroidSystemSettings(context)
-        if (opened) {
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(context.applicationContext, R.string.toast_accessibility_fallback_settings, Toast.LENGTH_LONG).show()
-            }
-        } else {
-            Handler(Looper.getMainLooper()).post {
+    fun showAccessibilityGuideDialog(context: Context) {
+        if (context !is android.app.Activity || context.isFinishing || context.isDestroyed) {
+            val opened = openAndroidSystemSettings(context)
+            if (!opened) {
                 Toast.makeText(context.applicationContext, R.string.toast_error_open_settings, Toast.LENGTH_SHORT).show()
             }
+            return
         }
-        return opened
+
+        val msg = DeviceHelper.filterBrandText(context, context.getString(R.string.dialog_accessibility_req_msg))
+        android.app.AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle(context.getString(R.string.dialog_accessibility_req_title))
+            .setMessage(msg)
+            .setPositiveButton(context.getString(R.string.dialog_accessibility_req_go)) { d, _ ->
+                val opened = openAndroidSystemSettings(context)
+                if (!opened) {
+                    Toast.makeText(context.applicationContext, R.string.toast_error_open_settings, Toast.LENGTH_SHORT).show()
+                }
+                d.dismiss()
+            }
+            .setNegativeButton(context.getString(R.string.dialog_cancel)) { d, _ ->
+                d.dismiss()
+            }
+            .create().also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)?.requestFocus()
+                }
+                dialog.show()
+            }
+    }
+
+    /**
+     * 開啟無障礙設定
+     *
+     * 若為 Activity，彈出 Alert 對話框顯示開啟路徑指引；按下「前往設定」後開啟系統設定。
+     * 若非 Activity，則直接開啟系統設定。
+     */
+    fun openAccessibilitySettings(context: Context): Boolean {
+        if (context is android.app.Activity && !context.isFinishing && !context.isDestroyed) {
+            showAccessibilityGuideDialog(context)
+            return true
+        }
+        return openAndroidSystemSettings(context)
     }
 }

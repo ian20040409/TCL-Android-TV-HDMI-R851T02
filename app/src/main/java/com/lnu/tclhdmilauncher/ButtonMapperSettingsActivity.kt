@@ -1,6 +1,5 @@
 package com.lnu.tclhdmilauncher
 
-import android.app.AlertDialog
 import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
@@ -114,23 +113,7 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
         }
 
         private fun showAccessibilityRequiredDialog(ctx: Context) {
-            val msg = DeviceHelper.filterBrandText(ctx, getString(R.string.dialog_accessibility_req_msg))
-            AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(getString(R.string.dialog_accessibility_req_title))
-                .setMessage(msg)
-                .setPositiveButton(getString(R.string.dialog_accessibility_req_go)) { d, _ ->
-                    AccessibilityHelper.openAccessibilitySettings(ctx)
-                    d.dismiss()
-                }
-                .setNegativeButton(getString(R.string.dialog_cancel)) { d, _ ->
-                    d.dismiss()
-                }
-                .create().also { dialog ->
-                    dialog.setOnShowListener {
-                        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.requestFocus()
-                    }
-                    dialog.show()
-                }
+            AccessibilityHelper.showAccessibilityGuideDialog(ctx)
         }
 
         override fun onGuidedActionClicked(action: GuidedAction) {
