@@ -1,5 +1,6 @@
 package com.lnu.tclhdmilauncher
 
+
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
@@ -13,6 +14,7 @@ import androidx.leanback.preference.LeanbackSettingsFragmentCompat
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceScreen
+
 
 class SettingsActivity : FragmentActivity() {
 
