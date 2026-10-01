@@ -30,7 +30,11 @@
     <!-- 支援從 App 清單長按解除安裝應用程式 -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
+    <!-- Shizuku API Permission -->
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+
     <queries>
+        <package android:name="moe.shizuku.privileged.api" />
         <package android:name="com.tcl.settings" />
         <package android:name="com.android.tv.settings" />
         <package android:name="com.android.settings" />
@@ -132,7 +136,6 @@
             android:name=".OobeActivity"
             android:exported="false"
             android:theme="@style/Theme.Oobe"
-            android:noHistory="true"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 

@@ -54,4 +54,8 @@ android {
 dependencies {
     implementation("androidx.leanback:leanback:1.0.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    
+    val shizuku_version = "13.1.5"
+    implementation("dev.rikka.shizuku:api:$shizuku_version")
+    implementation("dev.rikka.shizuku:provider:$shizuku_version")
 }

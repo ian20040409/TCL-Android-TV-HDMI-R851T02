@@ -297,7 +297,9 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
                 try {
                     WakeAccessibilityService.temporarilyIgnorePackage("com.tcl.settings")
                     WakeAccessibilityService.temporarilyIgnorePackage("com.android.tv.settings")
-                    candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    if (context !is android.app.Activity) {
+                        candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
                     context.startActivity(candidate)
                     return
                 } catch (_: Exception) {

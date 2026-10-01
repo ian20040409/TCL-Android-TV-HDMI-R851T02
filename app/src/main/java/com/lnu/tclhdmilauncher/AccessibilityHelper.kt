@@ -92,7 +92,9 @@ object AccessibilityHelper {
         for (candidate in candidates) {
             if (candidate == null) continue
             try {
-                candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (context !is android.app.Activity) {
+                    candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
                 context.startActivity(candidate)
                 Log.i(TAG, "Successfully started system settings via: $candidate")
                 return true
