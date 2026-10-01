@@ -57,20 +57,7 @@ If any of the following describes your home theater setup, this launcher was bui
 
 ## Ideal Home Theater Setup Example
 
-```
-                 ┌─────────────────────────────────┐
-                 │     TCL 4K QLED / Mini-LED TV   │
-                 │      (Pure Monitor / Display)   │
-                 └────────────────┬────────────────┘
-                                  │
-      ┌───────────────────────────┼───────────────────────────┐
-      │                           │                           │
-  [ HDMI 1 ]                  [ HDMI 2 ]                  [ HDMI 3 (eARC) ]
-      │                           │                           │
-      ▼                           ▼                           ▼
-🎮 PlayStation 5            📺 Blu-ray Player / Switch    🍏 Apple TV 4K / AVR
-(Press remote "1" to switch) (Press remote "2" to switch)  (Default: Auto-boots in 3s)
-```
+
 
 - **Default Scenario**: On power-up, a 3-second countdown (customizable) automatically transitions straight into **HDMI 3 (Apple TV 4K)** with zero button presses required.
 - **Gaming Scenario**: When you're ready to game, press numeric key `1` on your remote to instantly switch to **HDMI 1 (PS5)**.
