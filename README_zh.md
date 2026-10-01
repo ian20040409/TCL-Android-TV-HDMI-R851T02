@@ -381,6 +381,32 @@ TclWinInjector system_server             I  mayAddFloatingWindow w = ...HdmiView
 
 ---
 
+### 排查 4：實現真正的 HDMI-CEC 自動切換（繞過 TCL 韌體缺陷）
+
+#### 問題現象
+當你喚醒 Apple TV 或 PS5 時，設備會發送標準的 HDMI-CEC 指令（`<Image View On>` 與 `<Active Source>`）。正常的電視應該要自動切換到該 HDMI 訊號源，但 TCL 的韌體卻只會喚醒螢幕（透過 `MSG_VIEW_ON` 廣播），然後**讓你卡在系統首頁**，完全不會自動切換訊號源。
+
+#### 原因深度剖析（SELinux 阻擋與 Logcat 過濾）
+1. **空洞的廣播**：TCL 發出的 `MSG_VIEW_ON` 廣播中，完全沒有包含任何關於「是哪個 HDMI 埠喚醒了電視」的資訊。
+2. **SELinux 封殺標準 API**：若嘗試透過 `dumpsys hdmi_control` 查詢當前的活動訊號源，在 Android 11+ 系統中會被 SELinux 嚴格封殺（一般 App 會得到 `Can't find service: hdmi_control` 錯誤）。
+3. **Logcat UID 過濾機制**：其實底層的 `system_server` 有非常完美地印出 CEC 切換指令（`HdmiCecController: command:<Active Source> ... params: 10 00`），但從 Android 4.1 開始，普通 App 只能看到「自己」印出的 Log，導致這項關鍵資訊被系統隱藏。
+
+#### 終極治本解法：攔截系統 Logcat
+本 Launcher 內建了一個極度輕量的背景服務（`CecLogReaderService`），專門用來即時監聽系統 Logcat 中的 `HdmiCecController` 事件。當它捕捉到 `<Active Source>` 指令時，會瞬間解析出實體位址（例如 `10 00` -> `0x1000` -> HDMI 1），並在螢幕完全亮起前完美發動切換！
+
+要讓這項神技生效，**你必須透過 ADB 賦予 App 讀取系統全域 Log 的權限**：
+
+```bash
+# 1. 賦予讀取系統 Log 的權限（CEC 自動切換的關鍵！）
+adb shell pm grant com.lnu.tclhdmilauncher android.permission.READ_LOGS
+
+# 2. 強制停止 App 以套用新權限
+adb shell am force-stop com.lnu.tclhdmilauncher
+```
+授權完成後，你的電視就能享受微秒級、零誤差的完美 CEC 自動切換了！
+
+---
+
 ## 實測機型與訊號源對照
 
 ### 實測機型資訊
