@@ -8,286 +8,152 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
-import androidx.leanback.app.GuidedStepSupportFragment
-import androidx.leanback.widget.GuidanceStylist
-import androidx.leanback.widget.GuidedAction
+import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
+import androidx.leanback.preference.LeanbackSettingsFragmentCompat
+import androidx.preference.Preference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceScreen
 
-/**
- * TCL TV HDMI Launcher 一般設定頁面 (SettingsActivity)
- *
- * 採用 Android TV 官方標準 Leanback GuidedStepSupportFragment 設計：
- * - 100% Android TV 原生視覺與遙控器焦點導航規範
- * - 左側清晰導引看板（標題、描述、圖示）
- * - 「App 模式設定」作為專屬入口，點擊直達獨立的 AppModeSettingsActivity
- * - 「自動倒數秒數」與「預設訊號源」點擊彈出系統原生 AlertDialog 單選設定框
- * - 「訊號搜尋畫面」支援次級選單流暢切換開關
- * - 整合無障礙防拔除統一導航邏輯 (AccessibilityHelper)
- * - TCL 電視與 Android 系統設定快捷入口
- */
 class SettingsActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
-            GuidedStepSupportFragment.addAsRoot(this, MainSettingsFragment(), android.R.id.content)
+            supportFragmentManager.beginTransaction()
+                .replace(android.R.id.content, SettingsFragment())
+                .commit()
         }
     }
 
-    class MainSettingsFragment : GuidedStepSupportFragment() {
-
-        companion object {
-            private const val ACTION_APP_MODE_PARENT = 1L
-            private const val ACTION_COUNTDOWN = 2L
-            private const val ACTION_DEFAULT_PORT = 3L
-            private const val ACTION_SIGNAL_SEARCH_PARENT = 4L
-            private const val ACTION_WAKE_GUARD = 5L
-            private const val ACTION_TCL_SETTINGS = 6L
-            private const val ACTION_ANDROID_SETTINGS = 7L
-            private const val ACTION_RESET_APP = 8L
-            private const val ACTION_CEC_DEBUG = 9L
-            private const val ACTION_BUTTON_MAPPER = 10L
-            private const val ACTION_AUTO_SLEEP = 11L
-            private const val ACTION_SHIZUKU = 12L
-
-            private const val ACTION_SIGNAL_SEARCH_ENABLE = 5001L
-            private const val ACTION_SIGNAL_SEARCH_DISABLE = 5002L
+    class SettingsFragment : LeanbackSettingsFragmentCompat() {
+        override fun onPreferenceStartInitialScreen() {
+            startPreferenceFragment(PrefsFragment())
         }
+
+        override fun onPreferenceStartFragment(
+            caller: PreferenceFragmentCompat,
+            pref: Preference
+        ): Boolean {
+            return false
+        }
+
+        override fun onPreferenceStartScreen(
+            caller: PreferenceFragmentCompat,
+            pref: PreferenceScreen
+        ): Boolean {
+            val frag = PrefsFragment().apply {
+                arguments = Bundle().apply {
+                    putString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT, pref.key)
+                }
+            }
+            startPreferenceFragment(frag)
+            return true
+        }
+    }
+
+    class PrefsFragment : LeanbackPreferenceFragmentCompat() {
 
         private var countdownDialog: AlertDialog? = null
         private var autoSleepDialog: AlertDialog? = null
         private var defaultPortDialog: AlertDialog? = null
         private var resetDialog: AlertDialog? = null
-
         private val mainHandler = Handler(Looper.getMainLooper())
 
-        override fun onDestroy() {
-            super.onDestroy()
-            countdownDialog?.dismiss()
-            autoSleepDialog?.dismiss()
-            defaultPortDialog?.dismiss()
-            resetDialog?.dismiss()
-            mainHandler.removeCallbacksAndMessages(null)
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            setPreferencesFromResource(R.xml.preferences_main, rootKey)
+            updatePreferences()
         }
 
-        override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
-            return GuidanceStylist.Guidance(
-                getString(R.string.settings_title),
-                getString(R.string.settings_hint),
-                getString(R.string.brand_name),
-                requireContext().getDrawable(R.drawable.settings_48px)
-            )
+        override fun onResume() {
+            super.onResume()
+            updatePreferences()
         }
 
-        override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
-            actions.addAll(buildActions(requireContext()))
-        }
+        private fun updatePreferences() {
+            val ctx = requireContext()
+            val pm = preferenceManager
 
-        private fun buildActions(ctx: Context): List<GuidedAction> {
-            val actions = mutableListOf<GuidedAction>()
+            pm.findPreference<Preference>("pref_app_mode")?.summary = getAppModeSummaryText(ctx)
 
-            // 1. App 模式設定入口 (點擊進入專屬獨立的 AppModeSettingsActivity)
-            val appModeDesc = getAppModeSummaryText(ctx)
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_APP_MODE_PARENT)
-                    .title(getString(R.string.app_mode_settings_title))
-                    .description(appModeDesc)
-                    .build()
-            )
+            val defaultPort = MainActivity.getDefaultPort(ctx)
+            pm.findPreference<Preference>("pref_default_port")?.summary = getString(R.string.setting_default_port_desc, defaultPort)
 
-            // 2. 自動倒數秒數 (點擊彈出 AlertDialog 單選框)
             val countdown = MainActivity.getCountdownSeconds(ctx)
-            val countdownSummary = if (countdown <= 0) {
+            pm.findPreference<Preference>("pref_countdown")?.summary = if (countdown <= 0) {
                 getString(R.string.setting_countdown_desc_off)
             } else {
                 getString(R.string.setting_countdown_desc, countdown)
             }
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_COUNTDOWN)
-                    .title(getString(R.string.setting_countdown_title))
-                    .description(countdownSummary)
-                    .build()
-            )
 
             val autoSleep = MainActivity.getAutoSleepSeconds(ctx)
-            val autoSleepSummary = if (autoSleep <= 0) {
+            pm.findPreference<Preference>("pref_auto_sleep")?.summary = if (autoSleep <= 0) {
                 getString(R.string.setting_auto_sleep_desc_off)
             } else {
                 getString(R.string.setting_auto_sleep_desc, autoSleep)
             }
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_AUTO_SLEEP)
-                    .title(getString(R.string.setting_auto_sleep_title))
-                    .description(autoSleepSummary)
-                    .build()
-            )
 
-            // 3. 預設訊號源 (點擊彈出 AlertDialog 單選框)
-            val defaultPort = MainActivity.getDefaultPort(ctx)
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_DEFAULT_PORT)
-                    .title(getString(R.string.setting_default_port_title))
-                    .description(getString(R.string.setting_default_port_desc, defaultPort))
-                    .build()
-            )
-
-            // 4. 訊號搜尋畫面 (進入後顯示開啟和關閉按鈕)
             val signalSearch = MainActivity.isSignalSearchScreenEnabled(ctx)
-            val signalSubActions = mutableListOf<GuidedAction>()
-            signalSubActions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_SIGNAL_SEARCH_ENABLE)
-                    .title(getString(R.string.setting_state_on))
-                    .description(getString(R.string.setting_signal_search_desc_on))
-                    .build()
-            )
-            signalSubActions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_SIGNAL_SEARCH_DISABLE)
-                    .title(getString(R.string.setting_state_off))
-                    .description(getString(R.string.setting_signal_search_desc_off))
-                    .build()
-            )
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_SIGNAL_SEARCH_PARENT)
-                    .title(getString(R.string.setting_signal_search_title))
-                    .description(getString(if (signalSearch) R.string.setting_signal_search_desc_on else R.string.setting_signal_search_desc_off))
-                    .subActions(signalSubActions)
-                    .build()
-            )
+            pm.findPreference<Preference>("pref_signal_search")?.summary = getString(if (signalSearch) R.string.setting_signal_search_desc_on else R.string.setting_signal_search_desc_off)
 
-            // 5. 待機喚醒與 Home 鍵保障 (無障礙) - ONLY SHOW IF NOT ENABLED
+            val wakeGuardPref = pm.findPreference<Preference>("pref_wake_guard")
             val wakeGuard = AccessibilityHelper.isServiceEnabled(ctx)
-            if (!wakeGuard) {
-                actions.add(
-                    GuidedAction.Builder(ctx)
-                        .id(ACTION_WAKE_GUARD)
-                        .title(getString(R.string.setting_wake_guard_title))
-                        .description(getString(R.string.setting_wake_guard_desc_off))
-                        .build()
-                )
-            }
+            wakeGuardPref?.summary = getString(if (wakeGuard) R.string.setting_wake_guard_desc_on else R.string.setting_wake_guard_desc_off)
 
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_CEC_DEBUG)
-                    .title("CEC 偵錯記錄")
-                    .description("查看 CEC 喚醒、輸入切換與待機事件")
-                    .build()
-            )
-
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_BUTTON_MAPPER)
-                    .title(getString(R.string.setting_button_mapper_title))
-                    .description(buttonMapperSummary(ctx))
-                    .build()
-            )
-
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_SHIZUKU)
-                    .title(getString(R.string.setting_shizuku_title))
-                    .description(getString(R.string.setting_shizuku_desc))
-                    .build()
-            )
-
-            // 6. TCL 電視設定
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_TCL_SETTINGS)
-                    .title(getString(R.string.setting_tcl_settings_title))
-                    .description(getString(R.string.setting_tcl_settings_desc))
-                    .build()
-            )
-
-            // 7. Android 系統設定
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_ANDROID_SETTINGS)
-                    .title(getString(R.string.setting_android_settings_title))
-                    .description(getString(R.string.setting_android_settings_desc))
-                    .build()
-            )
-
-            // 8. 重設 App
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_RESET_APP)
-                    .title(getString(R.string.setting_reset_app_title))
-                    .description(getString(R.string.setting_reset_app_desc))
-                    .build()
-            )
-
-            return actions
-        }
-        override fun onResume() {
-            super.onResume()
-            val ctx = context ?: return
-            setActions(buildActions(ctx))
+            pm.findPreference<Preference>("pref_button_mapper")?.summary = buttonMapperSummary(ctx)
         }
 
-        override fun onGuidedActionClicked(action: GuidedAction) {
+        override fun onPreferenceTreeClick(preference: Preference): Boolean {
             val ctx = requireContext()
-            when (action.id) {
-                ACTION_APP_MODE_PARENT -> {
+            when (preference.key) {
+                "pref_app_mode" -> {
                     startActivity(Intent(ctx, AppModeSettingsActivity::class.java))
                 }
-                ACTION_COUNTDOWN -> {
+                "pref_countdown" -> {
                     showCountdownDialog()
                 }
-                ACTION_AUTO_SLEEP -> {
+                "pref_auto_sleep" -> {
                     showAutoSleepDialog()
                 }
-                ACTION_DEFAULT_PORT -> {
+                "pref_default_port" -> {
                     showDefaultPortDialog()
                 }
-                ACTION_WAKE_GUARD -> {
+                "pref_signal_search" -> {
+                    val newValue = !MainActivity.isSignalSearchScreenEnabled(ctx)
+                    MainActivity.setSignalSearchScreenEnabled(ctx, newValue)
+                    updatePreferences()
+                }
+                "pref_wake_guard" -> {
                     AccessibilityHelper.openAccessibilitySettings(ctx)
                 }
-                ACTION_CEC_DEBUG -> {
+                "pref_cec_debug" -> {
                     startActivity(Intent(ctx, CecDebugActivity::class.java))
                 }
-                ACTION_BUTTON_MAPPER -> {
+                "pref_button_mapper" -> {
                     startActivity(Intent(ctx, ButtonMapperSettingsActivity::class.java))
                 }
-                ACTION_SHIZUKU -> {
+                "pref_shizuku" -> {
                     startActivity(Intent(ctx, ShizukuSettingsActivity::class.java))
                 }
-                ACTION_TCL_SETTINGS -> {
+                "pref_tcl_settings" -> {
                     MainActivity.launchTclSettings(ctx)
                 }
-                ACTION_ANDROID_SETTINGS -> {
+                "pref_android_settings" -> {
                     MainActivity.launchAndroidSystemSettings(ctx)
                 }
-                ACTION_RESET_APP -> {
+                "pref_reset_app" -> {
                     showResetAppDialog()
                 }
             }
+            return super.onPreferenceTreeClick(preference)
         }
-
-        private fun buttonMapperSummary(ctx: Context): String {
-            if (!MainActivity.isButtonMapperEnabled(ctx)) {
-                return getString(R.string.setting_state_off)
-            }
-            val home = if (MainActivity.isHomeButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
-            val input = if (MainActivity.isInputButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
-            return getString(R.string.setting_button_mapper_summary, home, input)
-        }
-
 
         private fun showResetAppDialog() {
-            val ctx = context ?: return
+            val ctx = requireContext()
             resetDialog?.dismiss()
-
             resetDialog = AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(getString(R.string.dialog_reset_app_title))
-                .setMessage(getString(R.string.dialog_reset_app_msg))
-                .setPositiveButton(getString(R.string.dialog_reset_app_confirm)) { d, _ ->
+                .setTitle(R.string.dialog_reset_app_title)
+                .setMessage(R.string.dialog_reset_app_msg)
+                .setPositiveButton(R.string.dialog_reset_app_confirm) { d, _ ->
                     d.dismiss()
                     MainActivity.resetAllSettings(ctx)
                     Toast.makeText(ctx.applicationContext, R.string.toast_app_reset_completed, Toast.LENGTH_SHORT).show()
@@ -297,166 +163,112 @@ class SettingsActivity : FragmentActivity() {
                     startActivity(oobeIntent)
                     activity?.finish()
                 }
-                .setNegativeButton(getString(R.string.dialog_cancel)) { d, _ ->
+                .setNegativeButton(R.string.dialog_cancel) { d, _ ->
                     d.dismiss()
                 }
-                .create().also { dialog ->
-                    dialog.setOnShowListener {
-                        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.requestFocus()
-                    }
-                    dialog.show()
-                }
+                .show()
         }
 
         private fun showCountdownDialog() {
-            val ctx = context ?: return
-            countdownDialog?.dismiss()
-
+            val ctx = requireContext()
             val current = MainActivity.getCountdownSeconds(ctx)
-            val secondsOptions = listOf(
-                0 to getString(R.string.dialog_option_off),
-                1 to getString(R.string.dialog_option_1s),
-                2 to getString(R.string.dialog_option_2s),
-                3 to getString(R.string.dialog_option_3s_default),
-                5 to getString(R.string.dialog_option_5s),
-                10 to getString(R.string.dialog_option_10s),
-                15 to getString(R.string.dialog_option_15s),
-                30 to getString(R.string.dialog_option_30s)
+            val options = intArrayOf(0, 1, 2, 3, 5, 10, 15, 30)
+            val titles = arrayOf(
+                getString(R.string.dialog_option_off),
+                getString(R.string.dialog_option_1s),
+                getString(R.string.dialog_option_2s),
+                getString(R.string.dialog_option_3s_default),
+                getString(R.string.dialog_option_5s),
+                getString(R.string.dialog_option_10s),
+                getString(R.string.dialog_option_15s),
+                getString(R.string.dialog_option_30s)
             )
 
-            val labels = secondsOptions.map { it.second }.toTypedArray()
-            val currentIndex = secondsOptions.indexOfFirst { it.first == current }.let {
-                if (it != -1) it else 3
-            }
+            var selectedIndex = options.indexOf(current)
+            if (selectedIndex < 0) selectedIndex = 3
 
+            countdownDialog?.dismiss()
             countdownDialog = AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(getString(R.string.dialog_countdown_title))
-                .setSingleChoiceItems(labels, currentIndex) { d, which ->
-                    val selectedSeconds = secondsOptions[which].first
-                    MainActivity.setCountdownSeconds(ctx, selectedSeconds)
-
-                    val action = findActionById(ACTION_COUNTDOWN)
-                    if (action != null) {
-                        action.description = if (selectedSeconds <= 0) {
-                            getString(R.string.setting_countdown_desc_off)
-                        } else {
-                            getString(R.string.setting_countdown_desc, selectedSeconds)
-                        }
-                        notifyActionChanged(findActionPositionById(ACTION_COUNTDOWN))
+                .setTitle(R.string.dialog_countdown_title)
+                .setSingleChoiceItems(titles, selectedIndex) { dialog, which ->
+                    val newSeconds = options[which]
+                    MainActivity.setCountdownSeconds(ctx, newSeconds)
+                    if (newSeconds == 0) {
+                        Toast.makeText(ctx, R.string.toast_countdown_off, Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(ctx, getString(R.string.toast_countdown_set, newSeconds), Toast.LENGTH_SHORT).show()
                     }
-                    d.dismiss()
+                    updatePreferences()
+                    
+                    mainHandler.postDelayed({ dialog.dismiss() }, 200)
                 }
-                .setNegativeButton(getString(R.string.dialog_cancel)) { d, _ ->
-                    d.dismiss()
-                }
-                .create().also { it.show() }
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .show()
         }
 
         private fun showAutoSleepDialog() {
-            val ctx = context ?: return
-            autoSleepDialog?.dismiss()
-
+            val ctx = requireContext()
             val current = MainActivity.getAutoSleepSeconds(ctx)
-            val secondsOptions = listOf(
-                0 to getString(R.string.setting_auto_sleep_desc_off),
-                30 to "30 秒",
-                60 to "1 分鐘",
-                120 to "2 分鐘",
-                300 to "5 分鐘",
-                600 to "10 分鐘"
+            val options = intArrayOf(0, 300, 600, 900, 1800, 3600, 7200)
+            val titles = arrayOf(
+                "Off",
+                "5 Minutes",
+                "10 Minutes",
+                "15 Minutes",
+                "30 Minutes",
+                "1 Hour",
+                "2 Hours"
             )
 
-            val labels = secondsOptions.map { it.second }.toTypedArray()
-            val currentIndex = secondsOptions.indexOfFirst { it.first == current }.let {
-                if (it != -1) it else 1
-            }
+            var selectedIndex = options.indexOf(current)
+            if (selectedIndex < 0) selectedIndex = 2 // Default to 10 Minutes if not found
 
+            autoSleepDialog?.dismiss()
             autoSleepDialog = AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(getString(R.string.dialog_auto_sleep_title))
-                .setSingleChoiceItems(labels, currentIndex) { d, which ->
-                    val selectedSeconds = secondsOptions[which].first
-                    MainActivity.setAutoSleepSeconds(ctx, selectedSeconds)
-
-                    val action = findActionById(ACTION_AUTO_SLEEP)
-                    if (action != null) {
-                        action.description = if (selectedSeconds <= 0) {
-                            getString(R.string.setting_auto_sleep_desc_off)
-                        } else {
-                            getString(R.string.setting_auto_sleep_desc, selectedSeconds)
-                        }
-                        notifyActionChanged(findActionPositionById(ACTION_AUTO_SLEEP))
-                    }
-                    d.dismiss()
+                .setTitle(R.string.dialog_auto_sleep_title)
+                .setSingleChoiceItems(titles, selectedIndex) { dialog, which ->
+                    val newSeconds = options[which]
+                    MainActivity.setAutoSleepSeconds(ctx, newSeconds)
+                    updatePreferences()
+                    mainHandler.postDelayed({ dialog.dismiss() }, 200)
                 }
-                .setNegativeButton(getString(R.string.dialog_cancel)) { d, _ ->
-                    d.dismiss()
-                }
-                .create().also { it.show() }
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .show()
         }
 
         private fun showDefaultPortDialog() {
-            val ctx = context ?: return
-            defaultPortDialog?.dismiss()
-
-            val currentPort = MainActivity.getDefaultPort(ctx)
-            val ports = listOf(
-                1 to getString(R.string.port_hdmi_1),
-                2 to getString(R.string.port_hdmi_2),
-                3 to getString(R.string.port_hdmi_3)
+            val ctx = requireContext()
+            val current = MainActivity.getDefaultPort(ctx)
+            val options = intArrayOf(1, 2, 3)
+            val titles = arrayOf(
+                getString(R.string.port_hdmi_1),
+                getString(R.string.port_hdmi_2),
+                getString(R.string.port_hdmi_3)
             )
-            val labels = ports.map { it.second }.toTypedArray()
-            val currentIndex = ports.indexOfFirst { it.first == currentPort }.let {
-                if (it != -1) it else 2
-            }
 
+            var selectedIndex = options.indexOf(current)
+            if (selectedIndex < 0) selectedIndex = 0
+
+            defaultPortDialog?.dismiss()
             defaultPortDialog = AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(getString(R.string.dialog_default_port_title))
-                .setSingleChoiceItems(labels, currentIndex) { d, which ->
-                    val selectedPort = ports[which].first
-                    MainActivity.setDefaultPort(ctx, selectedPort)
-
-                    val action = findActionById(ACTION_DEFAULT_PORT)
-                    if (action != null) {
-                        action.description = getString(R.string.setting_default_port_desc, selectedPort)
-                        notifyActionChanged(findActionPositionById(ACTION_DEFAULT_PORT))
-                    }
-                    d.dismiss()
+                .setTitle(R.string.dialog_default_port_title)
+                .setSingleChoiceItems(titles, selectedIndex) { dialog, which ->
+                    val newPort = options[which]
+                    MainActivity.setDefaultPort(ctx, newPort)
+                    updatePreferences()
+                    mainHandler.postDelayed({ dialog.dismiss() }, 200)
                 }
-                .setNegativeButton(getString(R.string.dialog_cancel)) { d, _ ->
-                    d.dismiss()
-                }
-                .create().also { it.show() }
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .show()
         }
 
-
-        override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
-            val ctx = requireContext()
-
-            // 訊號搜尋次選項
-            when (action.id) {
-
-                ACTION_SIGNAL_SEARCH_ENABLE -> {
-                    MainActivity.setSignalSearchScreenEnabled(ctx, true)
-                    val parentAction = findActionById(ACTION_SIGNAL_SEARCH_PARENT)
-                    if (parentAction != null) {
-                        parentAction.description = getString(R.string.setting_signal_search_desc_on)
-                        notifyActionChanged(findActionPositionById(ACTION_SIGNAL_SEARCH_PARENT))
-                    }
-                    return true
-                }
-                ACTION_SIGNAL_SEARCH_DISABLE -> {
-                    MainActivity.setSignalSearchScreenEnabled(ctx, false)
-                    val parentAction = findActionById(ACTION_SIGNAL_SEARCH_PARENT)
-                    if (parentAction != null) {
-                        parentAction.description = getString(R.string.setting_signal_search_desc_off)
-                        notifyActionChanged(findActionPositionById(ACTION_SIGNAL_SEARCH_PARENT))
-                    }
-                    return true
-                }
+        private fun buttonMapperSummary(ctx: Context): String {
+            if (!MainActivity.isButtonMapperEnabled(ctx)) {
+                return getString(R.string.setting_state_off)
             }
-
-
-            return super.onSubGuidedActionClicked(action)
+            val home = if (MainActivity.isHomeButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
+            val input = if (MainActivity.isInputButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
+            return getString(R.string.setting_button_mapper_summary, home, input)
         }
 
         private fun getAppModeSummaryText(ctx: Context): String {
@@ -473,6 +285,14 @@ class SettingsActivity : FragmentActivity() {
             } else {
                 getString(R.string.setting_app_mode_desc_off)
             }
+        }
+
+        override fun onDestroy() {
+            super.onDestroy()
+            countdownDialog?.dismiss()
+            autoSleepDialog?.dismiss()
+            defaultPortDialog?.dismiss()
+            resetDialog?.dismiss()
         }
     }
 }

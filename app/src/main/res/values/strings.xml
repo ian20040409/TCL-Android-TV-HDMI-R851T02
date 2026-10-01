@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="pref_category_general">General \u0026amp; Startup</string>
+    <string name="pref_category_advanced">Advanced \u0026amp; Control</string>
+    <string name="pref_category_system">System Settings</string>
+    <string name="pref_category_about">About \u0026amp; Reset</string>
+
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI Input Selector</string>

@@ -10,8 +10,8 @@ android {
         applicationId = "com.lnu.tclhdmilauncher"
         minSdk        = 28
         targetSdk     = 36
-        versionCode   = 19
-        versionName   = "2.1.8"
+        versionCode   = 20
+        versionName   = "2.2.0"
     }
 
     buildTypes {
@@ -53,6 +53,7 @@ android {
 // 引入 Android TV 官方 Leanback 支援庫（供 GuidedStepSupportFragment OOBE 精靈使用）
 dependencies {
     implementation("androidx.leanback:leanback:1.0.0")
+    implementation("androidx.leanback:leanback-preference:1.2.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     
     val shizuku_version = "13.1.5"
