@@ -120,6 +120,13 @@
      - 採用獨立 Task 視窗架構（`FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_MULTIPLE_TASK` 與獨立 `taskAffinity`），播放畫面與桌面分層獨立管理。
      - 針對 R851T02 平台精準鎖定實體晶片 Input ID（`HW1413744128`、`HW1413744384`、`HW1413744640`）並全面實作 `onNewIntent`，徹底修復官方 TIF 因納入 CEC/AV 字串排序偏移導致 HDMI 1/2 切換混淆或跳至 HDMI 3 的缺陷。
    - 現在可以**安心直接解除安裝或停用 `com.tcl.tv` 整包原廠電視 App**，完全不影響 HDMI 畫面顯示！
+11. **Shizuku API 深度整合與 APK 下載管理頁面 (`ShizukuSettingsActivity`)**：
+   - **即時服務狀態檢測**：自動偵測 Shizuku Binder 連線、存取權限狀態與服務版本號（`vX.X`）。
+   - **一鍵彈出 Shizuku 授權視窗**：直覺觸發 Shizuku 原生 API 授權對話框（`Shizuku.requestPermission()`）。
+   - **GitHub Release APK 自動下載**：連接 GitHub Releases API 獲取最新版，支援小數點 MB 與百分比即時進度顯示（`X.X MB / Y.Y MB (Z%)`），並透過 `FileProvider` 自動呼叫原生安裝程式。
+   - **本機檔案完整性校驗與快取重用**：透過 `packageManager.getPackageArchiveInfo()` 校驗 APK，若已下載過完整 APK 檔案，返回頁面時自動重用並提供「一鍵安裝」，無需重新下載。
+   - **自動複製 ADB 啟動指令**：開啟 Shizuku 設定頁時，自動將 Shizuku 啟動指令 (`adb shell /data/app/moe.shizuku.privileged.api-.../lib/arm/libshizuku.so`) 複製至系統剪貼簿，並提供手動複製按鈕。
+   - **App 一鍵停用 (凍結) / 啟用 (解凍)**：可在應用程式抽屜 (`AppListActivity`) 中長按選單，透過 Shizuku 一鍵停用背景耗電 App 或隨時還原啟用。
 
 ---
 
@@ -211,6 +218,17 @@ adb shell am force-stop com.google.android.tvlauncher
 **啟用方式：**
 - 開啟 Launcher，頂部狀態列的「喚醒保障」若顯示 `⚠️ 喚醒保障: 未開啟`，按確認點選「前往設定」（或手動至電視「設定」➔「裝置偏好設定」➔「無障礙」）。
 - 將 **「HDMI Launcher 待機喚醒與 Home 鍵映射」** 開啟即可。
+
+### 步驟 6：啟動 Shizuku 實現應用程式一鍵凍結與高權限管理（可選）
+
+1. 在 Launcher 中進入 **設定** ➔ **Shizuku API 設定與檢測**。
+2. 若尚未安裝 Shizuku，點擊 **下載並安裝最新版 Shizuku** 即可直接於電視上下載安裝。
+3. 開啟 Shizuku 後，可透過無線 ADB 啟動服務，或於電腦 ADB 執行以下啟動指令：
+   ```bash
+   adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so
+   ```
+   *(註：進入 Launcher 的 Shizuku 設定頁時，系統會自動將此 ADB 指令複製至剪貼簿)*。
+4. 於 **Shizuku API 設定頁** 點擊 **請求 Shizuku 存取權限**，畫面即會彈出 Shizuku 授權對話框完成授權。
 
 ---
 

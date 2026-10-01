@@ -156,7 +156,7 @@
     <string name="oobe_welcome_title">Welcome to HDMI Launcher</string>
     <string name="oobe_welcome_breadcrumb">Initial Setup • 1/3</string>
     <string name="oobe_welcome_description">Turn your TCL TV into a dedicated ultra-fast monitor. Choose your preferred startup mode:</string>
-    <string name="oobe_mode_pure_title">Pure Monitor Mode (Recommended)</string>
+    <string name="oobe_mode_pure_title">Pure Monitor Mode</string>
     <string name="oobe_mode_pure_desc">Directly boots into your external device (Apple TV / PS5). Zero background overhead.</string>
     <string name="oobe_mode_app_title">App Launcher Mode</string>
     <string name="oobe_mode_app_desc">Opens installed TV apps grid on startup while keeping quick HDMI cards.</string>
@@ -179,4 +179,43 @@
     <string name="dialog_accessibility_req_title">Accessibility Required</string>
     <string name="dialog_accessibility_req_msg">This feature requires Accessibility Service to function properly.\nPlease enable "TCL HDMI Launcher" in System Settings.</string>
     <string name="dialog_accessibility_req_go">Go to Settings</string>
+
+    <!-- Shizuku Management -->
+    <string name="setting_shizuku_title">Shizuku API Settings &amp; Status</string>
+    <string name="setting_shizuku_desc">Check Shizuku service status, permissions and download APK</string>
+    <string name="shizuku_settings_title">Shizuku API Check &amp; Download</string>
+    <string name="shizuku_settings_hint">[OK] Select / Action   •   [Back] Return</string>
+    <string name="shizuku_status_title">Shizuku Service Status</string>
+    <string name="shizuku_status_running_granted">Service running &amp; permission granted (%s)</string>
+    <string name="shizuku_status_running_not_granted">Service running, but permission NOT granted</string>
+    <string name="shizuku_status_installed_not_running">Installed, but Shizuku service is NOT running</string>
+    <string name="shizuku_status_not_installed">Shizuku application is NOT installed</string>
+    <string name="shizuku_action_request_perm">Request Shizuku Permission</string>
+    <string name="shizuku_action_request_perm_desc">Prompt Shizuku dialog to grant access to Launcher</string>
+    <string name="shizuku_action_grant_system_perms">Grant System Permissions via Shizuku</string>
+    <string name="shizuku_action_grant_system_perms_desc">Grant READ_LOGS and DUMP permissions to Launcher</string>
+    <string name="shizuku_action_launch_app">Open Shizuku App</string>
+    <string name="shizuku_action_launch_app_desc">Launch Shizuku manager to start service or inspect status</string>
+    <string name="shizuku_action_copy_adb_cmd">Copy ADB Startup Command</string>
+    <string name="shizuku_action_copy_adb_cmd_desc">adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so</string>
+    <string name="shizuku_toast_adb_copied">Shizuku ADB command copied to clipboard</string>
+    <string name="shizuku_action_install_local_apk">Install Downloaded Shizuku APK</string>
+    <string name="shizuku_action_install_local_apk_desc">Local APK found (Shizuku_latest.apk). Tap to install directly.</string>
+    <string name="shizuku_action_redownload_apk">Re-download Latest Shizuku APK</string>
+    <string name="shizuku_action_redownload_apk_desc">Overwrite local file and download from GitHub again</string>
+    <string name="shizuku_action_download_apk">Download &amp; Install Latest Shizuku</string>
+    <string name="shizuku_action_download_apk_desc">Fetch latest APK from GitHub releases and trigger installation</string>
+    <string name="shizuku_action_open_browser">Open GitHub Releases Page</string>
+    <string name="shizuku_action_open_browser_desc">Open Shizuku releases in web browser</string>
+    <string name="shizuku_action_refresh">Refresh Status</string>
+    <string name="shizuku_action_refresh_desc">Re-check Shizuku service binder and permissions</string>
+    <string name="shizuku_toast_granted_system_perms">Granted system permissions via Shizuku</string>
+    <string name="shizuku_toast_cannot_launch">Unable to launch Shizuku manager</string>
+    <string name="shizuku_toast_refreshed">Shizuku status refreshed</string>
+    <string name="shizuku_fetching_link">Fetching latest release link...</string>
+    <string name="shizuku_starting_download">Starting APK download...</string>
+    <string name="shizuku_downloading">Downloading</string>
+    <string name="shizuku_download_success">APK downloaded. Opening installer...</string>
+    <string name="shizuku_download_failed">Download failed</string>
+    <string name="shizuku_fetch_failed">Unable to fetch download URL. Check network.</string>
 </resources>

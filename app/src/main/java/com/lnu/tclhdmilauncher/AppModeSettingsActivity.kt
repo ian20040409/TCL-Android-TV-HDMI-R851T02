@@ -102,7 +102,6 @@ class AppModeSettingsActivity : FragmentActivity() {
                     .id(ACTION_APP_MODE_STATUS)
                     .title(getString(R.string.setting_app_mode_title))
                     .description(if (appMode) getString(R.string.setting_app_mode_desc_on) else getString(R.string.setting_app_mode_desc_off))
-                    .icon(ctx.getDrawable(R.drawable.apps_48px))
                     .subActions(appModeSubActions)
                     .build()
             )
@@ -122,7 +121,6 @@ class AppModeSettingsActivity : FragmentActivity() {
                         .id(ACTION_AUTO_OPEN_APP)
                         .title(getString(R.string.setting_auto_open_title))
                         .description(autoText)
-                        .icon(ctx.getDrawable(R.drawable.settings_power_48px))
                         .build()
                 )
 
@@ -133,7 +131,6 @@ class AppModeSettingsActivity : FragmentActivity() {
                         .id(ACTION_AUTO_OPEN_DELAY)
                         .title(getString(R.string.setting_auto_open_delay_title))
                         .description(getString(R.string.setting_auto_open_delay_desc, delaySeconds))
-                        .icon(ctx.getDrawable(R.drawable.timer_48px))
                         .build()
                 )
             }

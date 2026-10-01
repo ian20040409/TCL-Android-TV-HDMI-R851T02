@@ -120,6 +120,13 @@ If any of the following describes your home theater setup, this launcher was bui
      - Utilizes an independent task window stack (`FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_MULTIPLE_TASK` with custom `taskAffinity`) to isolate playback lifecycle from the launcher.
      - Maps directly to R851T02 hardware chip inputs (`HW1413744128`, `HW1413744384`, `HW1413744640`) with full `onNewIntent` handling, fixing the OEM TIF bug where CEC/AV inputs distorted string sorting and caused HDMI 1/2 to switch to HDMI 3.
    - You can now **safely uninstall or disable `com.tcl.tv` entirely** via ADB without losing HDMI display capability!
+11. **Shizuku API Integration & In-App APK Download Management (`ShizukuSettingsActivity`)**:
+   - **Real-Time Service Monitoring**: Automatically detects Shizuku service binder, permission status (`PERMISSION_GRANTED`), and server version (`vX.X`).
+   - **One-Click Shizuku Permission Request**: Triggers Shizuku's native API permit dialog window directly on the TV interface (`Shizuku.requestPermission()`).
+   - **Automatic Shizuku APK Downloader**: Connects to GitHub Releases API, fetches the latest Shizuku APK, downloads in background with real-time decimal progress (`X.X MB / Y.Y MB (Z%)`), and opens package installer via `FileProvider`.
+   - **Local APK Integrity Validation & Cache Reuse**: Validates local APK files with `packageManager.getPackageArchiveInfo()`. Reuses previously downloaded APK files so returning users can install instantly without re-downloading.
+   - **Automatic Clipboard ADB Command Copy**: Automatically copies the required Shizuku ADB startup command (`adb shell /data/app/moe.shizuku.privileged.api-.../lib/arm/libshizuku.so`) to the system clipboard upon opening Shizuku settings.
+   - **Direct App Freeze / Unfreeze**: Freeze (disable) or unfreeze (enable) background TV or mobile apps directly from the App Drawer (`AppListActivity`) using Shizuku permissions.
 
 ---
 
@@ -211,6 +218,17 @@ Enabling the Accessibility Service grants two system-level capabilities:
 **How to enable:**
 - In the Launcher top bar, click the "Wake Guard" button (`⚠️ Wake Guard: Off`) and select "Open Settings" (or manually go to TV Settings ➔ Device Preferences ➔ Accessibility).
 - Toggle **"HDMI Launcher Wake & Home Button Mapper"** to ON.
+
+### Step 6: Enable Shizuku for App Freezing & Privileged Operations (Optional)
+
+1. Open **Settings** ➔ **Shizuku API Settings & Status** in the Launcher.
+2. If Shizuku is not installed, click **Download & Install Latest Shizuku** directly within the Launcher.
+3. Once Shizuku is opened, start the Shizuku service via wireless ADB or execute the startup command via computer ADB:
+   ```bash
+   adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so
+   ```
+   *(Note: Opening the Shizuku settings page in the Launcher automatically copies this ADB command to your clipboard).*
+4. In **Shizuku API Settings**, click **Request Shizuku Permission** to grant access to the Launcher.
 
 ---
 

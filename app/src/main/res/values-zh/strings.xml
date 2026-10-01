@@ -150,7 +150,7 @@
     <string name="oobe_welcome_title">歡迎使用 HDMI 啟動器</string>
     <string name="oobe_welcome_breadcrumb">開箱導覽 • 1/3</string>
     <string name="oobe_welcome_description">將您的 TCL 電視打造為極速純淨的外接螢幕。請選擇您的首選開機模式：</string>
-    <string name="oobe_mode_pure_title">純顯示器模式（推薦）</string>
+    <string name="oobe_mode_pure_title">純顯示器模式</string>
     <string name="oobe_mode_pure_desc">開機直接切換至外接設備（Apple TV / PS5 等），零背景干擾</string>
     <string name="oobe_mode_app_title">App 桌面模式</string>
     <string name="oobe_mode_app_desc">開機預設開啟電視應用程式清單，並保留 HDMI 快捷卡片</string>
@@ -173,4 +173,43 @@
     <string name="dialog_accessibility_req_title">需要無障礙服務</string>
     <string name="dialog_accessibility_req_msg">此功能需要無障礙服務權限才能正常運作。\n請至系統設定中開啟「TCL HDMI Launcher」。</string>
     <string name="dialog_accessibility_req_go">前往設定</string>
+
+    <!-- Shizuku Management -->
+    <string name="setting_shizuku_title">Shizuku API 设置与检测</string>
+    <string name="setting_shizuku_desc">检测 Shizuku 服务状态、请求授权与下载安装 APK</string>
+    <string name="shizuku_settings_title">Shizuku API 检测与下载</string>
+    <string name="shizuku_settings_hint">[OK] 选择 / 执行   •   [返回] 返回上一页</string>
+    <string name="shizuku_status_title">Shizuku 服务状态</string>
+    <string name="shizuku_status_running_granted">服务运行中，权限已授予 (%s)</string>
+    <string name="shizuku_status_running_not_granted">服务运行中，但尚未授予本 App 访问权限</string>
+    <string name="shizuku_status_installed_not_running">App 已安装，但 Shizuku 服务未启动</string>
+    <string name="shizuku_status_not_installed">尚未安装 Shizuku 应用程序</string>
+    <string name="shizuku_action_request_perm">请求 Shizuku 访问权限</string>
+    <string name="shizuku_action_request_perm_desc">弹出 Shizuku 授权对话框，允许 Launcher 使用 API</string>
+    <string name="shizuku_action_grant_system_perms">通过 Shizuku 授予系统权限</string>
+    <string name="shizuku_action_grant_system_perms_desc">自动授予本 App READ_LOGS 与 DUMP 权限</string>
+    <string name="shizuku_action_launch_app">打开 Shizuku 应用程序</string>
+    <string name="shizuku_action_launch_app_desc">打开 Shizuku 管理员以启动服务或查看 ADB 状态</string>
+    <string name="shizuku_action_copy_adb_cmd">复制 ADB 启动指令</string>
+    <string name="shizuku_action_copy_adb_cmd_desc">adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so</string>
+    <string name="shizuku_toast_adb_copied">已将 Shizuku ADB 启动指令复制至剪贴板</string>
+    <string name="shizuku_action_install_local_apk">安装已下载的 Shizuku APK</string>
+    <string name="shizuku_action_install_local_apk_desc">已检测到本机下载的 Shizuku_latest.apk，点击直接安装</string>
+    <string name="shizuku_action_redownload_apk">重新下载最新版 Shizuku APK</string>
+    <string name="shizuku_action_redownload_apk_desc">覆盖本机文件并重新从 GitHub 下载</string>
+    <string name="shizuku_action_download_apk">下载并安装最新版 Shizuku</string>
+    <string name="shizuku_action_download_apk_desc">从 GitHub Releases 自动获取最新版 APK 并安装</string>
+    <string name="shizuku_action_open_browser">打开 GitHub Releases 网页</string>
+    <string name="shizuku_action_open_browser_desc">使用系统浏览器打开 Shizuku 发布页面</string>
+    <string name="shizuku_action_refresh">刷新状态</string>
+    <string name="shizuku_action_refresh_desc">重新检测 Shizuku Binder 连接与授权状态</string>
+    <string name="shizuku_toast_granted_system_perms">已通过 Shizuku 成功授予系统权限</string>
+    <string name="shizuku_toast_cannot_launch">无法打开 Shizuku 管理员</string>
+    <string name="shizuku_toast_refreshed">Shizuku 状态已更新</string>
+    <string name="shizuku_fetching_link">正在从 GitHub API 查询最新版本...</string>
+    <string name="shizuku_starting_download">准备开始下载 APK...</string>
+    <string name="shizuku_downloading">下载中</string>
+    <string name="shizuku_download_success">APK 下载完成，正在打开安装程序...</string>
+    <string name="shizuku_download_failed">下载失败</string>
+    <string name="shizuku_fetch_failed">无法获取下载链接，请检查网络连接</string>
 </resources>

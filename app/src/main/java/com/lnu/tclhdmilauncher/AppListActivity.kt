@@ -601,9 +601,9 @@ class AppListActivity : Activity() {
             android.widget.Toast.makeText(this, "已透過 Shizuku $action ${app.label}", android.widget.Toast.LENGTH_SHORT).show()
             loadApps() // 重新載入列表
         } else {
-            // 如果 Shizuku 未授權或失敗，退回使用系統設定頁面
-            android.widget.Toast.makeText(this, "Shizuku 操作失敗，請確認 Shizuku 正在執行", android.widget.Toast.LENGTH_SHORT).show()
-            openAppInfo(app)
+            // 如果 Shizuku 未授權或失敗，提示並引導至 Shizuku 設定與檢測頁面
+            android.widget.Toast.makeText(this, "Shizuku 操作失敗，請確認 Shizuku 正在執行並已授權", android.widget.Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, ShizukuSettingsActivity::class.java))
         }
     }
 

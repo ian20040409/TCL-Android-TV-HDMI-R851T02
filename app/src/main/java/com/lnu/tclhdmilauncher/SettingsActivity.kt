@@ -47,6 +47,7 @@ class SettingsActivity : FragmentActivity() {
             private const val ACTION_CEC_DEBUG = 9L
             private const val ACTION_BUTTON_MAPPER = 10L
             private const val ACTION_AUTO_SLEEP = 11L
+            private const val ACTION_SHIZUKU = 12L
 
             private const val ACTION_SIGNAL_SEARCH_ENABLE = 5001L
             private const val ACTION_SIGNAL_SEARCH_DISABLE = 5002L
@@ -91,7 +92,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_APP_MODE_PARENT)
                     .title(getString(R.string.app_mode_settings_title))
                     .description(appModeDesc)
-                    .icon(ctx.getDrawable(R.drawable.apps_48px))
                     .build()
             )
 
@@ -107,7 +107,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_COUNTDOWN)
                     .title(getString(R.string.setting_countdown_title))
                     .description(countdownSummary)
-                    .icon(ctx.getDrawable(R.drawable.timer_48px))
                     .build()
             )
 
@@ -122,7 +121,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_AUTO_SLEEP)
                     .title(getString(R.string.setting_auto_sleep_title))
                     .description(autoSleepSummary)
-                    .icon(ctx.getDrawable(R.drawable.timer_48px))
                     .build()
             )
 
@@ -133,7 +131,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_DEFAULT_PORT)
                     .title(getString(R.string.setting_default_port_title))
                     .description(getString(R.string.setting_default_port_desc, defaultPort))
-                    .icon(ctx.getDrawable(R.drawable.settings_input_hdmi_24px))
                     .build()
             )
 
@@ -159,7 +156,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_SIGNAL_SEARCH_PARENT)
                     .title(getString(R.string.setting_signal_search_title))
                     .description(getString(if (signalSearch) R.string.setting_signal_search_desc_on else R.string.setting_signal_search_desc_off))
-                    .icon(ctx.getDrawable(R.drawable.cable_48px))
                     .subActions(signalSubActions)
                     .build()
             )
@@ -172,7 +168,6 @@ class SettingsActivity : FragmentActivity() {
                         .id(ACTION_WAKE_GUARD)
                         .title(getString(R.string.setting_wake_guard_title))
                         .description(getString(R.string.setting_wake_guard_desc_off))
-                        .icon(ctx.getDrawable(R.drawable.accessibility_new_48px))
                         .build()
                 )
             }
@@ -182,7 +177,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_CEC_DEBUG)
                     .title("CEC 偵錯記錄")
                     .description("查看 CEC 喚醒、輸入切換與待機事件")
-                    .icon(ctx.getDrawable(R.drawable.settings_input_hdmi_24px))
                     .build()
             )
 
@@ -191,7 +185,14 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_BUTTON_MAPPER)
                     .title(getString(R.string.setting_button_mapper_title))
                     .description(buttonMapperSummary(ctx))
-                    .icon(ctx.getDrawable(R.drawable.accessibility_new_48px))
+                    .build()
+            )
+
+            actions.add(
+                GuidedAction.Builder(ctx)
+                    .id(ACTION_SHIZUKU)
+                    .title(getString(R.string.setting_shizuku_title))
+                    .description(getString(R.string.setting_shizuku_desc))
                     .build()
             )
 
@@ -201,7 +202,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_TCL_SETTINGS)
                     .title(getString(R.string.setting_tcl_settings_title))
                     .description(getString(R.string.setting_tcl_settings_desc))
-                    .icon(ctx.getDrawable(R.drawable.open_in_new_48px))
                     .build()
             )
 
@@ -211,7 +211,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_ANDROID_SETTINGS)
                     .title(getString(R.string.setting_android_settings_title))
                     .description(getString(R.string.setting_android_settings_desc))
-                    .icon(ctx.getDrawable(R.drawable.open_in_new_48px))
                     .build()
             )
 
@@ -221,7 +220,6 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_RESET_APP)
                     .title(getString(R.string.setting_reset_app_title))
                     .description(getString(R.string.setting_reset_app_desc))
-                    .icon(ctx.getDrawable(R.drawable.delete_48px))
                     .build()
             )
 
@@ -256,6 +254,9 @@ class SettingsActivity : FragmentActivity() {
                 }
                 ACTION_BUTTON_MAPPER -> {
                     startActivity(Intent(ctx, ButtonMapperSettingsActivity::class.java))
+                }
+                ACTION_SHIZUKU -> {
+                    startActivity(Intent(ctx, ShizukuSettingsActivity::class.java))
                 }
                 ACTION_TCL_SETTINGS -> {
                     MainActivity.launchTclSettings(ctx)

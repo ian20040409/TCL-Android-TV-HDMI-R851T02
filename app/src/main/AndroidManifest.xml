@@ -10,6 +10,7 @@
         android:required="false" />
 
     <!-- 開機廣播權限（API 33 以下自動授予；API 33+ 安裝時自動批准） -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.READ_LOGS" />
@@ -29,6 +30,7 @@
 
     <!-- 支援從 App 清單長按解除安裝應用程式 -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Shizuku API Permission -->
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
@@ -130,6 +132,32 @@
             android:theme="@style/Theme.Settings"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
+
+        <!-- Shizuku API 檢測與 APK 下載管理頁面 -->
+        <activity
+            android:name=".ShizukuSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Settings"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Shizuku ContentProvider：Shizuku 服務與彈出授權視窗溝通必備 -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <!-- 首次開箱設定引導精靈 (OOBE) -->
         <activity
