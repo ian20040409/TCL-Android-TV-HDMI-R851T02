@@ -55,6 +55,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         private const val KEY_AUTO_OPEN_DELAY = "auto_open_delay"
         private const val KEY_SIGNAL_SEARCH_SCREEN = "signal_search_screen"
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
+        private const val KEY_BUTTON_MAPPER_ENABLED = "button_mapper_enabled"
         private const val KEY_OVERRIDE_HOME_BUTTON = "override_home_button"
         private const val KEY_OVERRIDE_INPUT_BUTTON = "override_input_button"
         private const val KEY_AUTO_SLEEP_SECONDS = "auto_sleep_seconds"
@@ -145,6 +146,15 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             cachedDefaultPort = port
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putInt(KEY_DEFAULT_PORT, port).apply()
+        }
+
+        fun isButtonMapperEnabled(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_BUTTON_MAPPER_ENABLED, false)
+
+        fun setButtonMapperEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_BUTTON_MAPPER_ENABLED, enabled).apply()
         }
 
         fun isHomeButtonOverrideEnabled(context: Context): Boolean =

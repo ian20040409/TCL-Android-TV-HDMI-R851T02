@@ -53,6 +53,7 @@ class SettingsActivity : FragmentActivity() {
         }
 
         private var countdownDialog: AlertDialog? = null
+        private var autoSleepDialog: AlertDialog? = null
         private var defaultPortDialog: AlertDialog? = null
         private var resetDialog: AlertDialog? = null
 
@@ -61,6 +62,7 @@ class SettingsActivity : FragmentActivity() {
         override fun onDestroy() {
             super.onDestroy()
             countdownDialog?.dismiss()
+            autoSleepDialog?.dismiss()
             defaultPortDialog?.dismiss()
             resetDialog?.dismiss()
             mainHandler.removeCallbacksAndMessages(null)
@@ -105,6 +107,21 @@ class SettingsActivity : FragmentActivity() {
                     .id(ACTION_COUNTDOWN)
                     .title(getString(R.string.setting_countdown_title))
                     .description(countdownSummary)
+                    .icon(ctx.getDrawable(R.drawable.timer_48px))
+                    .build()
+            )
+
+            val autoSleep = MainActivity.getAutoSleepSeconds(ctx)
+            val autoSleepSummary = if (autoSleep <= 0) {
+                getString(R.string.setting_auto_sleep_desc_off)
+            } else {
+                getString(R.string.setting_auto_sleep_desc, autoSleep)
+            }
+            actions.add(
+                GuidedAction.Builder(ctx)
+                    .id(ACTION_AUTO_SLEEP)
+                    .title(getString(R.string.setting_auto_sleep_title))
+                    .description(autoSleepSummary)
                     .icon(ctx.getDrawable(R.drawable.timer_48px))
                     .build()
             )
@@ -225,6 +242,9 @@ class SettingsActivity : FragmentActivity() {
                 ACTION_COUNTDOWN -> {
                     showCountdownDialog()
                 }
+                ACTION_AUTO_SLEEP -> {
+                    showAutoSleepDialog()
+                }
                 ACTION_DEFAULT_PORT -> {
                     showDefaultPortDialog()
                 }
@@ -250,6 +270,9 @@ class SettingsActivity : FragmentActivity() {
         }
 
         private fun buttonMapperSummary(ctx: Context): String {
+            if (!MainActivity.isButtonMapperEnabled(ctx)) {
+                return getString(R.string.setting_state_off)
+            }
             val home = if (MainActivity.isHomeButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
             val input = if (MainActivity.isInputButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
             return getString(R.string.setting_button_mapper_summary, home, input)
@@ -319,6 +342,48 @@ class SettingsActivity : FragmentActivity() {
                             getString(R.string.setting_countdown_desc, selectedSeconds)
                         }
                         notifyActionChanged(findActionPositionById(ACTION_COUNTDOWN))
+                    }
+                    d.dismiss()
+                }
+                .setNegativeButton(getString(R.string.dialog_cancel)) { d, _ ->
+                    d.dismiss()
+                }
+                .create().also { it.show() }
+        }
+
+        private fun showAutoSleepDialog() {
+            val ctx = context ?: return
+            autoSleepDialog?.dismiss()
+
+            val current = MainActivity.getAutoSleepSeconds(ctx)
+            val secondsOptions = listOf(
+                0 to getString(R.string.setting_auto_sleep_desc_off),
+                30 to "30 秒",
+                60 to "1 分鐘",
+                120 to "2 分鐘",
+                300 to "5 分鐘",
+                600 to "10 分鐘"
+            )
+
+            val labels = secondsOptions.map { it.second }.toTypedArray()
+            val currentIndex = secondsOptions.indexOfFirst { it.first == current }.let {
+                if (it != -1) it else 1
+            }
+
+            autoSleepDialog = AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(getString(R.string.dialog_auto_sleep_title))
+                .setSingleChoiceItems(labels, currentIndex) { d, which ->
+                    val selectedSeconds = secondsOptions[which].first
+                    MainActivity.setAutoSleepSeconds(ctx, selectedSeconds)
+
+                    val action = findActionById(ACTION_AUTO_SLEEP)
+                    if (action != null) {
+                        action.description = if (selectedSeconds <= 0) {
+                            getString(R.string.setting_auto_sleep_desc_off)
+                        } else {
+                            getString(R.string.setting_auto_sleep_desc, selectedSeconds)
+                        }
+                        notifyActionChanged(findActionPositionById(ACTION_AUTO_SLEEP))
                     }
                     d.dismiss()
                 }

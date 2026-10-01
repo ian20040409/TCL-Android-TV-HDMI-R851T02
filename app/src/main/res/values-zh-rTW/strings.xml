@@ -139,6 +139,10 @@
     <string name="hdmi_searching_signal">HDMI %d • 正在偵測訊號...</string>
     <string name="hdmi_no_signal">HDMI %d • 無訊號</string>
     <string name="hdmi_signal_connected">HDMI %d • 訊號已連線</string>
+    <string name="setting_auto_sleep_title">無訊號自動休眠</string>
+    <string name="setting_auto_sleep_desc">無訊號 %d 秒後自動休眠 (待機)</string>
+    <string name="setting_auto_sleep_desc_off">關閉自動休眠</string>
+    <string name="dialog_auto_sleep_title">自動休眠秒數</string>
 
     <!-- 訊號搜尋畫面 -->
     <string name="btn_signal_search_on">訊號搜尋畫面: 開啟</string>

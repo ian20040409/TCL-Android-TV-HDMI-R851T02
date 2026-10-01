@@ -221,7 +221,7 @@ class WakeAccessibilityService : AccessibilityService() {
         // The input/source key is often mapped as TV_INPUT; some TCL remotes use
         // AV_INPUT or STB_INPUT.  Outside this app, open our HDMI launcher rather
         // than allowing the stock input picker to take over.
-        if (MainActivity.isInputButtonOverrideEnabled(this) &&
+        if (MainActivity.isButtonMapperEnabled(this) && MainActivity.isInputButtonOverrideEnabled(this) &&
             (keyCode == KeyEvent.KEYCODE_TV_INPUT ||
             keyCode == KeyEvent.KEYCODE_AVR_INPUT ||
             keyCode == KeyEvent.KEYCODE_STB_INPUT)) {
@@ -236,7 +236,7 @@ class WakeAccessibilityService : AccessibilityService() {
         }
 
         // 攔截常見 TV 遙控器 Home 鍵與電視首頁鍵
-        if (MainActivity.isHomeButtonOverrideEnabled(this) &&
+        if (MainActivity.isButtonMapperEnabled(this) && MainActivity.isHomeButtonOverrideEnabled(this) &&
             (keyCode == KeyEvent.KEYCODE_HOME ||
             keyCode == KeyEvent.KEYCODE_GUIDE ||
             keyCode == KeyEvent.KEYCODE_TV)) {
