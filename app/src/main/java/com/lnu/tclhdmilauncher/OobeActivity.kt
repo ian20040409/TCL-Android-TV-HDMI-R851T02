@@ -237,10 +237,14 @@ class OobeActivity : FragmentActivity() {
         }
 
         override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
-            val ctx = requireContext()
-            val hasAccessibility = AccessibilityHelper.isServiceEnabled(ctx)
+            actions.addAll(buildActions(requireContext()))
+        }
 
-            actions.add(
+        private fun buildActions(ctx: Context): List<GuidedAction> {
+            val hasAccessibility = AccessibilityHelper.isServiceEnabled(ctx)
+            val newActions = mutableListOf<GuidedAction>()
+
+            newActions.add(
                 GuidedAction.Builder(ctx)
                     .id(ACTION_FINISH)
                     .title(getString(R.string.oobe_action_finish))
@@ -248,7 +252,7 @@ class OobeActivity : FragmentActivity() {
             )
 
             if (!hasAccessibility) {
-                actions.add(
+                newActions.add(
                     GuidedAction.Builder(ctx)
                         .id(ACTION_OPEN_ACCESSIBILITY)
                         .title(getString(R.string.oobe_action_wake_guard))
@@ -256,7 +260,7 @@ class OobeActivity : FragmentActivity() {
                         .build()
                 )
             } else {
-                actions.add(
+                newActions.add(
                     GuidedAction.Builder(ctx)
                         .id(ACTION_BUTTON_MAPPER)
                         .title(getString(R.string.setting_button_mapper_title))
@@ -265,13 +269,13 @@ class OobeActivity : FragmentActivity() {
                         .build()
                 )
             }
+            return newActions
         }
 
         override fun onResume() {
             super.onResume()
             // 如果從設定回來，刷新列表
-            setActions(mutableListOf())
-            onCreateActions(actions, null)
+            setActions(buildActions(requireContext()))
         }
 
         override fun onGuidedActionClicked(action: GuidedAction) {
