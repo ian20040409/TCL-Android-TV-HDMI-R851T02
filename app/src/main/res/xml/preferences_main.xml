@@ -1,29 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
         android:title="@string/pref_category_general">
 
         <Preference
             android:key="pref_app_mode"
-            android:title="@string/setting_app_mode_title" />
+            android:title="@string/setting_app_mode_title"
+            android:icon="@drawable/apps_48px" />
 
         <Preference
             android:key="pref_default_port"
-            android:title="@string/setting_default_port_title" />
+            android:title="@string/setting_default_port_title"
+            android:icon="@drawable/settings_input_hdmi_24px" />
 
         <Preference
             android:key="pref_countdown"
-            android:title="@string/setting_countdown_title" />
+            android:title="@string/setting_countdown_title"
+            android:icon="@drawable/timer_48px" />
 
         <Preference
             android:key="pref_auto_sleep"
-            android:title="@string/setting_auto_sleep_title" />
+            android:title="@string/setting_auto_sleep_title"
+            android:icon="@drawable/settings_power_48px" />
 
         <Preference
             android:key="pref_signal_search"
-            android:title="@string/setting_signal_search_title" />
+            android:title="@string/setting_signal_search_title"
+            android:icon="@drawable/ic_search" />
 
     </PreferenceCategory>
 
@@ -32,21 +36,25 @@
 
         <Preference
             android:key="pref_button_mapper"
-            android:title="@string/setting_button_mapper_title" />
+            android:title="@string/setting_button_mapper_title"
+            android:icon="@drawable/ic_videogame_asset" />
 
         <Preference
             android:key="pref_shizuku"
             android:title="@string/setting_shizuku_title"
-            android:summary="@string/setting_shizuku_desc" />
+            android:summary="@string/setting_shizuku_desc"
+            android:icon="@drawable/ic_terminal" />
 
         <Preference
             android:key="pref_wake_guard"
-            android:title="@string/setting_wake_guard_title" />
+            android:title="@string/setting_wake_guard_title"
+            android:icon="@drawable/accessibility_new_48px" />
 
         <Preference
             android:key="pref_cec_debug"
             android:title="CEC Debug Log"
-            android:summary="View CEC wake, switch, and standby events" />
+            android:summary="View CEC wake, switch, and standby events"
+            android:icon="@drawable/ic_bug_report" />
 
     </PreferenceCategory>
 
@@ -56,12 +64,14 @@
         <Preference
             android:key="pref_tcl_settings"
             android:title="@string/setting_tcl_settings_title"
-            android:summary="@string/setting_tcl_settings_desc" />
+            android:summary="@string/setting_tcl_settings_desc"
+            android:icon="@drawable/ic_tv" />
 
         <Preference
             android:key="pref_android_settings"
             android:title="@string/setting_android_settings_title"
-            android:summary="@string/setting_android_settings_desc" />
+            android:summary="@string/setting_android_settings_desc"
+            android:icon="@drawable/settings_48px" />
 
     </PreferenceCategory>
 
@@ -71,7 +81,8 @@
         <Preference
             android:key="pref_reset_app"
             android:title="@string/setting_reset_app_title"
-            android:summary="@string/setting_reset_app_desc" />
+            android:summary="@string/setting_reset_app_desc"
+            android:icon="@drawable/delete_48px" />
 
     </PreferenceCategory>
 
