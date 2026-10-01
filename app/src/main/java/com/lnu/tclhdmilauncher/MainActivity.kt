@@ -373,6 +373,8 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        ShizukuHelper.tryGrantPermissions(this)
+
         if (!isOobeCompleted(this)) {
             val oobeIntent = Intent(this, OobeActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

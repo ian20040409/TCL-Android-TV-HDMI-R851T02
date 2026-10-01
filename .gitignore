@@ -80,3 +80,6 @@ crashlytics-build.properties
 /icon/tcl-hdmi.icon
 *.zip
 *.pkg
+*.py
+*.patch
+test*.kt
