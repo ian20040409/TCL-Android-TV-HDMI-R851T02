@@ -1,12 +1,7 @@
 name: Build and Release Android APK
 
 on:
-  push:
-    tags:
-      - 'v*' # 推送如 v1.0.0 標籤時觸發
-    paths:
-      - 'app/build.gradle.kts' # 當 build.gradle.kts 變更並 push 時自動觸發
-  workflow_dispatch: # 支援手動觸發
+  workflow_dispatch: # 僅保留手動觸發，避免自動執行
     inputs:
       tag_name:
         description: '自訂 Release Tag (留空則自動讀取 build.gradle.kts 的版本)'
