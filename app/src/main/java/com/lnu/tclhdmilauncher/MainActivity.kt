@@ -150,7 +150,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
 
         fun isButtonMapperEnabled(context: Context): Boolean =
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_BUTTON_MAPPER_ENABLED, false)
+                .getBoolean(KEY_BUTTON_MAPPER_ENABLED, true)
 
         fun setButtonMapperEnabled(context: Context, enabled: Boolean) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
@@ -272,6 +272,14 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             cachedAutoOpenDelay = seconds
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putInt(KEY_AUTO_OPEN_DELAY, seconds).apply()
+        }
+
+        fun isTclDevice(context: Context): Boolean {
+            return DeviceHelper.isTclDevice(context)
+        }
+
+        fun getDeviceModelName(): String {
+            return DeviceHelper.getDeviceModelName()
         }
 
         fun launchTclSettings(context: Context) {
@@ -809,7 +817,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
 
         // 品牌標題
         val tvBrand = TextView(this).apply {
-            text = "TCL TV HDMI"
+            text = DeviceHelper.getBrandTitle(this@MainActivity)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.08f

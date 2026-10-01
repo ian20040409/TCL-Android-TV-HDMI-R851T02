@@ -96,11 +96,12 @@ class ShizukuSettingsActivity : FragmentActivity() {
 
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
+            val ctx = requireContext()
             return GuidanceStylist.Guidance(
                 getString(R.string.shizuku_settings_title),
                 getString(R.string.shizuku_settings_hint),
-                getString(R.string.brand_name),
-                requireContext().getDrawable(R.drawable.settings_48px)
+                DeviceHelper.getBrandTitle(ctx),
+                null
             )
         }
 

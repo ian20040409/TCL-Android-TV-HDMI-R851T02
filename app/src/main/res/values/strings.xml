@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="pref_category_general">General \u0026amp; Startup</string>
-    <string name="pref_category_advanced">Advanced \u0026amp; Control</string>
+    <string name="pref_category_general">App Settings</string>
+    <string name="pref_category_advanced">Advanced Settings</string>
     <string name="pref_category_system">System Settings</string>
-    <string name="pref_category_about">About \u0026amp; Reset</string>
+    <string name="pref_category_about">About</string>
 
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
@@ -41,7 +41,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_hint">[OK] Select / Toggle   •   [Back] Return to Home</string>
     <string name="setting_category_launcher">Launcher Preferences</string>
-    <string name="setting_category_system">TV &amp; System Settings</string>
+    <string name="setting_category_system">System Settings</string>
     <string name="setting_app_mode_title">App Mode</string>
     <string name="setting_app_mode_desc_on">Home screen defaults to App List</string>
     <string name="setting_app_mode_desc_off">Home screen defaults to HDMI Input Selector</string>
@@ -53,7 +53,7 @@
     <string name="setting_signal_search_title">Signal Search HUD</string>
     <string name="setting_signal_search_desc_on">Show searching HUD overlay on switch</string>
     <string name="setting_signal_search_desc_off">Direct hardware pass-through without HUD</string>
-    <string name="setting_wake_guard_title">Standby Wake &amp; Home Button</string>
+    <string name="setting_wake_guard_title">Standby Wake Guard</string>
     <string name="setting_wake_guard_desc_on">Accessibility service active (100% wake return)</string>
     <string name="setting_wake_guard_desc_off">Not enabled (Recommended to avoid sleep issues)</string>
     <string name="setting_button_mapper_title">Button Mapper Setup</string>
@@ -101,14 +101,14 @@
     <string name="toast_disable_hint">Please tap \"Disable\" in settings</string>
 
     <!-- Accessibility Service -->
-    <string name="accessibility_service_label">HDMI Launcher Wake &amp; Home Button Mapper</string>
+    <string name="accessibility_service_label">HDMI Launcher Wake Guard</string>
     <string name="accessibility_service_description">Ensures the TV returns to the home screen on wake, and remaps the remote Home button to open this Launcher.</string>
 
     <!-- Accessibility Wake UI -->
     <string name="btn_wake_guard_on">Accessibility Wake: On</string>
     <string name="btn_wake_guard_off">Accessibility Wake: Off</string>
-    <string name="dialog_wake_guard_title">Accessibility Wake &amp; Home Button</string>
-    <string name="dialog_wake_guard_msg_on">Accessibility Wake &amp; Home Mapper Service is active.\n\n• 100% reliably return to this Launcher upon waking from standby\n• Remote Home button is remapped to open this Launcher</string>
+    <string name="dialog_wake_guard_title">Accessibility Wake Guard</string>
+    <string name="dialog_wake_guard_msg_on">Accessibility Wake Guard is active.\n\n• 100% reliably return to this Launcher upon waking from standby\n• Remote Home button is remapped to open this Launcher</string>
     <string name="dialog_wake_guard_msg_off">Accessibility Service is not enabled.\n\nEnabling it provides two key capabilities:\n1. 100% reliably return to this Launcher on sleep wake (preventing AV input / no signal)\n2. Button Mapper: Remaps the remote Home button to open this Launcher directly.\n\nAfter tapping \"Open Settings\", if the main settings page opens, please navigate to:\n\"Device Preferences\" ➔ \"Accessibility\" ➔ enable this service.</string>
     <string name="dialog_btn_go_settings">Open Settings</string>
     <string name="dialog_btn_manage">Manage Settings</string>
@@ -122,7 +122,7 @@
     <string name="setting_auto_open_delay_desc">Auto-starts app after %d seconds</string>
     <string name="dialog_auto_open_delay_title">Auto-Start Delay Seconds</string>
     <string name="dialog_select_auto_open_app">Select Auto-Start Application</string>
-    <string name="setting_hdmi_settings_title">HDMI &amp; General Settings</string>
+    <string name="setting_hdmi_settings_title">HDMI Settings</string>
     <string name="setting_hdmi_settings_desc">Configure HDMI inputs, auto-switch timer and signal HUD</string>
     <string name="btn_app_mode_on">App Mode: On</string>
     <string name="btn_app_mode_off">App Mode: Off</string>
@@ -165,7 +165,7 @@
     <string name="oobe_mode_pure_desc">Directly boots into your external device (Apple TV / PS5). Zero background overhead.</string>
     <string name="oobe_mode_app_title">App Launcher Mode</string>
     <string name="oobe_mode_app_desc">Opens installed TV apps grid on startup while keeping quick HDMI cards.</string>
-    <string name="oobe_config_title">Default Input &amp; Timer</string>
+    <string name="oobe_config_title">Default Input and Timer</string>
     <string name="oobe_config_breadcrumb">Initial Setup • 2/3</string>
     <string name="oobe_config_description">Select the primary HDMI port for your external source and auto-switch delay:</string>
     <string name="oobe_port_prompt">Primary HDMI Port: HDMI %d</string>
@@ -175,9 +175,9 @@
     <string name="oobe_system_title">Accessibility Settings</string>
     <string name="oobe_system_breadcrumb">Initial Setup • 3/3</string>
     <string name="oobe_system_description">Enable Accessibility Service to allow launcher override and wake guard, ensuring stable return upon waking. You can also configure this anytime in Settings.</string>
-    <string name="oobe_action_wake_guard">Enable Accessibility Launcher Override &amp; Wake Guard</string>
+    <string name="oobe_action_wake_guard">Enable Wake Guard</string>
     <string name="oobe_action_wake_guard_desc">Overrides stock Google TV launcher and guarantees 100% wake return</string>
-    <string name="oobe_action_finish">Finish &amp; Start Using</string>
+    <string name="oobe_action_finish">Finish Setup</string>
     <string name="oobe_action_finish_desc">Save configuration and enter Launcher</string>
     <string name="oobe_skip">Skip to Default</string>
     <string name="toast_accessibility_fallback_settings">Dedicated accessibility page not found. Opened Android System Settings instead.</string>
@@ -186,12 +186,12 @@
     <string name="dialog_accessibility_req_go">Go to Settings</string>
 
     <!-- Shizuku Management -->
-    <string name="setting_shizuku_title">Shizuku API Settings &amp; Status</string>
+    <string name="setting_shizuku_title">Shizuku Settings</string>
     <string name="setting_shizuku_desc">Check Shizuku service status, permissions and download APK</string>
-    <string name="shizuku_settings_title">Shizuku API Check &amp; Download</string>
+    <string name="shizuku_settings_title">Shizuku Management</string>
     <string name="shizuku_settings_hint">[OK] Select / Action   •   [Back] Return</string>
     <string name="shizuku_status_title">Shizuku Service Status</string>
-    <string name="shizuku_status_running_granted">Service running &amp; permission granted (%s)</string>
+    <string name="shizuku_status_running_granted">Service running, permission granted (%s)</string>
     <string name="shizuku_status_running_not_granted">Service running, but permission NOT granted</string>
     <string name="shizuku_status_installed_not_running">Installed, but Shizuku service is NOT running</string>
     <string name="shizuku_status_not_installed">Shizuku application is NOT installed</string>
@@ -205,7 +205,7 @@
     <string name="shizuku_action_install_local_apk_desc">Local APK found (Shizuku_latest.apk). Tap to install directly.</string>
     <string name="shizuku_action_redownload_apk">Re-download Latest Shizuku APK</string>
     <string name="shizuku_action_redownload_apk_desc">Overwrite local file and download from GitHub again</string>
-    <string name="shizuku_action_download_apk">Download &amp; Install Latest Shizuku</string>
+    <string name="shizuku_action_download_apk">Download and Install Latest Shizuku</string>
     <string name="shizuku_action_download_apk_desc">Fetch latest APK from GitHub releases and trigger installation</string>
     <string name="shizuku_action_open_browser">Open GitHub Releases Page</string>
     <string name="shizuku_action_open_browser_desc">Open Shizuku releases in web browser</string>
@@ -215,9 +215,9 @@
     <string name="shizuku_toast_cannot_launch">Unable to launch Shizuku manager</string>
     <string name="shizuku_toast_refreshed">Shizuku status refreshed</string>
     <string name="shizuku_fetching_link">Fetching latest release link...</string>
+    <string name="shizuku_fetch_failed">Unable to fetch release link</string>
     <string name="shizuku_starting_download">Starting APK download...</string>
     <string name="shizuku_downloading">Downloading</string>
     <string name="shizuku_download_success">APK downloaded. Opening installer...</string>
     <string name="shizuku_download_failed">Download failed</string>
-    <string name="shizuku_fetch_failed">Unable to fetch download URL. Check network.</string>
 </resources>

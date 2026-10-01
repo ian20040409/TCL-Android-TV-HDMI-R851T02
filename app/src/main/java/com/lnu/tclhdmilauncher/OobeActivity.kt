@@ -22,7 +22,12 @@ class OobeActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
-            GuidedStepSupportFragment.addAsRoot(this, WelcomeStepFragment(), android.R.id.content)
+            if (DeviceHelper.isTclDevice(this)) {
+                GuidedStepSupportFragment.addAsRoot(this, WelcomeStepFragment(), android.R.id.content)
+            } else {
+                MainActivity.setAppModeEnabled(this, true)
+                GuidedStepSupportFragment.addAsRoot(this, ConfigStepFragment(), android.R.id.content)
+            }
         }
     }
 
@@ -36,9 +41,11 @@ class OobeActivity : FragmentActivity() {
         }
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
+            val ctx = requireContext()
+            val desc = DeviceHelper.filterBrandText(ctx, getString(R.string.oobe_welcome_description))
             return GuidanceStylist.Guidance(
                 getString(R.string.oobe_welcome_title),
-                getString(R.string.oobe_welcome_description),
+                desc,
                 getString(R.string.oobe_welcome_breadcrumb),
                 requireContext().getDrawable(R.drawable.apps_48px)
             )
@@ -109,10 +116,17 @@ class OobeActivity : FragmentActivity() {
         private var selectedCountdown = 3
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
+            val ctx = requireContext()
+            val isTcl = DeviceHelper.isTclDevice(ctx)
+            val breadcrumb = if (isTcl) {
+                getString(R.string.oobe_config_breadcrumb)
+            } else {
+                getString(R.string.oobe_config_breadcrumb).replace("2/3", "1/2")
+            }
             return GuidanceStylist.Guidance(
                 getString(R.string.oobe_config_title),
                 getString(R.string.oobe_config_description),
-                getString(R.string.oobe_config_breadcrumb),
+                breadcrumb,
                 requireContext().getDrawable(R.drawable.cable_48px)
             )
         }
@@ -139,11 +153,16 @@ class OobeActivity : FragmentActivity() {
                 )
             }
 
+            val isAppMode = MainActivity.isAppModeEnabled(ctx)
+
             actions.add(
                 GuidedAction.Builder(ctx)
                     .id(ACTION_PORT_PARENT)
                     .title(getString(R.string.oobe_port_prompt, selectedPort))
-                    .subActions(portSubActions)
+                    .description(if (isAppMode) "Not applicable in App Mode" else null)
+                    .enabled(!isAppMode)
+                    .focusable(!isAppMode)
+                    .subActions(if (isAppMode) emptyList() else portSubActions)
                     .build()
             )
 
@@ -174,7 +193,10 @@ class OobeActivity : FragmentActivity() {
                 GuidedAction.Builder(ctx)
                     .id(ACTION_COUNTDOWN_PARENT)
                     .title(getString(R.string.oobe_countdown_prompt, countdownDisplay))
-                    .subActions(countdownSubActions)
+                    .description(if (isAppMode) "Not applicable in App Mode" else null)
+                    .enabled(!isAppMode)
+                    .focusable(!isAppMode)
+                    .subActions(if (isAppMode) emptyList() else countdownSubActions)
                     .build()
             )
 
@@ -228,10 +250,17 @@ class OobeActivity : FragmentActivity() {
         }
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
+            val ctx = requireContext()
+            val isTcl = DeviceHelper.isTclDevice(ctx)
+            val breadcrumb = if (isTcl) {
+                getString(R.string.oobe_system_breadcrumb)
+            } else {
+                getString(R.string.oobe_system_breadcrumb).replace("3/3", "2/2")
+            }
             return GuidanceStylist.Guidance(
                 getString(R.string.oobe_system_title),
-                getString(R.string.oobe_system_description),
-                getString(R.string.oobe_system_breadcrumb),
+                DeviceHelper.filterBrandText(ctx, getString(R.string.oobe_system_description)),
+                breadcrumb,
                 requireContext().getDrawable(R.drawable.accessibility_new_48px)
             )
         }

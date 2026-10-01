@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="pref_category_general">App 設定</string>
+    <string name="pref_category_advanced">進階設定</string>
+    <string name="pref_category_system">系統設定</string>
+    <string name="pref_category_about">關於</string>
+
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI 訊號源切換</string>

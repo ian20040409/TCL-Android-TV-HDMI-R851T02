@@ -37,13 +37,13 @@
         <Preference
             android:key="pref_button_mapper"
             android:title="@string/setting_button_mapper_title"
-            android:icon="@drawable/ic_videogame_asset" />
+            android:icon="@drawable/google_tv_remote_48px" />
 
         <Preference
             android:key="pref_shizuku"
             android:title="@string/setting_shizuku_title"
             android:summary="@string/setting_shizuku_desc"
-            android:icon="@drawable/ic_terminal" />
+            android:icon="@drawable/ic_shizuku" />
 
         <Preference
             android:key="pref_wake_guard"

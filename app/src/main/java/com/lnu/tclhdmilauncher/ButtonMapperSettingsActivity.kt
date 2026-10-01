@@ -33,11 +33,12 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
         }
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
+            val ctx = requireContext()
             return GuidanceStylist.Guidance(
                 getString(R.string.setting_button_mapper_title),
                 getString(R.string.setting_button_mapper_desc),
-                getString(R.string.brand_name),
-                requireContext().getDrawable(R.drawable.accessibility_new_48px)
+                DeviceHelper.getBrandTitle(ctx),
+                null
             )
         }
 
@@ -67,7 +68,6 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
                     .id(ACTION_MAPPER_MASTER)
                     .title(getString(R.string.setting_button_mapper_title))
                     .description(getString(if (isMasterEnabled) R.string.setting_state_on else R.string.setting_state_off))
-                    .icon(ctx.getDrawable(R.drawable.accessibility_new_48px))
                     .subActions(masterSubActions)
                     .build()
             )
@@ -101,7 +101,6 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
                     GuidedAction.Builder(ctx)
                         .id(ACTION_MAPPER_ACCESSIBILITY)
                         .title(getString(R.string.setting_mapper_accessibility))
-                        .icon(ctx.getDrawable(R.drawable.open_in_new_48px))
                         .build()
                 )
             }
@@ -115,9 +114,10 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
         }
 
         private fun showAccessibilityRequiredDialog(ctx: Context) {
+            val msg = DeviceHelper.filterBrandText(ctx, getString(R.string.dialog_accessibility_req_msg))
             AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(getString(R.string.dialog_accessibility_req_title))
-                .setMessage(getString(R.string.dialog_accessibility_req_msg))
+                .setMessage(msg)
                 .setPositiveButton(getString(R.string.dialog_accessibility_req_go)) { d, _ ->
                     AccessibilityHelper.openAccessibilitySettings(ctx)
                     d.dismiss()

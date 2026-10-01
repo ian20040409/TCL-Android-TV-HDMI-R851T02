@@ -102,6 +102,14 @@ class SettingsActivity : FragmentActivity() {
             wakeGuardPref?.summary = getString(if (wakeGuard) R.string.setting_wake_guard_desc_on else R.string.setting_wake_guard_desc_off)
 
             pm.findPreference<Preference>("pref_button_mapper")?.summary = buttonMapperSummary(ctx)
+
+            val tclPref = pm.findPreference<Preference>("pref_tcl_settings")
+            val isTcl = DeviceHelper.isTclDevice(ctx)
+            tclPref?.isVisible = isTcl
+            if (isTcl) {
+                tclPref?.isEnabled = true
+                tclPref?.summary = getString(R.string.setting_tcl_settings_desc)
+            }
         }
 
         override fun onPreferenceTreeClick(preference: Preference): Boolean {

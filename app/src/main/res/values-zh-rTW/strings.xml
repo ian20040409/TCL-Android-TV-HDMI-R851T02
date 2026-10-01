@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="pref_category_general">基本設定</string>
-    <string name="pref_category_advanced">進階與控制</string>
+    <string name="pref_category_general">App 設定</string>
+    <string name="pref_category_advanced">進階設定</string>
     <string name="pref_category_system">系統設定</string>
-    <string name="pref_category_about">關於與重設</string>
+    <string name="pref_category_about">關於</string>
 
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
@@ -53,7 +53,7 @@
     <string name="setting_signal_search_title">訊號搜尋畫面</string>
     <string name="setting_signal_search_desc_on">切換訊號源時顯示偵測提示 HUD</string>
     <string name="setting_signal_search_desc_off">直接硬體直通播放，不顯示提示 HUD</string>
-    <string name="setting_wake_guard_title">待機喚醒與 Home 鍵保障</string>
+    <string name="setting_wake_guard_title">待機喚醒保障</string>
     <string name="setting_wake_guard_desc_on">無障礙服務已啟用（100% 待機喚醒返回）</string>
     <string name="setting_wake_guard_desc_off">服務未開啟（強烈建議開啟避免喚醒黑屏）</string>
     <string name="setting_button_mapper_title">Button Mapper 按鍵映射設定</string>
@@ -107,7 +107,7 @@
     <!-- Accessibility Wake UI -->
     <string name="btn_wake_guard_on">無障礙喚醒: 已開啟</string>
     <string name="btn_wake_guard_off">無障礙喚醒: 未開啟</string>
-    <string name="dialog_wake_guard_title">待機喚醒與 Home 鍵保障</string>
+    <string name="dialog_wake_guard_title">待機喚醒保障</string>
     <string name="dialog_wake_guard_msg_on">已啟用無障礙喚醒與 Home 鍵映射服務。\n\n• 電視睡眠喚醒 100% 強制返回本桌面\n• 按遙控器 Home 鍵一律直達本桌面</string>
     <string name="dialog_wake_guard_msg_off">目前尚未開啟無障礙服務。\n\n啟用後，將獲得兩大系統級能力：\n1. 待機睡眠甦醒時 100% 強制返回本桌面（不掉入 AV 或無訊號）\n2. 啟用 Button Mapper 功能：遙控器 Home 鍵一律改為打開本 Launcher 桌面。\n\n點選「前往設定」後，若電視進入主設定頁，請依序進入：\n「裝置偏好設定」➔「無障礙 / 協助工具」➔ 開啟本服務。</string>
     <string name="dialog_btn_go_settings">前往設定</string>

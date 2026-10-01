@@ -66,11 +66,12 @@ class AppModeSettingsActivity : FragmentActivity() {
         }
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
+            val ctx = requireContext()
             return GuidanceStylist.Guidance(
                 getString(R.string.app_mode_settings_title),
                 getString(R.string.app_mode_settings_hint),
-                getString(R.string.brand_name),
-                requireContext().getDrawable(R.drawable.apps_48px)
+                DeviceHelper.getBrandTitle(ctx),
+                null
             )
         }
 
