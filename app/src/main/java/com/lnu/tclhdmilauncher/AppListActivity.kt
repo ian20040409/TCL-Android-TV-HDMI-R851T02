@@ -271,12 +271,13 @@ class AppListActivity : Activity() {
             val pm = packageManager
             val selfPkg = packageName
 
-            // 直接查詢 LEANBACK_LAUNCHER 與 LAUNCHER，省去 getInstalledApplications 全系統掃描 IPC
+            // 直接查詢 LEANBACK_LAUNCHER 與 LAUNCHER，加入 MATCH_DISABLED_COMPONENTS(512) 以顯示被凍結的 App
+            val flags = android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS
             val leanbackResolves = pm.queryIntentActivities(
-                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), flags
             )
             val mobileResolves = pm.queryIntentActivities(
-                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), flags
             )
 
             // 以 packageName 去重：優先保留 TV Leanback 入口
@@ -461,9 +462,15 @@ class AppListActivity : Activity() {
                 })
             }
             if (app.isDisableable) {
-                add(MenuOption(getString(R.string.menu_disable), R.drawable.settings_48px, 0xFFFBBF24.toInt()) {
-                    disableApp(app)
-                })
+                if (app.appInfo.enabled) {
+                    add(MenuOption("透過 Shizuku 停用 (凍結)", R.drawable.settings_48px, 0xFFFBBF24.toInt()) {
+                        toggleAppFreeze(app, true)
+                    })
+                } else {
+                    add(MenuOption("透過 Shizuku 啟用 (解凍)", R.drawable.settings_48px, 0xFF86EFAC.toInt()) {
+                        toggleAppFreeze(app, false)
+                    })
+                }
             }
             add(MenuOption(getString(R.string.menu_app_info), R.drawable.info_48px, 0xFF94A3B8.toInt()) {
                 openAppInfo(app)
@@ -545,6 +552,10 @@ class AppListActivity : Activity() {
 
     private fun launchApp(app: ListItem.App) {
         cancelAutoOpenCountdown()
+        if (!app.appInfo.enabled) {
+            android.widget.Toast.makeText(this, "請先長按解凍 ${app.label}", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         saveRecentPackage(app.packageName)
         try {
             WakeAccessibilityService.temporarilyIgnorePackage(app.packageName)
@@ -575,8 +586,17 @@ class AppListActivity : Activity() {
         startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.packageName}")))
     }
 
-    private fun disableApp(app: ListItem.App) {
-        openAppInfo(app)
+    private fun toggleAppFreeze(app: ListItem.App, freeze: Boolean) {
+        val success = ShizukuHelper.setAppDisabled(app.packageName, freeze)
+        if (success) {
+            val action = if (freeze) "停用" else "啟用"
+            android.widget.Toast.makeText(this, "已透過 Shizuku $action ${app.label}", android.widget.Toast.LENGTH_SHORT).show()
+            loadApps() // 重新載入列表
+        } else {
+            // 如果 Shizuku 未授權或失敗，退回使用系統設定頁面
+            android.widget.Toast.makeText(this, "Shizuku 操作失敗，請確認 Shizuku 正在執行", android.widget.Toast.LENGTH_SHORT).show()
+            openAppInfo(app)
+        }
     }
 
     private fun openAppInfo(app: ListItem.App) {
@@ -1030,8 +1050,17 @@ class AppListActivity : Activity() {
 
         fun bind(app: ListItem.App) {
             boundPackage = app.packageName
-            tvLabel.text = app.label
-            tvPkg.text = app.packageName
+            
+            if (app.appInfo.enabled) {
+                tvLabel.text = app.label
+                tvLabel.setTextColor(Color.WHITE)
+                tvPkg.text = app.packageName
+            } else {
+                tvLabel.text = "${app.label} (已停用)"
+                tvLabel.setTextColor(0xFF64748B.toInt()) // Gray color for disabled
+                tvPkg.text = app.packageName + " [FROZEN]"
+            }
+            
             tvBadge.visibility = if (MainActivity.getAutoOpenPackage(this@AppListActivity) == app.packageName) {
                 View.VISIBLE
             } else {

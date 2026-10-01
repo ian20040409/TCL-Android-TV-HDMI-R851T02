@@ -29,31 +29,59 @@ object ShizukuHelper {
         for (permission in permissionsToGrant) {
             if (context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
                 try {
-                    // newProcess is private in Shizuku 13.1.5, use reflection as a workaround for simple commands
-                    val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
-                        "newProcess",
-                        Array<String>::class.java,
-                        Array<String>::class.java,
-                        String::class.java
-                    )
-                    newProcessMethod.isAccessible = true
-                    val process = newProcessMethod.invoke(
-                        null,
-                        arrayOf("sh", "-c", "pm grant $packageName $permission"),
-                        null,
-                        null
-                    ) as Process
-                    
-                    process.waitFor()
-                    if (process.exitValue() == 0) {
+                    val exitCode = executeShellCommand("pm grant $packageName $permission")
+                    if (exitCode == 0) {
                         Log.i(TAG, "Successfully granted $permission via Shizuku")
                     } else {
-                        Log.e(TAG, "Failed to grant $permission via Shizuku, exit: ${process.exitValue()}")
+                        Log.e(TAG, "Failed to grant $permission via Shizuku, exit: $exitCode")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error granting $permission via Shizuku", e)
                 }
             }
+        }
+    }
+
+    /**
+     * 執行 Shizuku Shell 指令
+     */
+    fun executeShellCommand(command: String): Int {
+        if (!Shizuku.pingBinder()) return -1
+        return try {
+            val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
+                "newProcess",
+                Array<String>::class.java,
+                Array<String>::class.java,
+                String::class.java
+            )
+            newProcessMethod.isAccessible = true
+            val process = newProcessMethod.invoke(
+                null,
+                arrayOf("sh", "-c", command),
+                null,
+                null
+            ) as Process
+            
+            process.waitFor()
+            process.exitValue()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            -1
+        }
+    }
+
+    /**
+     * 透過 Shizuku 停用或啟用 App (與 Hail 相同功能)
+     */
+    fun setAppDisabled(packageName: String, disabled: Boolean): Boolean {
+        if (!Shizuku.pingBinder() || Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            return false
+        }
+        if (disabled) {
+            executeShellCommand("am force-stop $packageName")
+            return executeShellCommand("pm disable-user --user 0 $packageName") == 0
+        } else {
+            return executeShellCommand("pm enable --user 0 $packageName") == 0
         }
     }
 
