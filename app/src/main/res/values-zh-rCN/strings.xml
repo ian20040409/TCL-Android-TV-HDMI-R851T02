@@ -51,6 +51,14 @@
     <string name="setting_wake_guard_title">待机唤醒与 Home 键保障</string>
     <string name="setting_wake_guard_desc_on">无障碍服务已启用（100% 待机唤醒返回）</string>
     <string name="setting_wake_guard_desc_off">服务未开启（强烈建议开启避免唤醒黑屏）</string>
+    <string name="setting_button_mapper_title">Button Mapper 按键映射设置</string>
+    <string name="setting_button_mapper_desc">在无障碍设置启用 HDMI Launcher，即可映射 Home 与输入源按键。</string>
+    <string name="setting_button_mapper_summary">Home：%1$s · 输入源：%2$s</string>
+    <string name="setting_mapper_home_on">覆盖 Home 键：开启</string>
+    <string name="setting_mapper_home_off">覆盖 Home 键：关闭</string>
+    <string name="setting_mapper_input_on">覆盖输入源键：开启</string>
+    <string name="setting_mapper_input_off">覆盖输入源键：关闭</string>
+    <string name="setting_mapper_accessibility">打开无障碍设置</string>
     <string name="setting_auto_open_title">自动启动 App</string>
     <string name="setting_auto_open_desc_none">未设置（开机停留在应用程序列表）</string>
     <string name="setting_auto_open_desc_app">开机 / 唤醒后自动启动：%s</string>
@@ -165,4 +173,3 @@
     <string name="oobe_skip">跳过设置（使用默认值）</string>
     <string name="toast_accessibility_fallback_settings">未找到专用设置页，已为您打开系统设置（请前往 设备偏好设置 ➔ 无障碍 / 协助工具）</string>
 </resources>
-

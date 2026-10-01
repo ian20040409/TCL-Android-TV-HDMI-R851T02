@@ -46,15 +46,9 @@ class WakeAccessibilityService : AccessibilityService() {
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
-                "com.tcl.action.cec.MSG_VIEW_ON" -> {
-                    Log.i(TAG, "（無障礙服務）收到系統 MSG_VIEW_ON 廣播，觸發 CEC 喚醒")
-                    TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
-                    TclHdmiApplication.wakeScreen(context)
-                    // 不切回 Launcher，保留原生 CEC 訊號源切換
-                }
                 Intent.ACTION_SCREEN_ON,
                 Intent.ACTION_USER_PRESENT -> {
-                    if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 15000) {
+                    if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 3000) {
                         Log.i(TAG, "Ignoring wake to launcher in AccessibilityService because CEC woke the screen recently.")
                         return
                     }
@@ -74,15 +68,8 @@ class WakeAccessibilityService : AccessibilityService() {
             val filter = IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_USER_PRESENT)
-                addAction("com.tcl.action.cec.MSG_VIEW_ON")
             }
-            // TCL sends MSG_VIEW_ON from a different process.  Declare this
-            // receiver exported on Android 13+ so the broadcast is deliverable.
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(screenReceiver, filter, Context.RECEIVER_EXPORTED)
-            } else {
-                registerReceiver(screenReceiver, filter)
-            }
+            registerReceiver(screenReceiver, filter)
             isReceiverRegistered = true
         }
     }
@@ -173,8 +160,7 @@ class WakeAccessibilityService : AccessibilityService() {
         if (stockLauncherPackages.contains(pkgName)) {
             val now = System.currentTimeMillis()
             
-            if (now - TclHdmiApplication.lastCecWakeTime < 15000) {
-                Log.i(TAG, "Ignoring system launcher window because CEC woke the screen recently.")
+            if (now - TclHdmiApplication.lastCecWakeTime < 3000) {
                 return
             }
             
@@ -188,32 +174,13 @@ class WakeAccessibilityService : AccessibilityService() {
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         val keyCode = event.keyCode
-        // The input/source key is often mapped as TV_INPUT; some TCL remotes use
-        // AV_INPUT or STB_INPUT.  Outside this app, open our HDMI launcher rather
-        // than allowing the stock input picker to take over.
-        if (MainActivity.isInputButtonOverrideEnabled(this) &&
-            (keyCode == KeyEvent.KEYCODE_TV_INPUT ||
-            keyCode == KeyEvent.KEYCODE_AVR_INPUT ||
-            keyCode == KeyEvent.KEYCODE_STB_INPUT)) {
-            if (MainActivity.isForegroundFocused || HdmiViewerActivity.isForegroundFocused) {
-                return false // Let our active UI cycle to the next HDMI input.
-            }
-            if (event.action == KeyEvent.ACTION_UP) {
-                Log.i(TAG, "Input/source key intercepted; opening HDMI Launcher")
-                TclHdmiApplication.wakeToLauncher(this)
-            }
-            return true
-        }
-
         // 攔截常見 TV 遙控器 Home 鍵與電視首頁鍵
-        if (MainActivity.isHomeButtonOverrideEnabled(this) &&
-            (keyCode == KeyEvent.KEYCODE_HOME ||
+        if (keyCode == KeyEvent.KEYCODE_HOME ||
             keyCode == KeyEvent.KEYCODE_GUIDE ||
-            keyCode == KeyEvent.KEYCODE_TV)) {
+            keyCode == KeyEvent.KEYCODE_TV) {
             
-            if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 15000) {
-                Log.i(TAG, "Ignoring Home/Guide key completely because of recent CEC wake.")
-                return true // 攔截並丟棄，防止原生系統跳回桌面
+            if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 3000) {
+                return super.onKeyEvent(event)
             }
 
             if (event.action == KeyEvent.ACTION_UP) {

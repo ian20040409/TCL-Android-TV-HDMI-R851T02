@@ -51,6 +51,14 @@
     <string name="setting_wake_guard_title">Standby Wake &amp; Home Button</string>
     <string name="setting_wake_guard_desc_on">Accessibility service active (100% wake return)</string>
     <string name="setting_wake_guard_desc_off">Not enabled (Recommended to avoid sleep issues)</string>
+    <string name="setting_button_mapper_title">Button Mapper Setup</string>
+    <string name="setting_button_mapper_desc">Enable HDMI Launcher in Accessibility to map Home and Input keys.</string>
+    <string name="setting_button_mapper_summary">Home: %1$s · Input: %2$s</string>
+    <string name="setting_mapper_home_on">Home button override: On</string>
+    <string name="setting_mapper_home_off">Home button override: Off</string>
+    <string name="setting_mapper_input_on">Input button override: On</string>
+    <string name="setting_mapper_input_off">Input button override: Off</string>
+    <string name="setting_mapper_accessibility">Open Accessibility settings</string>
     <string name="setting_auto_open_title">Auto-Start App</string>
     <string name="setting_auto_open_desc_none">No app set (Stay on App List)</string>
     <string name="setting_auto_open_desc_app">Auto-starts %s on boot / wake</string>
@@ -167,4 +175,3 @@
     <string name="oobe_skip">Skip to Default</string>
     <string name="toast_accessibility_fallback_settings">Dedicated accessibility page not found. Opened Android System Settings instead.</string>
 </resources>
-

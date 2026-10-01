@@ -40,7 +40,7 @@ class BootAndWakeReceiver : BroadcastReceiver() {
                     return // 直接返回，不要強制切回 Launcher
                 }
 
-                if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 3000) {
+                if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 15000) {
                     Log.i(TAG, "Ignoring wake to launcher because CEC woke the screen recently.")
                     return
                 }

@@ -222,6 +222,12 @@ class OobeActivity : FragmentActivity() {
         companion object {
             private const val ACTION_WAKE_GUARD = 1L
             private const val ACTION_FINISH = 2L
+            private const val ACTION_BUTTON_MAPPER = 3L
+            private const val ACTION_MAPPER_HOME_ON = 101L
+            private const val ACTION_MAPPER_HOME_OFF = 102L
+            private const val ACTION_MAPPER_INPUT_ON = 103L
+            private const val ACTION_MAPPER_INPUT_OFF = 104L
+            private const val ACTION_MAPPER_ACCESSIBILITY = 105L
         }
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
@@ -248,6 +254,15 @@ class OobeActivity : FragmentActivity() {
                             getString(R.string.oobe_action_wake_guard_desc)
                         }
                     )
+                    .build()
+            )
+
+            actions.add(
+                GuidedAction.Builder(ctx)
+                    .id(ACTION_BUTTON_MAPPER)
+                    .title(getString(R.string.setting_button_mapper_title))
+                    .description(buttonMapperSummary(ctx))
+                    .subActions(buttonMapperSubActions(ctx))
                     .build()
             )
 
@@ -281,6 +296,9 @@ class OobeActivity : FragmentActivity() {
                 ACTION_WAKE_GUARD -> {
                     AccessibilityHelper.openAccessibilitySettings(ctx)
                 }
+                ACTION_BUTTON_MAPPER -> {
+                    AccessibilityHelper.openAccessibilitySettings(ctx)
+                }
                 ACTION_FINISH -> {
                     MainActivity.setOobeCompleted(ctx, true)
                     val intent = Intent(ctx, MainActivity::class.java).apply {
@@ -291,5 +309,36 @@ class OobeActivity : FragmentActivity() {
                 }
             }
         }
+
+        override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
+            val ctx = requireContext()
+            when (action.id) {
+                ACTION_MAPPER_HOME_ON -> MainActivity.setHomeButtonOverrideEnabled(ctx, true)
+                ACTION_MAPPER_HOME_OFF -> MainActivity.setHomeButtonOverrideEnabled(ctx, false)
+                ACTION_MAPPER_INPUT_ON -> MainActivity.setInputButtonOverrideEnabled(ctx, true)
+                ACTION_MAPPER_INPUT_OFF -> MainActivity.setInputButtonOverrideEnabled(ctx, false)
+                ACTION_MAPPER_ACCESSIBILITY -> AccessibilityHelper.openAccessibilitySettings(ctx)
+                else -> return super.onSubGuidedActionClicked(action)
+            }
+            findActionById(ACTION_BUTTON_MAPPER)?.let {
+                it.description = buttonMapperSummary(ctx)
+                notifyActionChanged(findActionPositionById(ACTION_BUTTON_MAPPER))
+            }
+            return true
+        }
+
+        private fun buttonMapperSummary(ctx: Context): String {
+            val home = if (MainActivity.isHomeButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
+            val input = if (MainActivity.isInputButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
+            return getString(R.string.setting_button_mapper_summary, home, input)
+        }
+
+        private fun buttonMapperSubActions(ctx: Context) = listOf(
+            GuidedAction.Builder(ctx).id(ACTION_MAPPER_HOME_ON).title(getString(R.string.setting_mapper_home_on)).build(),
+            GuidedAction.Builder(ctx).id(ACTION_MAPPER_HOME_OFF).title(getString(R.string.setting_mapper_home_off)).build(),
+            GuidedAction.Builder(ctx).id(ACTION_MAPPER_INPUT_ON).title(getString(R.string.setting_mapper_input_on)).build(),
+            GuidedAction.Builder(ctx).id(ACTION_MAPPER_INPUT_OFF).title(getString(R.string.setting_mapper_input_off)).build(),
+            GuidedAction.Builder(ctx).id(ACTION_MAPPER_ACCESSIBILITY).title(getString(R.string.setting_mapper_accessibility)).build()
+        )
     }
 }

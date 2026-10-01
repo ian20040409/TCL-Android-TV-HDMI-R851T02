@@ -381,6 +381,32 @@ Logcat captures the exact sequence from HDMI handshake to hardware video renderi
 
 ---
 
+### Fix 4: True HDMI-CEC Auto-Switching (Bypassing TCL's Broken Auto-Switch)
+
+#### Problem
+When you wake your Apple TV or PS5, it sends standard HDMI-CEC commands (`<Image View On>` and `<Active Source>`). A normal TV would automatically switch to that HDMI port. However, TCL's firmware merely wakes the screen (via a proprietary `MSG_VIEW_ON` broadcast) and **leaves you stuck on the Android home screen**, completely failing to switch the input. 
+
+#### Root Cause (SELinux & Logcat Filtering)
+1. **Empty Broadcasts**: TCL's `MSG_VIEW_ON` broadcast contains absolutely no extra data indicating *which* HDMI port woke the TV.
+2. **SELinux Blocks Standard APIs**: Attempts to query the active port via `dumpsys hdmi_control` are strictly blocked by Android 11+ SELinux policies (`Can't find service: hdmi_control` for `untrusted_app`).
+3. **Logcat UID Filtering**: The underlying `system_server` perfectly logs the exact CEC command (`HdmiCecController: command:<Active Source> ... params: 10 00`). However, starting in Android 4.1, apps can only read their *own* logs, hiding this vital information from third-party apps.
+
+#### The Ultimate Solution: System Logcat Interception
+This launcher runs a hyper-efficient background service (`CecLogReaderService`) that continuously monitors the system logcat for `HdmiCecController` events. When it detects an `<Active Source>` command, it instantly parses the physical address (e.g., `10 00` -> `0x1000` -> HDMI 1) and flawlessly switches the input!
+
+To make this work, **you must grant the app permission to read system-wide logs** via ADB:
+
+```bash
+# 1. Grant permission to read system logs (crucial for CEC auto-switch)
+adb shell pm grant com.lnu.tclhdmilauncher android.permission.READ_LOGS
+
+# 2. Force stop the app to apply the new permission
+adb shell am force-stop com.lnu.tclhdmilauncher
+```
+Once granted, CEC auto-switching will be instantaneous and perfect.
+
+---
+
 ## Tested Device & Input Mapping
 
 ### Tested Model Information

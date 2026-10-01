@@ -25,6 +25,10 @@ class TclHdmiApplication : Application() {
         @Volatile
         var lastCecWakeTime: Long = 0
 
+        /** Prevent the launcher's default-port timer from overriding a CEC input. */
+        fun isCecInputOverrideActive(): Boolean =
+            System.currentTimeMillis() - lastCecWakeTime < 15_000L
+
         /**
          * 強制啟動並拉回 Launcher 至最前景（依 App Mode 設定進入 AppListActivity 或 MainActivity）
          */
@@ -137,7 +141,13 @@ class TclHdmiApplication : Application() {
             addAction(Intent.ACTION_USER_PRESENT)
             addAction("com.tcl.action.cec.MSG_VIEW_ON")
         }
-        registerReceiver(screenReceiver, filter)
+        // The filter includes TCL's cross-process CEC broadcast.  Android 13+
+        // requires this explicit flag for non-system-only dynamic receivers.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(screenReceiver, filter)
+        }
 
         // 啟動 CEC 監控服務
         try {

@@ -222,6 +222,14 @@ class HdmiViewerActivity : Activity() {
                     tuneToPort(3)
                     return true
                 }
+                KeyEvent.KEYCODE_TV_INPUT,
+                KeyEvent.KEYCODE_AVR_INPUT,
+                KeyEvent.KEYCODE_STB_INPUT -> {
+                    val nextPort = if (currentPort >= 3) 1 else currentPort + 1
+                    Log.i(TAG, "Input/source key: HDMI $currentPort → HDMI $nextPort")
+                    tuneToPort(nextPort)
+                    return true
+                }
                 KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_MENU -> {
                     finish()
                     return true

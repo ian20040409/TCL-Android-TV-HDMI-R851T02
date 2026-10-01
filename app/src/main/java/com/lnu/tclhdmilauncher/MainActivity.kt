@@ -55,6 +55,8 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         private const val KEY_AUTO_OPEN_DELAY = "auto_open_delay"
         private const val KEY_SIGNAL_SEARCH_SCREEN = "signal_search_screen"
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
+        private const val KEY_OVERRIDE_HOME_BUTTON = "override_home_button"
+        private const val KEY_OVERRIDE_INPUT_BUTTON = "override_input_button"
         private const val DEFAULT_COUNTDOWN_SECONDS = 3
         const val EXTRA_FROM_APP_LIST = "from_app_list"
 
@@ -138,6 +140,24 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             cachedDefaultPort = port
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putInt(KEY_DEFAULT_PORT, port).apply()
+        }
+
+        fun isHomeButtonOverrideEnabled(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_OVERRIDE_HOME_BUTTON, true)
+
+        fun setHomeButtonOverrideEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_OVERRIDE_HOME_BUTTON, enabled).apply()
+        }
+
+        fun isInputButtonOverrideEnabled(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_OVERRIDE_INPUT_BUTTON, true)
+
+        fun setInputButtonOverrideEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_OVERRIDE_INPUT_BUTTON, enabled).apply()
         }
 
         fun getCountdownSeconds(context: Context): Int {
@@ -304,6 +324,11 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private val tickRunnable = object : Runnable {
         override fun run() {
             if (isAppMode || countdownDuration <= 0 || isDestroyed || isCancelled || isFinishing || !isActivityResumed || !hasWindowFocus()) return
+            if (TclHdmiApplication.isCecInputOverrideActive()) {
+                cancelTimer()
+                Log.i(TAG, "CEC input override is active; cancelling default-port countdown")
+                return
+            }
             secondsLeft--
             if (secondsLeft > 0) {
                 updateCountdownText()
@@ -564,6 +589,12 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             updateCountdownText()
             return
         }
+        if (TclHdmiApplication.isCecInputOverrideActive()) {
+            cancelTimer()
+            Log.i(TAG, "CEC input override is active; suppressing default-port countdown")
+            updateCountdownText()
+            return
+        }
         if (isCancelled || isFinishing || !isActivityResumed || !hasWindowFocus()) return
         if (secondsLeft <= 0) secondsLeft = countdownDuration
         updateCountdownText()
@@ -605,6 +636,22 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
                     }
                     switchTo(pressedPort, fromTimer = false)
                 }
+                return true
+            }
+
+            if (keyCode == KeyEvent.KEYCODE_TV_INPUT ||
+                keyCode == KeyEvent.KEYCODE_AVR_INPUT ||
+                keyCode == KeyEvent.KEYCODE_STB_INPUT) {
+                val currentPort = when {
+                    cardHdmi1.hasFocus() -> 1
+                    cardHdmi2.hasFocus() -> 2
+                    cardHdmi3.hasFocus() -> 3
+                    else -> defaultPort
+                }
+                val nextPort = if (currentPort >= 3) 1 else currentPort + 1
+                cancelTimer()
+                Log.i(TAG, "Input/source key: HDMI $currentPort → HDMI $nextPort")
+                switchTo(nextPort, fromTimer = false)
                 return true
             }
 
