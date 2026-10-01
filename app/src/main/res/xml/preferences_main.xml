@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/settings_title">
 
     <PreferenceCategory
         android:title="@string/pref_category_general">
@@ -49,12 +50,6 @@
             android:key="pref_wake_guard"
             android:title="@string/setting_wake_guard_title"
             android:icon="@drawable/accessibility_new_48px" />
-
-        <Preference
-            android:key="pref_cec_debug"
-            android:title="CEC Debug Log"
-            android:summary="View CEC wake, switch, and standby events"
-            android:icon="@drawable/ic_bug_report" />
 
     </PreferenceCategory>
 

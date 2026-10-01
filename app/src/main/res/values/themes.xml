@@ -45,10 +45,24 @@
         <item name="guidedActionsElevation">0dp</item>
     </style>
 
-    <!-- 原生 Leanback 設定頁面主題 -->
+    <!-- 原生 Leanback 集中設定抽屜主題（僅 SettingsActivity 使用：左邊透明透出首頁，右邊側邊欄） -->
     <style name="Theme.Settings" parent="Theme.Leanback.GuidedStep">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="guidedActionItemCheckmarkStyle">@style/OobeGuidedActionItemCheckmark</item>
+        <item name="guidedActionsElevation">0dp</item>
+    </style>
+
+    <!-- 子設定頁面專用主題（GuidedStepSupportFragment：AppMode, ButtonMapper, Shizuku）純黑底 -->
+    <style name="Theme.GuidedStepSettings" parent="Theme.Leanback.GuidedStep">
         <item name="android:windowBackground">#000000</item>
         <item name="android:colorBackground">#000000</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowDisablePreview">true</item>
         <item name="android:forceDarkAllowed">false</item>
         <item name="guidedActionItemCheckmarkStyle">@style/OobeGuidedActionItemCheckmark</item>
         <item name="guidedActionsElevation">0dp</item>

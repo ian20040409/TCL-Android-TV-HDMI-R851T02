@@ -1,6 +1,7 @@
 package com.lnu.tclhdmilauncher
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -37,6 +38,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
             private const val ACTION_DOWNLOAD_APK = 5L
             private const val ACTION_REFRESH = 7L
             private const val ACTION_INSTALL_LOCAL_APK = 8L
+            private const val ACTION_CEC_DEBUG = 9L
 
         }
 
@@ -200,7 +202,16 @@ class ShizukuSettingsActivity : FragmentActivity() {
                     .build()
             )
 
-            // 8. 重新整理
+            // 8. CEC 除錯日誌
+            actions.add(
+                GuidedAction.Builder(ctx)
+                    .id(ACTION_CEC_DEBUG)
+                    .title(getString(R.string.cec_debug_title))
+                    .description(getString(R.string.cec_debug_desc))
+                    .build()
+            )
+
+            // 9. 重新整理
             actions.add(
                 GuidedAction.Builder(ctx)
                     .id(ACTION_REFRESH)
@@ -244,6 +255,9 @@ class ShizukuSettingsActivity : FragmentActivity() {
                 ACTION_DOWNLOAD_APK -> {
                     if (isDownloading) return
                     startApkDownload(ctx, action)
+                }
+                ACTION_CEC_DEBUG -> {
+                    startActivity(Intent(ctx, CecDebugActivity::class.java))
                 }
                 ACTION_REFRESH -> {
                     refreshUI()

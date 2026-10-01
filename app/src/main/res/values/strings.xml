@@ -220,4 +220,6 @@
     <string name="shizuku_downloading">Downloading</string>
     <string name="shizuku_download_success">APK downloaded. Opening installer...</string>
     <string name="shizuku_download_failed">Download failed</string>
+    <string name="cec_debug_title">CEC Debug Log</string>
+    <string name="cec_debug_desc">View CEC wake, switch, and standby events</string>
 </resources>

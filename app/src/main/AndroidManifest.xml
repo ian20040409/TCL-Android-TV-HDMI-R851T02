@@ -107,7 +107,7 @@
         <activity
             android:name=".ButtonMapperSettingsActivity"
             android:exported="false"
-            android:theme="@style/Theme.Settings"
+            android:theme="@style/Theme.GuidedStepSettings"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 
@@ -129,7 +129,7 @@
         <activity
             android:name=".AppModeSettingsActivity"
             android:exported="false"
-            android:theme="@style/Theme.Settings"
+            android:theme="@style/Theme.GuidedStepSettings"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 
@@ -137,7 +137,7 @@
         <activity
             android:name=".ShizukuSettingsActivity"
             android:exported="false"
-            android:theme="@style/Theme.Settings"
+            android:theme="@style/Theme.GuidedStepSettings"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 

@@ -214,4 +214,6 @@
     <string name="shizuku_download_success">APK 下载完成，正在打开安装程序...</string>
     <string name="shizuku_download_failed">下载失败</string>
     <string name="shizuku_fetch_failed">无法获取下载链接，请检查网络连接</string>
+    <string name="cec_debug_title">CEC 调试日志</string>
+    <string name="cec_debug_desc">查看 CEC 唤醒、信号源切换与待机事件记录</string>
 </resources>
