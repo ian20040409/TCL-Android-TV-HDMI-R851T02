@@ -121,13 +121,18 @@ class HdmiViewerActivity : Activity() {
                     updateSignalOverlay(getString(R.string.hdmi_searching_signal, currentPort))
                     // reason=0 (REASON_UNKNOWN): 通常為底層驅動剛釋放舊 Session 的短暫衝突，延遲 600ms 自動自我修復重新調諧
                     if (reason == 0 && !isFinishing && isForegroundFocused) {
-                        Log.i(TAG, "Hardware decoder busy/recovering, auto re-tuning in 600ms...")
-                        handler.removeCallbacksAndMessages(null)
-                        handler.postDelayed({
-                            if (!isVideoAvailable && !isFinishing && isForegroundFocused) {
-                                tuneToPort(currentPort)
-                            }
-                        }, 600L)
+                        if (retryCount < maxRetries) {
+                            retryCount++
+                            Log.i(TAG, "Hardware decoder busy/recovering, auto re-tuning in 600ms (attempt $retryCount/$maxRetries)...")
+                            handler.removeCallbacksAndMessages(null)
+                            handler.postDelayed({
+                                if (!isVideoAvailable && !isFinishing && isForegroundFocused) {
+                                    tuneToPort(currentPort, isRetry = true)
+                                }
+                            }, 600L)
+                        } else {
+                            Log.w(TAG, "Max retries reached for reason=0 on HDMI $currentPort")
+                        }
                     }
                 }
             })
@@ -190,7 +195,8 @@ class HdmiViewerActivity : Activity() {
         tuneToPort(currentPort)
     }
 
-    private fun tuneToPort(port: Int) {
+    private fun tuneToPort(port: Int, isRetry: Boolean = false) {
+        if (!isRetry) retryCount = 0
         currentPort = port
         isVideoAvailable = false
         autoSleepHandler.removeCallbacks(autoSleepRunnable)
@@ -219,7 +225,7 @@ class HdmiViewerActivity : Activity() {
             retryCount++
             Log.i(TAG, "Retrying tune in 1500ms (attempt $retryCount/$maxRetries)...")
             handler.postDelayed({
-                tuneToPort(currentPort)
+                tuneToPort(currentPort, isRetry = true)
             }, 1500L)
         } else {
             Log.w(TAG, "Max retries reached for HDMI $currentPort")

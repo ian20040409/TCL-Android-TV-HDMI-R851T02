@@ -186,15 +186,114 @@ class OobeActivity : FragmentActivity() {
             )
         }
 
-
-        private fun buttonMapperSummary(ctx: Context): String {
-            if (!MainActivity.isButtonMapperEnabled(ctx)) {
-                return getString(R.string.setting_state_off)
+        override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
+            val ctx = requireContext()
+            if (action.id in ACTION_PORT_BASE + 1..ACTION_PORT_BASE + 3) {
+                selectedPort = (action.id - ACTION_PORT_BASE).toInt()
+                MainActivity.setDefaultPort(ctx, selectedPort)
+                val parentAction = findActionById(ACTION_PORT_PARENT)
+                parentAction?.title = getString(R.string.oobe_port_prompt, selectedPort)
+                notifyActionChanged(findActionPositionById(ACTION_PORT_PARENT))
+                return true
+            } else if (action.id in ACTION_COUNTDOWN_BASE..ACTION_COUNTDOWN_BASE + 10) {
+                selectedCountdown = (action.id - ACTION_COUNTDOWN_BASE).toInt()
+                MainActivity.setCountdownSeconds(ctx, selectedCountdown)
+                val display = if (selectedCountdown <= 0) {
+                    getString(R.string.oobe_countdown_off)
+                } else {
+                    "${selectedCountdown}s"
+                }
+                val parentAction = findActionById(ACTION_COUNTDOWN_PARENT)
+                parentAction?.title = getString(R.string.oobe_countdown_prompt, display)
+                notifyActionChanged(findActionPositionById(ACTION_COUNTDOWN_PARENT))
+                return true
             }
-            val home = if (MainActivity.isHomeButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
-            val input = if (MainActivity.isInputButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
-            return getString(R.string.setting_button_mapper_summary, home, input)
+            return super.onSubGuidedActionClicked(action)
         }
 
+        override fun onGuidedActionClicked(action: GuidedAction) {
+            if (action.id == ACTION_NEXT) {
+                add(parentFragmentManager, PermissionsStepFragment())
+            }
+        }
+    }
+
+    // ── 步驟 3：無障礙與按鍵覆蓋 ───────────────────────────────────────────
+    class PermissionsStepFragment : GuidedStepSupportFragment() {
+
+        companion object {
+            private const val ACTION_FINISH = 1L
+            private const val ACTION_OPEN_ACCESSIBILITY = 2L
+            private const val ACTION_BUTTON_MAPPER = 3L
+        }
+
+        override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
+            return GuidanceStylist.Guidance(
+                getString(R.string.oobe_system_title),
+                getString(R.string.oobe_system_description),
+                getString(R.string.oobe_system_breadcrumb),
+                requireContext().getDrawable(R.drawable.accessibility_new_48px)
+            )
+        }
+
+        override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
+            val ctx = requireContext()
+            val hasAccessibility = AccessibilityHelper.isServiceEnabled(ctx)
+
+            actions.add(
+                GuidedAction.Builder(ctx)
+                    .id(ACTION_FINISH)
+                    .title(getString(R.string.oobe_action_finish))
+                    .build()
+            )
+
+            if (!hasAccessibility) {
+                actions.add(
+                    GuidedAction.Builder(ctx)
+                        .id(ACTION_OPEN_ACCESSIBILITY)
+                        .title(getString(R.string.oobe_action_wake_guard))
+                        .icon(ctx.getDrawable(R.drawable.open_in_new_48px))
+                        .build()
+                )
+            } else {
+                actions.add(
+                    GuidedAction.Builder(ctx)
+                        .id(ACTION_BUTTON_MAPPER)
+                        .title(getString(R.string.setting_button_mapper_title))
+                        .description(getString(R.string.setting_button_mapper_desc))
+                        .icon(ctx.getDrawable(R.drawable.open_in_new_48px))
+                        .build()
+                )
+            }
+        }
+
+        override fun onResume() {
+            super.onResume()
+            // 如果從設定回來，刷新列表
+            setActions(mutableListOf())
+            onCreateActions(actions, null)
+        }
+
+        override fun onGuidedActionClicked(action: GuidedAction) {
+            val ctx = requireContext()
+            when (action.id) {
+                ACTION_FINISH -> {
+                    MainActivity.setOobeCompleted(ctx, true)
+                    Toast.makeText(ctx, "Setup Completed", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(ctx, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    }
+                    startActivity(intent)
+                    activity?.finish()
+                }
+                ACTION_OPEN_ACCESSIBILITY -> {
+                    AccessibilityHelper.openAccessibilitySettings(ctx)
+                }
+                ACTION_BUTTON_MAPPER -> {
+                    val intent = Intent(ctx, ButtonMapperSettingsActivity::class.java)
+                    startActivity(intent)
+                }
+            }
+        }
     }
 }
