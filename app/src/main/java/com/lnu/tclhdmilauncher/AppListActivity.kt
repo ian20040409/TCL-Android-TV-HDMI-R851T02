@@ -298,6 +298,7 @@ class AppListActivity : Activity() {
             val tvUserApps = ArrayList<ListItem.App>(24)
             val mobileUserApps = ArrayList<ListItem.App>(16)
             val systemApps = ArrayList<ListItem.App>(32)
+            val frozenApps = ArrayList<ListItem.App>(16)
             // Map for quick recent-app lookup
             val pkgToApp = ArrayMap<String, ListItem.App>(resolvedMap.size)
 
@@ -328,7 +329,9 @@ class AppListActivity : Activity() {
                 )
 
                 pkgToApp[pkg] = app
+                
                 when {
+                    !appInfo.enabled -> frozenApps.add(app)
                     isSystem -> systemApps.add(app)
                     isLeanback -> tvUserApps.add(app)
                     else -> mobileUserApps.add(app)
@@ -340,12 +343,13 @@ class AppListActivity : Activity() {
             tvUserApps.sortWith(comp)
             mobileUserApps.sortWith(comp)
             systemApps.sortWith(comp)
+            frozenApps.sortWith(comp)
 
             // Build recent apps list (preserve recency order, skip stale packages)
-            val recentApps = savedRecents.mapNotNull { pkgToApp[it] }
+            val recentApps = savedRecents.mapNotNull { pkgToApp[it] }.filter { it.appInfo.enabled }
 
             val result = ArrayList<ListItem>(
-                recentApps.size + tvUserApps.size + mobileUserApps.size + systemApps.size + 4
+                recentApps.size + tvUserApps.size + mobileUserApps.size + systemApps.size + frozenApps.size + 5
             )
             if (recentApps.isNotEmpty()) {
                 result.add(ListItem.Section(getString(R.string.section_recent, recentApps.size)))
@@ -362,6 +366,10 @@ class AppListActivity : Activity() {
             if (systemApps.isNotEmpty()) {
                 result.add(ListItem.Section(getString(R.string.section_system_apps, systemApps.size)))
                 result.addAll(systemApps)
+            }
+            if (frozenApps.isNotEmpty()) {
+                result.add(ListItem.Section("已停用 App (${frozenApps.size})"))
+                result.addAll(frozenApps)
             }
 
             mainHandler.post {
