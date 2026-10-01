@@ -1,7 +1,5 @@
 package com.lnu.tclhdmilauncher
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
 import android.os.Handler
@@ -39,7 +37,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
             private const val ACTION_DOWNLOAD_APK = 5L
             private const val ACTION_REFRESH = 7L
             private const val ACTION_INSTALL_LOCAL_APK = 8L
-            private const val ACTION_COPY_ADB_CMD = 9L
+
         }
 
         private val mainHandler = Handler(Looper.getMainLooper())
@@ -76,12 +74,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
             }
         }
 
-        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-            super.onViewCreated(view, savedInstanceState)
-            if (savedInstanceState == null) {
-                copyAdbCommandToClipboard(requireContext(), showToast = true)
-            }
-        }
+
 
         override fun onDestroy() {
             super.onDestroy()
@@ -100,19 +93,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
             refreshUI()
         }
 
-        private fun copyAdbCommandToClipboard(ctx: Context, showToast: Boolean = true) {
-            val command = "adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so"
-            try {
-                val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clip = ClipData.newPlainText("Shizuku ADB Command", command)
-                clipboard.setPrimaryClip(clip)
-                if (showToast) {
-                    Toast.makeText(ctx, R.string.shizuku_toast_adb_copied, Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+
 
         override fun onCreateGuidance(savedInstanceState: Bundle?): GuidanceStylist.Guidance {
             return GuidanceStylist.Guidance(
@@ -192,14 +173,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
                 )
             }
 
-            // 5. 複製 ADB 啟動指令
-            actions.add(
-                GuidedAction.Builder(ctx)
-                    .id(ACTION_COPY_ADB_CMD)
-                    .title(getString(R.string.shizuku_action_copy_adb_cmd))
-                    .description(getString(R.string.shizuku_action_copy_adb_cmd_desc))
-                    .build()
-            )
+
 
             // 6. 檢測是否存在已下載的本機 APK 檔案
             val localApk = ShizukuHelper.getDownloadedApkFile(ctx)
@@ -256,9 +230,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
                         Toast.makeText(ctx, R.string.shizuku_toast_cannot_launch, Toast.LENGTH_SHORT).show()
                     }
                 }
-                ACTION_COPY_ADB_CMD -> {
-                    copyAdbCommandToClipboard(ctx, showToast = true)
-                }
+
                 ACTION_INSTALL_LOCAL_APK -> {
                     val apkFile = ShizukuHelper.getDownloadedApkFile(ctx)
                     if (apkFile != null) {

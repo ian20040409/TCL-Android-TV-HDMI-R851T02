@@ -196,9 +196,6 @@
     <string name="shizuku_action_grant_system_perms_desc">Grant READ_LOGS and DUMP permissions to Launcher</string>
     <string name="shizuku_action_launch_app">Open Shizuku App</string>
     <string name="shizuku_action_launch_app_desc">Launch Shizuku manager to start service or inspect status</string>
-    <string name="shizuku_action_copy_adb_cmd">Copy ADB Startup Command</string>
-    <string name="shizuku_action_copy_adb_cmd_desc">adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so</string>
-    <string name="shizuku_toast_adb_copied">Shizuku ADB command copied to clipboard</string>
     <string name="shizuku_action_install_local_apk">Install Downloaded Shizuku APK</string>
     <string name="shizuku_action_install_local_apk_desc">Local APK found (Shizuku_latest.apk). Tap to install directly.</string>
     <string name="shizuku_action_redownload_apk">Re-download Latest Shizuku APK</string>

@@ -125,7 +125,6 @@
    - **一鍵彈出 Shizuku 授權視窗**：直覺觸發 Shizuku 原生 API 授權對話框（`Shizuku.requestPermission()`）。
    - **GitHub Release APK 自動下載**：連接 GitHub Releases API 獲取最新版，支援小數點 MB 與百分比即時進度顯示（`X.X MB / Y.Y MB (Z%)`），並透過 `FileProvider` 自動呼叫原生安裝程式。
    - **本機檔案完整性校驗與快取重用**：透過 `packageManager.getPackageArchiveInfo()` 校驗 APK，若已下載過完整 APK 檔案，返回頁面時自動重用並提供「一鍵安裝」，無需重新下載。
-   - **自動複製 ADB 啟動指令**：開啟 Shizuku 設定頁時，自動將 Shizuku 啟動指令 (`adb shell /data/app/moe.shizuku.privileged.api-.../lib/arm/libshizuku.so`) 複製至系統剪貼簿，並提供手動複製按鈕。
    - **App 一鍵停用 (凍結) / 啟用 (解凍)**：可在應用程式抽屜 (`AppListActivity`) 中長按選單，透過 Shizuku 一鍵停用背景耗電 App 或隨時還原啟用。
 12. **HDMI-CEC 喚醒/待機自動切換與系統 Logcat 攔截（`CecLogReaderService` + Shizuku-API 深度整合）**：
    - **智慧 CEC 喚醒攔截**：透過背景服務即時監聽系統 Logcat 中的 `HdmiCecController` `<Active Source>` 與 `MSG_VIEW_ON` 廣播，繞過 TCL 原廠韌體缺陷，實現裝置喚醒時微秒級自動切換至對應 HDMI 埠。
@@ -231,7 +230,6 @@ adb shell am force-stop com.google.android.tvlauncher
    ```bash
    adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so
    ```
-   *(註：進入 Launcher 的 Shizuku 設定頁時，系統會自動將此 ADB 指令複製至剪貼簿)*。
 4. 於 **Shizuku API 設定頁** 點擊 **請求 Shizuku 存取權限**，畫面即會彈出 Shizuku 授權對話框完成授權。
 
 ---

@@ -112,7 +112,6 @@ If any of the following describes your home theater setup, this launcher was bui
    - **One-Click Shizuku Permission Request**: Triggers Shizuku's native API permit dialog window directly on the TV interface (`Shizuku.requestPermission()`).
    - **Automatic Shizuku APK Downloader**: Connects to GitHub Releases API, fetches the latest Shizuku APK, downloads in background with real-time decimal progress (`X.X MB / Y.Y MB (Z%)`), and opens package installer via `FileProvider`.
    - **Local APK Integrity Validation & Cache Reuse**: Validates local APK files with `packageManager.getPackageArchiveInfo()`. Reuses previously downloaded APK files so returning users can install instantly without re-downloading.
-   - **Automatic Clipboard ADB Command Copy**: Automatically copies the required Shizuku ADB startup command (`adb shell /data/app/moe.shizuku.privileged.api-.../lib/arm/libshizuku.so`) to the system clipboard upon opening Shizuku settings.
    - **Direct App Freeze / Unfreeze**: Freeze (disable) or unfreeze (enable) background TV or mobile apps directly from the App Drawer (`AppListActivity`) using Shizuku permissions.
 12. **HDMI-CEC Wake-Up / Standby Auto-Switching & System Logcat Interception (`CecLogReaderService` + Shizuku-API Integration)**:
    - **Smart CEC Wake-Up Interception**: Bypasses TCL firmware limitations by monitoring system logcat (`HdmiCecController`) for `<Active Source>` and `MSG_VIEW_ON` broadcasts to instantly auto-switch to the correct HDMI port on wake.
@@ -218,7 +217,6 @@ Enabling the Accessibility Service grants two system-level capabilities:
    ```bash
    adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so
    ```
-   *(Note: Opening the Shizuku settings page in the Launcher automatically copies this ADB command to your clipboard).*
 4. In **Shizuku API Settings**, click **Request Shizuku Permission** to grant access to the Launcher.
 
 ---

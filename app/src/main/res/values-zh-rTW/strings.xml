@@ -194,9 +194,6 @@
     <string name="shizuku_action_grant_system_perms_desc">自動授予本 App READ_LOGS 與 DUMP 權限</string>
     <string name="shizuku_action_launch_app">開啟 Shizuku 應用程式</string>
     <string name="shizuku_action_launch_app_desc">開啟 Shizuku 管理員以啟動服務或檢視 ADB 狀態</string>
-    <string name="shizuku_action_copy_adb_cmd">複製 ADB 啟動指令</string>
-    <string name="shizuku_action_copy_adb_cmd_desc">adb shell /data/app/moe.shizuku.privileged.api-v7BYGto1h75l68BA7L8zOA==/lib/arm/libshizuku.so</string>
-    <string name="shizuku_toast_adb_copied">已將 Shizuku ADB 啟動指令複製至剪貼簿</string>
     <string name="shizuku_action_install_local_apk">安裝已下載的 Shizuku APK</string>
     <string name="shizuku_action_install_local_apk_desc">已檢測到本機下載的 Shizuku_latest.apk，點擊直接安裝</string>
     <string name="shizuku_action_redownload_apk">重新下載最新版 Shizuku APK</string>
