@@ -127,6 +127,10 @@
    - **本機檔案完整性校驗與快取重用**：透過 `packageManager.getPackageArchiveInfo()` 校驗 APK，若已下載過完整 APK 檔案，返回頁面時自動重用並提供「一鍵安裝」，無需重新下載。
    - **自動複製 ADB 啟動指令**：開啟 Shizuku 設定頁時，自動將 Shizuku 啟動指令 (`adb shell /data/app/moe.shizuku.privileged.api-.../lib/arm/libshizuku.so`) 複製至系統剪貼簿，並提供手動複製按鈕。
    - **App 一鍵停用 (凍結) / 啟用 (解凍)**：可在應用程式抽屜 (`AppListActivity`) 中長按選單，透過 Shizuku 一鍵停用背景耗電 App 或隨時還原啟用。
+12. **HDMI-CEC 喚醒/待機自動切換與系統 Logcat 攔截（`CecLogReaderService` + Shizuku-API 深度整合）**：
+   - **智慧 CEC 喚醒攔截**：透過背景服務即時監聽系統 Logcat 中的 `HdmiCecController` `<Active Source>` 與 `MSG_VIEW_ON` 廣播，繞過 TCL 原廠韌體缺陷，實現裝置喚醒時微秒級自動切換至對應 HDMI 埠。
+   - **透過 Shizuku-API 自動授權**：深度整合 [Shizuku-API](https://github.com/RikkaApps/Shizuku-API)（`ShizukuHelper.tryGrantPermissions`），自動賦予 `READ_LOGS` 與 `DUMP` 系統權限，免去手動輸入 ADB 指令的繁瑣步驟。
+   - **前台守護服務 (`CecLogReaderService`)**：採用最高優先級前台服務架構，確保電視待機喚醒與訊號源狀態追蹤在各種睡眠/喚醒週期中皆 100% 穩定可靠。
 
 ---
 

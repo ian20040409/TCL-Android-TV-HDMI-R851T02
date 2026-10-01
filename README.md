@@ -114,6 +114,10 @@ If any of the following describes your home theater setup, this launcher was bui
    - **Local APK Integrity Validation & Cache Reuse**: Validates local APK files with `packageManager.getPackageArchiveInfo()`. Reuses previously downloaded APK files so returning users can install instantly without re-downloading.
    - **Automatic Clipboard ADB Command Copy**: Automatically copies the required Shizuku ADB startup command (`adb shell /data/app/moe.shizuku.privileged.api-.../lib/arm/libshizuku.so`) to the system clipboard upon opening Shizuku settings.
    - **Direct App Freeze / Unfreeze**: Freeze (disable) or unfreeze (enable) background TV or mobile apps directly from the App Drawer (`AppListActivity`) using Shizuku permissions.
+12. **HDMI-CEC Wake-Up / Standby Auto-Switching & System Logcat Interception (`CecLogReaderService` + Shizuku-API Integration)**:
+   - **Smart CEC Wake-Up Interception**: Bypasses TCL firmware limitations by monitoring system logcat (`HdmiCecController`) for `<Active Source>` and `MSG_VIEW_ON` broadcasts to instantly auto-switch to the correct HDMI port on wake.
+   - **Automatic Permission Granting via Shizuku API**: Integrates [Shizuku-API](https://github.com/RikkaApps/Shizuku-API) (`ShizukuHelper.tryGrantPermissions`) to automatically grant `READ_LOGS` and `DUMP` permissions without manual ADB commands.
+   - **Foreground Service Wake Guard**: Runs a robust foreground service (`CecLogReaderService`) that ensures reliable standby wake detection and port tracking across TV sleep/wake cycles.
 
 ---
 
