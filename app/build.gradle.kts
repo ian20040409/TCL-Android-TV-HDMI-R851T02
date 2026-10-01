@@ -10,8 +10,8 @@ android {
         applicationId = "com.lnu.tclhdmilauncher"
         minSdk        = 28
         targetSdk     = 36
-        versionCode   = 17
-        versionName   = "2.1.7"
+        versionCode   = 18
+        versionName   = "2.1.8"
     }
 
     buildTypes {
