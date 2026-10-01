@@ -82,6 +82,14 @@ class AppListActivity : Activity() {
     private lateinit var btnSettings: LinearLayout
     private lateinit var btnHdmi: LinearLayout
 
+    private lateinit var tvTitle: TextView
+    private lateinit var tvHint: TextView
+    private lateinit var btnBatchAction: LinearLayout
+    private lateinit var btnCancelSelect: LinearLayout
+
+    private var isMultiSelectMode = false
+    private val selectedPackages = HashSet<String>()
+
     private val items = ArrayList<ListItem>(64)
     private val iconCache = ArrayMap<String, Drawable>(64)
     private val loadingIcons = HashSet<String>(32)
@@ -145,14 +153,24 @@ class AppListActivity : Activity() {
         listView.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
             cancelAutoOpenCountdown()
             val item = items.getOrNull(pos)
-            if (item is ListItem.App) launchApp(item)
+            if (item is ListItem.App) {
+                if (isMultiSelectMode) {
+                    toggleSelection(item.packageName)
+                } else {
+                    launchApp(item)
+                }
+            }
         }
 
         listView.onItemLongClickListener = AdapterView.OnItemLongClickListener { _, _, pos, _ ->
             cancelAutoOpenCountdown()
             val item = items.getOrNull(pos)
             if (item is ListItem.App) {
-                showAppMenu(item)
+                if (isMultiSelectMode) {
+                    showBatchActionDialog()
+                } else {
+                    showAppMenu(item)
+                }
                 true
             } else {
                 false
@@ -433,8 +451,6 @@ class AppListActivity : Activity() {
 
     private data class MenuOption(
         val title: String,
-        val iconResId: Int,
-        val iconTint: Int,
         val action: () -> Unit
     )
 
@@ -451,90 +467,47 @@ class AppListActivity : Activity() {
 
     private fun showAppMenu(app: ListItem.App) {
         val isCurrentlyAutoOpen = MainActivity.getAutoOpenPackage(this) == app.packageName
-        val options = ArrayList<MenuOption>(5).apply {
-            add(MenuOption(getString(R.string.menu_open), R.drawable.open_in_new_48px, 0xFF38BDF8.toInt()) {
+        val options = ArrayList<MenuOption>(6).apply {
+            add(MenuOption(getString(R.string.menu_open)) {
                 launchApp(app)
             })
+            add(MenuOption("選取 (批次停用/啟用)") {
+                enterMultiSelectMode(app.packageName)
+            })
             if (isCurrentlyAutoOpen) {
-                add(MenuOption(getString(R.string.menu_clear_auto_open), R.drawable.settings_power_48px, 0xFFFBBF24.toInt()) {
+                add(MenuOption(getString(R.string.menu_clear_auto_open)) {
                     setAutoOpenSelection("", "")
                 })
             } else {
-                add(MenuOption(getString(R.string.menu_set_auto_open), R.drawable.settings_power_48px, 0xFF86EFAC.toInt()) {
+                add(MenuOption(getString(R.string.menu_set_auto_open)) {
                     setAutoOpenSelection(app.packageName, app.label)
                 })
             }
             if (!app.isSystem) {
-                add(MenuOption(getString(R.string.menu_uninstall), R.drawable.delete_48px, 0xFFF87171.toInt()) {
+                add(MenuOption(getString(R.string.menu_uninstall)) {
                     uninstallApp(app)
                 })
             }
             if (app.isDisableable) {
                 if (app.appInfo.enabled) {
-                    add(MenuOption("透過 Shizuku 停用 (凍結)", R.drawable.settings_48px, 0xFFFBBF24.toInt()) {
+                    add(MenuOption("透過 Shizuku 停用 (凍結)") {
                         toggleAppFreeze(app, true)
                     })
                 } else {
-                    add(MenuOption("透過 Shizuku 啟用 (解凍)", R.drawable.settings_48px, 0xFF86EFAC.toInt()) {
+                    add(MenuOption("透過 Shizuku 啟用 (解凍)") {
                         toggleAppFreeze(app, false)
                     })
                 }
             }
-            add(MenuOption(getString(R.string.menu_app_info), R.drawable.info_48px, 0xFF94A3B8.toInt()) {
+            add(MenuOption(getString(R.string.menu_app_info)) {
                 openAppInfo(app)
             })
         }
 
-        val menuAdapter = object : BaseAdapter() {
-            override fun getCount(): Int = options.size
-            override fun getItem(position: Int): Any = options[position]
-            override fun getItemId(position: Int): Long = position.toLong()
-
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val row: LinearLayout
-                val ivIcon: ImageView
-                val tvText: TextView
-
-                if (convertView == null) {
-                    row = LinearLayout(this@AppListActivity).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        gravity = Gravity.CENTER_VERTICAL
-                        val hPad = dpToPx(20)
-                        val vPad = dpToPx(14)
-                        setPadding(hPad, vPad, hPad, vPad)
-                    }
-                    ivIcon = ImageView(this@AppListActivity).apply {
-                        scaleType = ImageView.ScaleType.FIT_CENTER
-                    }
-                    row.addView(ivIcon, LinearLayout.LayoutParams(dpToPx(28), dpToPx(28)).apply {
-                        rightMargin = dpToPx(16)
-                    })
-                    tvText = TextView(this@AppListActivity).apply {
-                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-                        setTextColor(0xFFF1F5F9.toInt())
-                    }
-                    row.addView(tvText, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-                    row.tag = Pair(ivIcon, tvText)
-                } else {
-                    row = convertView as LinearLayout
-                    @Suppress("UNCHECKED_CAST")
-                    val tag = row.tag as Pair<ImageView, TextView>
-                    ivIcon = tag.first
-                    tvText = tag.second
-                }
-
-                val option = options[position]
-                tvText.text = option.title
-                ivIcon.setImageResource(option.iconResId)
-                ivIcon.setColorFilter(option.iconTint)
-
-                return row
-            }
-        }
-
+        val items = options.map { it.title }.toTypedArray()
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle(app.label)
-            .setAdapter(menuAdapter) { _, which ->
+            .setItems(items) { _, which ->
                 options[which].action()
             }
             .setNegativeButton(getString(R.string.dialog_cancel), null)
@@ -621,6 +594,113 @@ class AppListActivity : Activity() {
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
+    private fun enterMultiSelectMode(initialPkg: String) {
+        isMultiSelectMode = true
+        selectedPackages.clear()
+        selectedPackages.add(initialPkg)
+        updateHeaderUI()
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun exitMultiSelectMode() {
+        isMultiSelectMode = false
+        selectedPackages.clear()
+        updateHeaderUI()
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun toggleSelection(pkg: String) {
+        if (selectedPackages.contains(pkg)) {
+            selectedPackages.remove(pkg)
+            if (selectedPackages.isEmpty()) {
+                exitMultiSelectMode()
+                return
+            }
+        } else {
+            selectedPackages.add(pkg)
+        }
+        updateHeaderUI()
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun updateHeaderUI() {
+        if (isMultiSelectMode) {
+            tvTitle.text = "已選取 ${selectedPackages.size} 個"
+            tvHint.visibility = View.GONE
+            btnSettings.visibility = View.GONE
+            btnHdmi.visibility = View.GONE
+            btnBatchAction.visibility = View.VISIBLE
+            btnCancelSelect.visibility = View.VISIBLE
+            btnBatchAction.requestFocus()
+        } else {
+            tvTitle.text = getString(R.string.app_list_title)
+            tvHint.visibility = View.VISIBLE
+            btnSettings.visibility = View.VISIBLE
+            btnHdmi.visibility = View.VISIBLE
+            btnBatchAction.visibility = View.GONE
+            btnCancelSelect.visibility = View.GONE
+        }
+    }
+
+    private fun showBatchActionDialog() {
+        if (selectedPackages.isEmpty()) return
+        
+        val options = ArrayList<MenuOption>()
+        options.add(MenuOption("停用 (凍結) 已選取") {
+            executeBatchFreeze(true)
+        })
+        options.add(MenuOption("啟用 (解凍) 已選取") {
+            executeBatchFreeze(false)
+        })
+        options.add(MenuOption("全選") {
+            selectAllApps()
+        })
+        
+        val items = options.map { it.title }.toTypedArray()
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("批次操作 (${selectedPackages.size} 個)")
+            .setItems(items) { _, which ->
+                options[which].action()
+            }
+            .setNegativeButton(getString(R.string.dialog_cancel), null)
+            .show()
+    }
+    
+    private fun selectAllApps() {
+        for (item in items) {
+            if (item is ListItem.App) {
+                selectedPackages.add(item.packageName)
+            }
+        }
+        updateHeaderUI()
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun executeBatchFreeze(freeze: Boolean) {
+        progressBar.visibility = View.VISIBLE
+        listView.visibility = View.GONE
+        bgExecutor.execute {
+            var successCount = 0
+            var failCount = 0
+            for (pkg in selectedPackages) {
+                if (isDestroyedFlag) return@execute
+                val success = ShizukuHelper.setAppDisabled(pkg, freeze)
+                if (success) successCount++ else failCount++
+            }
+            mainHandler.post {
+                if (isDestroyedFlag || isFinishing) return@post
+                val action = if (freeze) "停用" else "啟用"
+                android.widget.Toast.makeText(
+                    this@AppListActivity, 
+                    "已批次$action $successCount 個 App" + if (failCount > 0) "，失敗 $failCount 個" else "", 
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                exitMultiSelectMode()
+                loadApps()
+            }
+        }
+    }
+
     private fun returnToMainActivity() {
         cancelAutoOpenCountdown()
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -646,22 +726,23 @@ class AppListActivity : Activity() {
                             tvAutoOpenBanner.visibility = View.GONE
                         }
                         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                            if (isMultiSelectMode) exitMultiSelectMode()
                             return true
                         }
                     }
                 }
             }
             if (event.keyCode == KeyEvent.KEYCODE_MENU || event.keyCode == KeyEvent.KEYCODE_SETTINGS) {
-                openSettings()
+                if (isMultiSelectMode) showBatchActionDialog() else openSettings()
                 return true
             }
             if (listView.hasFocus() && event.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                 val firstAppPos = items.indexOfFirst { it is ListItem.App }
                 if (firstAppPos < 0 || listView.selectedItemPosition <= firstAppPos) {
-                    btnSettings.requestFocus()
+                    if (isMultiSelectMode) btnBatchAction.requestFocus() else btnSettings.requestFocus()
                     return true
                 }
-            } else if ((btnSettings.hasFocus() || btnHdmi.hasFocus()) && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+            } else if ((btnSettings.hasFocus() || btnHdmi.hasFocus() || btnBatchAction.hasFocus() || btnCancelSelect.hasFocus()) && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                 if (items.isNotEmpty()) {
                     listView.requestFocus()
                     val firstAppPos = items.indexOfFirst { it is ListItem.App }
@@ -677,6 +758,10 @@ class AppListActivity : Activity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (isMultiSelectMode) {
+                exitMultiSelectMode()
+                return true
+            }
             returnToMainActivity()
             return true
         }
@@ -716,7 +801,7 @@ class AppListActivity : Activity() {
         titleBox.addView(ivTitleIcon, LinearLayout.LayoutParams(dp(30f), dp(30f)).apply {
             rightMargin = dp(12f)
         })
-        val tvTitle = TextView(this).apply {
+        tvTitle = TextView(this).apply {
             text = getString(R.string.app_list_title)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             typeface = Typeface.DEFAULT_BOLD
@@ -726,7 +811,7 @@ class AppListActivity : Activity() {
         titleBox.addView(tvTitle, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
         header.addView(titleBox, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
 
-        val tvHint = TextView(this).apply {
+        tvHint = TextView(this).apply {
             text = getString(R.string.app_list_hint)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setTextColor(0xFF475569.toInt())
@@ -762,16 +847,50 @@ class AppListActivity : Activity() {
         btnHdmi = hdmiBtn
         header.addView(btnHdmi, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
 
+        val (batchBtn, _, _) = createHeaderPillButton(
+            iconRes = R.drawable.settings_48px,
+            label = "批次操作",
+            density = density
+        ) {
+            showBatchActionDialog()
+        }
+        btnBatchAction = batchBtn
+        btnBatchAction.visibility = View.GONE
+        header.addView(btnBatchAction, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+            rightMargin = dp(10f)
+        })
+
+        val (cancelSelBtn, _, _) = createHeaderPillButton(
+            iconRes = 0,
+            label = "取消",
+            density = density
+        ) {
+            exitMultiSelectMode()
+        }
+        btnCancelSelect = cancelSelBtn
+        btnCancelSelect.visibility = View.GONE
+        header.addView(btnCancelSelect, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+
         val idSettings = View.generateViewId()
         val idHdmi = View.generateViewId()
+        val idBatch = View.generateViewId()
+        val idCancel = View.generateViewId()
         btnSettings.id = idSettings
         btnHdmi.id = idHdmi
+        btnBatchAction.id = idBatch
+        btnCancelSelect.id = idCancel
 
         btnSettings.nextFocusLeftId = idSettings
         btnSettings.nextFocusRightId = idHdmi
 
         btnHdmi.nextFocusLeftId = idSettings
         btnHdmi.nextFocusRightId = idHdmi
+
+        btnBatchAction.nextFocusLeftId = idBatch
+        btnBatchAction.nextFocusRightId = idCancel
+
+        btnCancelSelect.nextFocusLeftId = idBatch
+        btnCancelSelect.nextFocusRightId = idCancel
 
         root.addView(header, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
@@ -837,7 +956,7 @@ class AppListActivity : Activity() {
         label: String,
         density: Float,
         onClickAction: () -> Unit
-    ): Triple<LinearLayout, TextView, ImageView> {
+    ): Triple<LinearLayout, TextView, ImageView?> {
         fun dp(v: Float): Int = (v * density + 0.5f).toInt()
         val radius = 24f * density
         val strokeFocused = (2.5f * density + 0.5f).toInt()
@@ -865,11 +984,13 @@ class AppListActivity : Activity() {
             )
         }
 
-        val iv = ImageView(this).apply {
-            val d = getDrawable(iconRes)?.mutate()
-            setImageDrawable(d)
-            setColorFilter(0xFF94A3B8.toInt())
-        }
+        val iv = if (iconRes != 0) {
+            ImageView(this).apply {
+                val d = getDrawable(iconRes)?.mutate()
+                setImageDrawable(d)
+                setColorFilter(0xFF94A3B8.toInt())
+            }
+        } else null
 
         val tv = TextView(this).apply {
             text = label
@@ -891,9 +1012,11 @@ class AppListActivity : Activity() {
             isClickable = true
             background = bgSelector
 
-            addView(iv, LinearLayout.LayoutParams(dp(20f), dp(20f)).apply {
-                rightMargin = dp(8f)
-            })
+            if (iv != null) {
+                addView(iv, LinearLayout.LayoutParams(dp(20f), dp(20f)).apply {
+                    rightMargin = dp(8f)
+                })
+            }
             addView(tv, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
 
             setOnClickListener { onClickAction() }
@@ -1044,7 +1167,16 @@ class AppListActivity : Activity() {
             leftMargin = dpToPx(12)
         })
 
-        return AppViewHolder(row, ivIcon, tvLabel, tvPkg, tvBadge)
+        val cbSelect = android.widget.CheckBox(this).apply {
+            isFocusable = false
+            isClickable = false
+            visibility = View.GONE
+        }
+        row.addView(cbSelect, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+            leftMargin = dpToPx(16)
+        })
+
+        return AppViewHolder(row, ivIcon, tvLabel, tvPkg, tvBadge, cbSelect)
     }
 
     private inner class AppViewHolder(
@@ -1052,7 +1184,8 @@ class AppListActivity : Activity() {
         val ivIcon: ImageView,
         val tvLabel: TextView,
         val tvPkg: TextView,
-        val tvBadge: TextView
+        val tvBadge: TextView,
+        val cbSelect: android.widget.CheckBox
     ) {
         var boundPackage: String = ""
 
@@ -1073,6 +1206,13 @@ class AppListActivity : Activity() {
                 View.VISIBLE
             } else {
                 View.GONE
+            }
+
+            if (isMultiSelectMode) {
+                cbSelect.visibility = View.VISIBLE
+                cbSelect.isChecked = selectedPackages.contains(app.packageName)
+            } else {
+                cbSelect.visibility = View.GONE
             }
 
             val cached = iconCache[app.packageName]
