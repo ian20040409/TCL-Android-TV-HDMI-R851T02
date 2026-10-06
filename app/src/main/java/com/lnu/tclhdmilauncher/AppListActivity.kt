@@ -386,7 +386,7 @@ class AppListActivity : Activity() {
                 result.addAll(systemApps)
             }
             if (frozenApps.isNotEmpty()) {
-                result.add(ListItem.Section("已停用 App (${frozenApps.size})"))
+                result.add(ListItem.Section(getString(R.string.section_frozen_apps, frozenApps.size)))
                 result.addAll(frozenApps)
             }
 
@@ -471,7 +471,7 @@ class AppListActivity : Activity() {
             add(MenuOption(getString(R.string.menu_open)) {
                 launchApp(app)
             })
-            add(MenuOption("選取 (批次停用/啟用)") {
+            add(MenuOption(getString(R.string.menu_batch_select)) {
                 enterMultiSelectMode(app.packageName)
             })
             if (isCurrentlyAutoOpen) {
@@ -490,11 +490,11 @@ class AppListActivity : Activity() {
             }
             if (app.isDisableable) {
                 if (app.appInfo.enabled) {
-                    add(MenuOption("透過 Shizuku 停用 (凍結)") {
+                    add(MenuOption(getString(R.string.menu_freeze)) {
                         toggleAppFreeze(app, true)
                     })
                 } else {
-                    add(MenuOption("透過 Shizuku 啟用 (解凍)") {
+                    add(MenuOption(getString(R.string.menu_unfreeze)) {
                         toggleAppFreeze(app, false)
                     })
                 }
@@ -534,7 +534,7 @@ class AppListActivity : Activity() {
     private fun launchApp(app: ListItem.App) {
         cancelAutoOpenCountdown()
         if (!app.appInfo.enabled) {
-            android.widget.Toast.makeText(this, "請先長按解凍 ${app.label}", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.toast_unfreeze_first, app.label), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         saveRecentPackage(app.packageName)
@@ -570,12 +570,12 @@ class AppListActivity : Activity() {
     private fun toggleAppFreeze(app: ListItem.App, freeze: Boolean) {
         val success = ShizukuHelper.setAppDisabled(app.packageName, freeze)
         if (success) {
-            val action = if (freeze) "停用" else "啟用"
-            android.widget.Toast.makeText(this, "已透過 Shizuku $action ${app.label}", android.widget.Toast.LENGTH_SHORT).show()
+            val action = if (freeze) getString(R.string.action_disable) else getString(R.string.action_enable)
+            android.widget.Toast.makeText(this, getString(R.string.toast_freeze_success, action, app.label), android.widget.Toast.LENGTH_SHORT).show()
             loadApps() // 重新載入列表
         } else {
             // 如果 Shizuku 未授權或失敗，提示並引導至 Shizuku 設定與檢測頁面
-            android.widget.Toast.makeText(this, "Shizuku 操作失敗，請確認 Shizuku 正在執行並已授權", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.toast_shizuku_fail), android.widget.Toast.LENGTH_SHORT).show()
             startActivity(Intent(this, ShizukuSettingsActivity::class.java))
         }
     }
@@ -625,7 +625,7 @@ class AppListActivity : Activity() {
 
     private fun updateHeaderUI() {
         if (isMultiSelectMode) {
-            tvTitle.text = "已選取 ${selectedPackages.size} 個"
+            tvTitle.text = getString(R.string.title_selected_count, selectedPackages.size)
             tvHint.visibility = View.GONE
             btnSettings.visibility = View.GONE
             btnHdmi.visibility = View.GONE
@@ -646,19 +646,19 @@ class AppListActivity : Activity() {
         if (selectedPackages.isEmpty()) return
         
         val options = ArrayList<MenuOption>()
-        options.add(MenuOption("停用 (凍結) 已選取") {
+        options.add(MenuOption(getString(R.string.menu_batch_freeze)) {
             executeBatchFreeze(true)
         })
-        options.add(MenuOption("啟用 (解凍) 已選取") {
+        options.add(MenuOption(getString(R.string.menu_batch_unfreeze)) {
             executeBatchFreeze(false)
         })
-        options.add(MenuOption("全選") {
+        options.add(MenuOption(getString(R.string.menu_select_all)) {
             selectAllApps()
         })
         
         val items = options.map { it.title }.toTypedArray()
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("批次操作 (${selectedPackages.size} 個)")
+            .setTitle(getString(R.string.title_batch_action, selectedPackages.size))
             .setItems(items) { _, which ->
                 options[which].action()
             }
@@ -689,10 +689,12 @@ class AppListActivity : Activity() {
             }
             mainHandler.post {
                 if (isDestroyedFlag || isFinishing) return@post
-                val action = if (freeze) "停用" else "啟用"
+                val action = if (freeze) getString(R.string.action_disable_upper) else getString(R.string.action_enable_upper)
+                val successStr = getString(R.string.toast_batch_success, action, successCount)
+                val failStr = if (failCount > 0) getString(R.string.toast_batch_fail, failCount) else ""
                 android.widget.Toast.makeText(
                     this@AppListActivity, 
-                    "已批次$action $successCount 個 App" + if (failCount > 0) "，失敗 $failCount 個" else "", 
+                    successStr + failStr, 
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
                 exitMultiSelectMode()
@@ -1197,9 +1199,9 @@ class AppListActivity : Activity() {
                 tvLabel.setTextColor(Color.WHITE)
                 tvPkg.text = app.packageName
             } else {
-                tvLabel.text = "${app.label} (已停用)"
+                tvLabel.text = getString(R.string.app_disabled_suffix, app.label)
                 tvLabel.setTextColor(0xFF64748B.toInt()) // Gray color for disabled
-                tvPkg.text = app.packageName + " [FROZEN]"
+                tvPkg.text = app.packageName + getString(R.string.app_frozen_suffix)
             }
             
             tvBadge.visibility = if (MainActivity.getAutoOpenPackage(this@AppListActivity) == app.packageName) {

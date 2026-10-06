@@ -86,19 +86,23 @@ object ShizukuHelper {
         }
     }
 
+    private val newProcessMethod by lazy {
+        val method = Shizuku::class.java.getDeclaredMethod(
+            "newProcess",
+            Array<String>::class.java,
+            Array<String>::class.java,
+            String::class.java
+        )
+        method.isAccessible = true
+        method
+    }
+
     /**
      * 執行 Shizuku Shell 指令
      */
     fun executeShellCommand(command: String): Int {
         if (!Shizuku.pingBinder()) return -1
         return try {
-            val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
-                "newProcess",
-                Array<String>::class.java,
-                Array<String>::class.java,
-                String::class.java
-            )
-            newProcessMethod.isAccessible = true
             val process = newProcessMethod.invoke(
                 null,
                 arrayOf("sh", "-c", command),
@@ -129,11 +133,13 @@ object ShizukuHelper {
         }
     }
 
+    private val networkExecutor = java.util.concurrent.Executors.newCachedThreadPool()
+
     /**
      * 透過 GitHub API 自動獲取最新版 Shizuku 的 APK 下載連結
      */
     fun fetchLatestShizukuApk(onResult: (String?) -> Unit) {
-        kotlin.concurrent.thread {
+        networkExecutor.execute {
             try {
                 val url = java.net.URL("https://api.github.com/repos/RikkaApps/Shizuku/releases/latest")
                 val connection = url.openConnection() as java.net.HttpURLConnection
@@ -151,7 +157,7 @@ object ShizukuHelper {
                         if (asset.getString("name").endsWith(".apk")) {
                             val downloadUrl = asset.getString("browser_download_url")
                             onResult(downloadUrl)
-                            return@thread
+                            return@execute
                         }
                     }
                 }
@@ -183,7 +189,7 @@ object ShizukuHelper {
         onProgress: (String) -> Unit,
         onComplete: (Boolean, String?) -> Unit
     ) {
-        kotlin.concurrent.thread {
+        networkExecutor.execute {
             try {
                 onProgress("Connecting...")
                 var currentUrl = downloadUrl
@@ -216,7 +222,7 @@ object ShizukuHelper {
 
                 if (connection.responseCode != 200) {
                     onComplete(false, "HTTP ${connection.responseCode}")
-                    return@thread
+                    return@execute
                 }
 
                 var totalSize = connection.contentLengthLong

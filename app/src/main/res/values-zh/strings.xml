@@ -216,4 +216,27 @@
     <string name="shizuku_fetch_failed">无法获取下载链接，请检查网络连接</string>
     <string name="cec_debug_title">CEC 除錯日誌</string>
     <string name="cec_debug_desc">檢視 CEC 喚醒、訊號源切換與待機事件記錄</string>
+
+    <!-- Batch Action / Freeze Strings -->
+    <string name="section_frozen_apps">已停用 App (%d)</string>
+    <string name="menu_batch_select">選取 (批次停用/啟用)</string>
+    <string name="menu_freeze">透過 Shizuku 停用 (凍結)</string>
+    <string name="menu_unfreeze">透過 Shizuku 啟用 (解凍)</string>
+    <string name="toast_unfreeze_first">請先長按解凍 %s</string>
+    <string name="toast_freeze_success">已透過 Shizuku %1$s %2$s</string>
+    <string name="toast_shizuku_fail">Shizuku 操作失敗，請確認 Shizuku 正在執行並已授權</string>
+    <string name="title_selected_count">已選取 %d 個</string>
+    <string name="menu_batch_freeze">停用 (凍結) 已選取</string>
+    <string name="menu_batch_unfreeze">啟用 (解凍) 已選取</string>
+    <string name="menu_select_all">全選</string>
+    <string name="title_batch_action">批次操作 (%d 個)</string>
+    <string name="toast_batch_success">已批次%1$s %2$d 個 App</string>
+    <string name="toast_batch_fail">，失敗 %d 個</string>
+    <string name="action_enable">啟用</string>
+    <string name="action_disable">停用</string>
+    <string name="action_enable_upper">啟用</string>
+    <string name="action_disable_upper">停用</string>
+    <string name="app_disabled_suffix">%s (已停用)</string>
+    <string name="app_frozen_suffix"> [FROZEN]</string>
 </resources>
+

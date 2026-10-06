@@ -457,20 +457,42 @@ object CecDebugLog {
     private const val KEY_EVENTS = "events"
     private const val MAX_EVENTS = 60
 
-    fun add(context: Context, message: String) {
+    private val deque = java.util.ArrayDeque<String>()
+    private var isInitialized = false
+
+    @Synchronized
+    private fun ensureInitialized(context: Context) {
+        if (isInitialized) return
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
-            .format(java.util.Date())
-        val entries = (prefs.getString(KEY_EVENTS, "") ?: "").lines()
-            .filter { it.isNotBlank() }.plus("$timestamp  $message")
-            .takeLast(MAX_EVENTS).joinToString("\n")
-        prefs.edit().putString(KEY_EVENTS, entries).apply()
+        val saved = prefs.getString(KEY_EVENTS, "") ?: ""
+        saved.lines().filter { it.isNotBlank() }.forEach { deque.add(it) }
+        isInitialized = true
     }
 
-    fun read(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        .getString(KEY_EVENTS, "No CEC events recorded yet.") ?: "No CEC events recorded yet."
+    @Synchronized
+    fun add(context: Context, message: String) {
+        ensureInitialized(context)
+        val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+            .format(java.util.Date())
+        val entry = "$timestamp  $message"
+        deque.add(entry)
+        while (deque.size > MAX_EVENTS) {
+            deque.removeFirst()
+        }
+        val entries = deque.joinToString("\n")
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_EVENTS, entries).apply()
+    }
 
+    @Synchronized
+    fun read(context: Context): String {
+        ensureInitialized(context)
+        return if (deque.isEmpty()) "No CEC events recorded yet." else deque.joinToString("\n")
+    }
+
+    @Synchronized
     fun clear(context: Context) {
+        deque.clear()
+        isInitialized = true
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_EVENTS).apply()
     }
 }

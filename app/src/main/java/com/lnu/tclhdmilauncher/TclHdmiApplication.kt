@@ -51,6 +51,8 @@ class TclHdmiApplication : Application() {
             }
         }
 
+        private val bgExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+
         /**
          * 點亮螢幕
          */
@@ -68,7 +70,7 @@ class TclHdmiApplication : Application() {
                     Log.i(TAG, "wakeScreen: WakeLock acquired to turn on screen")
                     
                     // 額外嘗試透過 Shizuku 執行強制喚醒 (input keyevent 224)
-                    Thread {
+                    bgExecutor.execute {
                         try {
                             // 先試 224 (KEYCODE_WAKEUP)
                             if (ShizukuHelper.isShizukuPermissionGranted()) {
@@ -95,7 +97,7 @@ class TclHdmiApplication : Application() {
                         } catch (e: Exception) {
                             Log.e(TAG, "input keyevent 喚醒執行失敗", e)
                         }
-                    }.start()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "wakeScreen: failed to acquire wake lock", e)

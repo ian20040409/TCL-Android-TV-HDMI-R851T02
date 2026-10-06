@@ -222,4 +222,26 @@
     <string name="shizuku_download_failed">Download failed</string>
     <string name="cec_debug_title">CEC Debug Log</string>
     <string name="cec_debug_desc">View CEC wake, switch, and standby events</string>
+
+    <!-- Batch Action / Freeze Strings -->
+    <string name="section_frozen_apps">Disabled Apps (%d)</string>
+    <string name="menu_batch_select">Select (Batch Disable/Enable)</string>
+    <string name="menu_freeze">Disable via Shizuku (Freeze)</string>
+    <string name="menu_unfreeze">Enable via Shizuku (Unfreeze)</string>
+    <string name="toast_unfreeze_first">Please long press to unfreeze %s first</string>
+    <string name="toast_freeze_success">Successfully %1$s %2$s via Shizuku</string>
+    <string name="toast_shizuku_fail">Shizuku operation failed, please ensure Shizuku is running and authorized</string>
+    <string name="title_selected_count">%d Selected</string>
+    <string name="menu_batch_freeze">Disable (Freeze) Selected</string>
+    <string name="menu_batch_unfreeze">Enable (Unfreeze) Selected</string>
+    <string name="menu_select_all">Select All</string>
+    <string name="title_batch_action">Batch Action (%d)</string>
+    <string name="toast_batch_success">Batch %1$s %2$d Apps</string>
+    <string name="toast_batch_fail">, Failed %d</string>
+    <string name="action_enable">enabled</string>
+    <string name="action_disable">disabled</string>
+    <string name="action_enable_upper">Enable</string>
+    <string name="action_disable_upper">Disable</string>
+    <string name="app_disabled_suffix">%s (Disabled)</string>
+    <string name="app_frozen_suffix"> [FROZEN]</string>
 </resources>
