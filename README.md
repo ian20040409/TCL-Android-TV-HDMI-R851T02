@@ -140,6 +140,7 @@ If any of the following describes your home theater setup, this launcher was bui
 | **Long-Press OK (Main View)** | Set currently focused HDMI port as the **default startup input** |
 | **Long-Press OK (App Drawer)** | Open management dialog: **Set as Auto-Open**, Uninstall, Disable, App Info |
 | **Number Keys `1` / `2` / `3`** | **Instant Switch**: Jump straight to HDMI 1 / 2 / 3 in both Launcher and Viewer |
+| **INPUT / SOURCE** | **Cycle Switch**: Cycle through HDMI 1 ➔ HDMI 2 ➔ HDMI 3 in both Launcher and Viewer |
 | **MENU** | Open Settings menu (Launcher) / Return to Launcher (Viewer) |
 | **SETTINGS** | Open Settings menu (Launcher) / Launch native TCL settings (`com.tcl.settings`) |
 | **BACK** | Exit dialogs / return to launcher from Viewer, Settings, or App Drawer |
