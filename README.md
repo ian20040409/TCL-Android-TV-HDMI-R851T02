@@ -127,8 +127,7 @@ If any of the following describes your home theater setup, this launcher was bui
 | ![Main Screen](readme_pic/Screenshot_20260925_222244.png) | ![Countdown Settings](readme_pic/Screenshot_20260925_222304.png) |
 | **Native TCL Settings Shortcut** | **App Drawer** |
 | ![TCL Settings](readme_pic/Screenshot_20260925_222322.png) | ![App Drawer](readme_pic/Screenshot_20260925_222344.png) |
-| **System App Management (Hold OK)** | **Third-Party App Management (Hold OK)** |
-| ![System App Management](readme_pic/Screenshot_20260925_222413.png) | ![Third-Party App Management](readme_pic/Screenshot_20260925_222455.png) |
+
 
 ---
 

@@ -126,8 +126,7 @@
 | ![主畫面](readme_pic/Screenshot_20260925_222244.png) | ![倒數設定](readme_pic/Screenshot_20260925_222304.png) |
 | **呼叫 TCL 原生設定** | **應用程式列表（App Drawer）** |
 | ![TCL 設定](readme_pic/Screenshot_20260925_222322.png) | ![應用程式列表](readme_pic/Screenshot_20260925_222344.png) |
-| **系統應用管理（長按 OK）** | **第三方應用管理（長按 OK）** |
-| ![系統應用管理](readme_pic/Screenshot_20260925_222413.png) | ![第三方應用管理](readme_pic/Screenshot_20260925_222455.png) |
+
 
 ---
 
