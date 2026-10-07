@@ -48,7 +48,7 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
         private fun buildActions(ctx: Context): List<GuidedAction> {
             val actions = mutableListOf<GuidedAction>()
             val hasAccessibility = AccessibilityHelper.isServiceEnabled(ctx)
-            val isMasterEnabled = MainActivity.isButtonMapperEnabled(ctx)
+            val isMasterEnabled = SettingsRepository.isButtonMapperEnabled(ctx)
 
             // 1. Master Toggle (SubActions for On/Off)
             val masterSubActions = mutableListOf(
@@ -72,7 +72,7 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
             )
 
             if (isMasterEnabled) {
-                val isHomeEnabled = MainActivity.isHomeButtonOverrideEnabled(ctx)
+                val isHomeEnabled = SettingsRepository.isHomeButtonOverrideEnabled(ctx)
                 actions.add(
                     GuidedAction.Builder(ctx)
                         .id(ACTION_MAPPER_HOME_TOGGLE)
@@ -83,7 +83,7 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
                         .build()
                 )
 
-                val isInputEnabled = MainActivity.isInputButtonOverrideEnabled(ctx)
+                val isInputEnabled = SettingsRepository.isInputButtonOverrideEnabled(ctx)
                 actions.add(
                     GuidedAction.Builder(ctx)
                         .id(ACTION_MAPPER_INPUT_TOGGLE)
@@ -124,10 +124,10 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
                         action.isChecked = false
                         action.description = getString(R.string.setting_state_off)
                         notifyActionChanged(findActionPositionById(ACTION_MAPPER_HOME_TOGGLE))
-                        MainActivity.setHomeButtonOverrideEnabled(ctx, false)
+                        SettingsRepository.setHomeButtonOverrideEnabled(ctx, false)
                         showAccessibilityRequiredDialog(ctx)
                     } else {
-                        MainActivity.setHomeButtonOverrideEnabled(ctx, action.isChecked)
+                        SettingsRepository.setHomeButtonOverrideEnabled(ctx, action.isChecked)
                         action.description = getString(if (action.isChecked) R.string.setting_state_on else R.string.setting_state_off)
                         notifyActionChanged(findActionPositionById(ACTION_MAPPER_HOME_TOGGLE))
                     }
@@ -137,10 +137,10 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
                         action.isChecked = false
                         action.description = getString(R.string.setting_state_off)
                         notifyActionChanged(findActionPositionById(ACTION_MAPPER_INPUT_TOGGLE))
-                        MainActivity.setInputButtonOverrideEnabled(ctx, false)
+                        SettingsRepository.setInputButtonOverrideEnabled(ctx, false)
                         showAccessibilityRequiredDialog(ctx)
                     } else {
-                        MainActivity.setInputButtonOverrideEnabled(ctx, action.isChecked)
+                        SettingsRepository.setInputButtonOverrideEnabled(ctx, action.isChecked)
                         action.description = getString(if (action.isChecked) R.string.setting_state_on else R.string.setting_state_off)
                         notifyActionChanged(findActionPositionById(ACTION_MAPPER_INPUT_TOGGLE))
                     }
@@ -158,13 +158,13 @@ class ButtonMapperSettingsActivity : FragmentActivity() {
                     if (!AccessibilityHelper.isServiceEnabled(ctx)) {
                         showAccessibilityRequiredDialog(ctx)
                     } else {
-                        MainActivity.setButtonMapperEnabled(ctx, true)
+                        SettingsRepository.setButtonMapperEnabled(ctx, true)
                         setActions(buildActions(ctx))
                     }
                     return true
                 }
                 ACTION_MAPPER_DISABLE -> {
-                    MainActivity.setButtonMapperEnabled(ctx, false)
+                    SettingsRepository.setButtonMapperEnabled(ctx, false)
                     setActions(buildActions(ctx))
                     return true
                 }

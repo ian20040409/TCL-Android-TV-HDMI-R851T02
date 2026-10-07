@@ -77,24 +77,24 @@ class SettingsActivity : FragmentActivity() {
 
             pm.findPreference<Preference>("pref_app_mode")?.summary = getAppModeSummaryText(ctx)
 
-            val defaultPort = MainActivity.getDefaultPort(ctx)
+            val defaultPort = SettingsRepository.getDefaultPort(ctx)
             pm.findPreference<Preference>("pref_default_port")?.summary = getString(R.string.setting_default_port_desc, defaultPort)
 
-            val countdown = MainActivity.getCountdownSeconds(ctx)
+            val countdown = SettingsRepository.getCountdownSeconds(ctx)
             pm.findPreference<Preference>("pref_countdown")?.summary = if (countdown <= 0) {
                 getString(R.string.setting_countdown_desc_off)
             } else {
                 getString(R.string.setting_countdown_desc, countdown)
             }
 
-            val autoSleep = MainActivity.getAutoSleepSeconds(ctx)
+            val autoSleep = SettingsRepository.getAutoSleepSeconds(ctx)
             pm.findPreference<Preference>("pref_auto_sleep")?.summary = if (autoSleep <= 0) {
                 getString(R.string.setting_auto_sleep_desc_off)
             } else {
                 getString(R.string.setting_auto_sleep_desc, autoSleep)
             }
 
-            val signalSearch = MainActivity.isSignalSearchScreenEnabled(ctx)
+            val signalSearch = SettingsRepository.isSignalSearchScreenEnabled(ctx)
             pm.findPreference<Preference>("pref_signal_search")?.summary = getString(if (signalSearch) R.string.setting_signal_search_desc_on else R.string.setting_signal_search_desc_off)
 
             val wakeGuardPref = pm.findPreference<Preference>("pref_wake_guard")
@@ -128,8 +128,8 @@ class SettingsActivity : FragmentActivity() {
                     showDefaultPortDialog()
                 }
                 "pref_signal_search" -> {
-                    val newValue = !MainActivity.isSignalSearchScreenEnabled(ctx)
-                    MainActivity.setSignalSearchScreenEnabled(ctx, newValue)
+                    val newValue = !SettingsRepository.isSignalSearchScreenEnabled(ctx)
+                    SettingsRepository.setSignalSearchScreenEnabled(ctx, newValue)
                     updatePreferences()
                 }
                 "pref_wake_guard" -> {
@@ -165,7 +165,7 @@ class SettingsActivity : FragmentActivity() {
                 .setMessage(R.string.dialog_reset_app_msg)
                 .setPositiveButton(R.string.dialog_reset_app_confirm) { d, _ ->
                     d.dismiss()
-                    MainActivity.resetAllSettings(ctx)
+                    SettingsRepository.resetAllSettings(ctx)
                     Toast.makeText(ctx.applicationContext, R.string.toast_app_reset_completed, Toast.LENGTH_SHORT).show()
                     val oobeIntent = Intent(ctx, OobeActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -181,7 +181,7 @@ class SettingsActivity : FragmentActivity() {
 
         private fun showCountdownDialog() {
             val ctx = requireContext()
-            val current = MainActivity.getCountdownSeconds(ctx)
+            val current = SettingsRepository.getCountdownSeconds(ctx)
             val options = intArrayOf(0, 1, 2, 3, 5, 10, 15, 30)
             val titles = arrayOf(
                 getString(R.string.dialog_option_off),
@@ -202,7 +202,7 @@ class SettingsActivity : FragmentActivity() {
                 .setTitle(R.string.dialog_countdown_title)
                 .setSingleChoiceItems(titles, selectedIndex) { dialog, which ->
                     val newSeconds = options[which]
-                    MainActivity.setCountdownSeconds(ctx, newSeconds)
+                    SettingsRepository.setCountdownSeconds(ctx, newSeconds)
                     if (newSeconds == 0) {
                         Toast.makeText(ctx, R.string.toast_countdown_off, Toast.LENGTH_SHORT).show()
                     } else {
@@ -218,7 +218,7 @@ class SettingsActivity : FragmentActivity() {
 
         private fun showAutoSleepDialog() {
             val ctx = requireContext()
-            val current = MainActivity.getAutoSleepSeconds(ctx)
+            val current = SettingsRepository.getAutoSleepSeconds(ctx)
             val options = intArrayOf(0, 1, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200)
             val titles = options.map { sec ->
                 when {
@@ -237,7 +237,7 @@ class SettingsActivity : FragmentActivity() {
                 .setTitle(R.string.dialog_auto_sleep_title)
                 .setSingleChoiceItems(titles, selectedIndex) { dialog, which ->
                     val newSeconds = options[which]
-                    MainActivity.setAutoSleepSeconds(ctx, newSeconds)
+                    SettingsRepository.setAutoSleepSeconds(ctx, newSeconds)
                     updatePreferences()
                     mainHandler.postDelayed({ dialog.dismiss() }, 200)
                 }
@@ -247,7 +247,7 @@ class SettingsActivity : FragmentActivity() {
 
         private fun showDefaultPortDialog() {
             val ctx = requireContext()
-            val current = MainActivity.getDefaultPort(ctx)
+            val current = SettingsRepository.getDefaultPort(ctx)
             val options = intArrayOf(1, 2, 3)
             val titles = arrayOf(
                 getString(R.string.port_hdmi_1),
@@ -263,7 +263,7 @@ class SettingsActivity : FragmentActivity() {
                 .setTitle(R.string.dialog_default_port_title)
                 .setSingleChoiceItems(titles, selectedIndex) { dialog, which ->
                     val newPort = options[which]
-                    MainActivity.setDefaultPort(ctx, newPort)
+                    SettingsRepository.setDefaultPort(ctx, newPort)
                     updatePreferences()
                     mainHandler.postDelayed({ dialog.dismiss() }, 200)
                 }
@@ -272,18 +272,18 @@ class SettingsActivity : FragmentActivity() {
         }
 
         private fun buttonMapperSummary(ctx: Context): String {
-            if (!MainActivity.isButtonMapperEnabled(ctx)) {
+            if (!SettingsRepository.isButtonMapperEnabled(ctx)) {
                 return getString(R.string.setting_state_off)
             }
-            val home = if (MainActivity.isHomeButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
-            val input = if (MainActivity.isInputButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
+            val home = if (SettingsRepository.isHomeButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
+            val input = if (SettingsRepository.isInputButtonOverrideEnabled(ctx)) getString(R.string.setting_state_on) else getString(R.string.setting_state_off)
             return getString(R.string.setting_button_mapper_summary, home, input)
         }
 
         private fun getAppModeSummaryText(ctx: Context): String {
-            val appMode = MainActivity.isAppModeEnabled(ctx)
-            val autoPkg = MainActivity.getAutoOpenPackage(ctx)
-            val autoLabel = MainActivity.getAutoOpenLabel(ctx)
+            val appMode = SettingsRepository.isAppModeEnabled(ctx)
+            val autoPkg = SettingsRepository.getAutoOpenPackage(ctx)
+            val autoLabel = SettingsRepository.getAutoOpenLabel(ctx)
             val autoText = if (autoPkg.isNotBlank()) {
                 autoLabel.ifBlank { autoPkg }
             } else {

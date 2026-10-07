@@ -107,7 +107,7 @@ class CecLogReaderService : Service() {
                     pendingCecSwitchTime = System.currentTimeMillis()
                     cancelPendingFallback()
                     val svc = this@CecLogReaderService
-                    val fallbackPort = MainActivity.getDefaultPort(context)
+                    val fallbackPort = SettingsRepository.getDefaultPort(context)
                     pendingFallbackRunnable = Runnable {
                         if (pendingCecSwitchTime > 0) {
                             pendingCecSwitchTime = 0

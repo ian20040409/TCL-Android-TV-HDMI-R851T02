@@ -46,22 +46,10 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
 
     companion object {
         private const val TAG = "TCLHdmiLauncher"
-        private const val PREFS_NAME = "hdmi_prefs"
-        private const val KEY_DEFAULT_PORT = "default_port"
-        private const val KEY_COUNTDOWN_SECONDS = "countdown_seconds"
-        private const val KEY_APP_MODE = "app_mode"
-        private const val KEY_AUTO_OPEN_PKG = "auto_open_pkg"
-        private const val KEY_AUTO_OPEN_LABEL = "auto_open_label"
-        private const val KEY_AUTO_OPEN_DELAY = "auto_open_delay"
-        private const val KEY_SIGNAL_SEARCH_SCREEN = "signal_search_screen"
-        private const val KEY_OOBE_COMPLETED = "oobe_completed"
-        private const val KEY_BUTTON_MAPPER_ENABLED = "button_mapper_enabled"
-        private const val KEY_OVERRIDE_HOME_BUTTON = "override_home_button"
-        private const val KEY_OVERRIDE_INPUT_BUTTON = "override_input_button"
-        private const val KEY_AUTO_SLEEP_SECONDS = "auto_sleep_seconds"
-        private const val DEFAULT_COUNTDOWN_SECONDS = 3
-        private const val DEFAULT_AUTO_SLEEP_SECONDS = 30
         const val EXTRA_FROM_APP_LIST = "from_app_list"
+        private const val DEFAULT_COUNTDOWN_SECONDS = 3
+        @Volatile
+        private var isFirstLaunchInProcess: Boolean = true
 
 
         // TCL 實機硬體訊號源 ID (dumpsys tv_input)
@@ -83,195 +71,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         }
         private val INTENT_HDMI3 = Intent(Intent.ACTION_VIEW, URI_HDMI3).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        // 記憶體持久化快取，消除主執行緒重複讀取磁碟 XML
-        private var cachedDefaultPort: Int? = null
-        private var cachedCountdownSeconds: Int? = null
-        @Volatile
-        private var cachedAppMode: Boolean? = null
-        @Volatile
-        private var cachedAutoOpenPkg: String? = null
-        @Volatile
-        private var cachedAutoOpenLabel: String? = null
-        @Volatile
-        private var cachedAutoOpenDelay: Int? = null
-        @Volatile
-        private var cachedSignalSearchScreen: Boolean? = null
-        @Volatile
-        private var cachedOobeCompleted: Boolean? = null
-        @Volatile
-        private var cachedAutoSleepSeconds: Int? = null
-        @Volatile
-        private var isFirstLaunchInProcess: Boolean = true
-
-        fun isOobeCompleted(context: Context): Boolean {
-            cachedOobeCompleted?.let { return it }
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val completed = prefs.getBoolean(KEY_OOBE_COMPLETED, false)
-            cachedOobeCompleted = completed
-            return completed
-        }
-
-        fun setOobeCompleted(context: Context, completed: Boolean) {
-            cachedOobeCompleted = completed
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_OOBE_COMPLETED, completed).apply()
-        }
-
-        fun resetAllSettings(context: Context) {
-            cachedDefaultPort = null
-            cachedCountdownSeconds = null
-            cachedAppMode = null
-            cachedAutoOpenPkg = null
-            cachedAutoOpenLabel = null
-            cachedAutoOpenDelay = null
-            cachedSignalSearchScreen = null
-            cachedOobeCompleted = null
-            cachedAutoSleepSeconds = null
-
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
-            context.getSharedPreferences("app_list_recent", Context.MODE_PRIVATE).edit().clear().apply()
-        }
-
-        fun getDefaultPort(context: Context): Int {
-            cachedDefaultPort?.let { return it }
-            val port = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getInt(KEY_DEFAULT_PORT, 3)
-            cachedDefaultPort = port
-            return port
-        }
-
-        fun setDefaultPort(context: Context, port: Int) {
-            cachedDefaultPort = port
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putInt(KEY_DEFAULT_PORT, port).apply()
-        }
-
-        fun isButtonMapperEnabled(context: Context): Boolean =
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_BUTTON_MAPPER_ENABLED, true)
-
-        fun setButtonMapperEnabled(context: Context, enabled: Boolean) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_BUTTON_MAPPER_ENABLED, enabled).apply()
-        }
-
-        fun isHomeButtonOverrideEnabled(context: Context): Boolean =
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_OVERRIDE_HOME_BUTTON, true)
-
-        fun setHomeButtonOverrideEnabled(context: Context, enabled: Boolean) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_OVERRIDE_HOME_BUTTON, enabled).apply()
-        }
-
-        fun isInputButtonOverrideEnabled(context: Context): Boolean =
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_OVERRIDE_INPUT_BUTTON, true)
-
-        fun setInputButtonOverrideEnabled(context: Context, enabled: Boolean) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_OVERRIDE_INPUT_BUTTON, enabled).apply()
-        }
-
-        fun getCountdownSeconds(context: Context): Int {
-            cachedCountdownSeconds?.let { return it }
-            val sec = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getInt(KEY_COUNTDOWN_SECONDS, DEFAULT_COUNTDOWN_SECONDS)
-            cachedCountdownSeconds = sec
-            return sec
-        }
-
-        fun setCountdownSeconds(context: Context, seconds: Int) {
-            cachedCountdownSeconds = seconds
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putInt(KEY_COUNTDOWN_SECONDS, seconds).apply()
-        }
-
-        fun getAutoSleepSeconds(context: Context): Int {
-            cachedAutoSleepSeconds?.let { return it }
-            val sec = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getInt(KEY_AUTO_SLEEP_SECONDS, DEFAULT_AUTO_SLEEP_SECONDS)
-            cachedAutoSleepSeconds = sec
-            return sec
-        }
-
-        fun setAutoSleepSeconds(context: Context, seconds: Int) {
-            cachedAutoSleepSeconds = seconds
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putInt(KEY_AUTO_SLEEP_SECONDS, seconds).apply()
-        }
-
-        fun isAppModeEnabled(context: Context): Boolean {
-            cachedAppMode?.let { return it }
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val enabled = prefs.getBoolean(KEY_APP_MODE, false)
-            cachedAppMode = enabled
-            return enabled
-        }
-
-        fun setAppModeEnabled(context: Context, enabled: Boolean) {
-            cachedAppMode = enabled
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_APP_MODE, enabled).apply()
-        }
-
-        fun getAutoOpenPackage(context: Context): String {
-            cachedAutoOpenPkg?.let { return it }
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val pkg = prefs.getString(KEY_AUTO_OPEN_PKG, "") ?: ""
-            cachedAutoOpenPkg = pkg
-            return pkg
-        }
-
-        fun getAutoOpenLabel(context: Context): String {
-            cachedAutoOpenLabel?.let { return it }
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val label = prefs.getString(KEY_AUTO_OPEN_LABEL, "") ?: ""
-            cachedAutoOpenLabel = label
-            return label
-        }
-
-        fun setAutoOpenApp(context: Context, pkg: String, label: String) {
-            cachedAutoOpenPkg = pkg
-            cachedAutoOpenLabel = label
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putString(KEY_AUTO_OPEN_PKG, pkg)
-                .putString(KEY_AUTO_OPEN_LABEL, label)
-                .apply()
-        }
-
-        fun isSignalSearchScreenEnabled(context: Context): Boolean {
-            cachedSignalSearchScreen?.let { return it }
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val enabled = prefs.getBoolean(KEY_SIGNAL_SEARCH_SCREEN, true)
-            cachedSignalSearchScreen = enabled
-            return enabled
-        }
-
-        fun setSignalSearchScreenEnabled(context: Context, enabled: Boolean) {
-            cachedSignalSearchScreen = enabled
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_SIGNAL_SEARCH_SCREEN, enabled).apply()
-        }
-
-        fun getAutoOpenDelaySeconds(context: Context): Int {
-            cachedAutoOpenDelay?.let { return it }
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val sec = if (prefs.contains(KEY_AUTO_OPEN_DELAY)) {
-                prefs.getInt(KEY_AUTO_OPEN_DELAY, DEFAULT_COUNTDOWN_SECONDS)
-            } else {
-                prefs.getInt(KEY_COUNTDOWN_SECONDS, DEFAULT_COUNTDOWN_SECONDS)
-            }
-            cachedAutoOpenDelay = sec
-            return if (sec >= 0) sec else DEFAULT_COUNTDOWN_SECONDS
-        }
-
-        fun setAutoOpenDelaySeconds(context: Context, seconds: Int) {
-            cachedAutoOpenDelay = seconds
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putInt(KEY_AUTO_OPEN_DELAY, seconds).apply()
         }
 
         fun isTclDevice(context: Context): Boolean {
@@ -339,18 +138,18 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private lateinit var textAppModeActive: String
     private lateinit var textDisabledCache: Array<String>
 
-    private lateinit var tvCountdown: TextView
-    private lateinit var cardHdmi1: LinearLayout
-    private lateinit var cardHdmi2: LinearLayout
-    private lateinit var cardHdmi3: LinearLayout
-    private lateinit var tvBadge1: TextView
-    private lateinit var tvBadge2: TextView
-    private lateinit var tvBadge3: TextView
-    private lateinit var ivIcon1: ImageView
-    private lateinit var ivIcon2: ImageView
-    private lateinit var ivIcon3: ImageView
-    private lateinit var btnSettings: LinearLayout
-    private lateinit var btnApps: LinearLayout
+    internal lateinit var tvCountdown: TextView
+    internal lateinit var cardHdmi1: LinearLayout
+    internal lateinit var cardHdmi2: LinearLayout
+    internal lateinit var cardHdmi3: LinearLayout
+    internal lateinit var tvBadge1: TextView
+    internal lateinit var tvBadge2: TextView
+    internal lateinit var tvBadge3: TextView
+    internal lateinit var ivIcon1: ImageView
+    internal lateinit var ivIcon2: ImageView
+    internal lateinit var ivIcon3: ImageView
+    internal lateinit var btnSettings: LinearLayout
+    internal lateinit var btnApps: LinearLayout
 
     private var defaultPort = 3
     private var countdownDuration = DEFAULT_COUNTDOWN_SECONDS
@@ -383,7 +182,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
 
         ShizukuHelper.tryGrantPermissions(this)
 
-        if (!isOobeCompleted(this)) {
+        if (!SettingsRepository.isOobeCompleted(this)) {
             val oobeIntent = Intent(this, OobeActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -400,7 +199,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         initTextCaches()
         secondsLeft = countdownDuration
 
-        setContentView(buildContentView())
+        setContentView(MainViewBuilder(this).build())
 
         cardHdmi1.setOnLongClickListener { setDefault(1); true }
         cardHdmi2.setOnLongClickListener { setDefault(2); true }
@@ -513,9 +312,9 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     }
 
     private fun loadPreferencesFromCache() {
-        defaultPort = getDefaultPort(this)
-        countdownDuration = getCountdownSeconds(this)
-        isAppMode = isAppModeEnabled(this)
+        defaultPort = SettingsRepository.getDefaultPort(this)
+        countdownDuration = SettingsRepository.getCountdownSeconds(this)
+        isAppMode = SettingsRepository.isAppModeEnabled(this)
     }
 
     private fun focusDefaultPortButton() {
@@ -579,7 +378,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
      */
     private fun updateCountdownText() {
         if (isAppMode) {
-            val autoLabel = getAutoOpenLabel(this)
+            val autoLabel = SettingsRepository.getAutoOpenLabel(this)
             tvCountdown.text = if (autoLabel.isNotBlank()) {
                 getString(R.string.app_mode_active_with_auto_app, autoLabel)
             } else {
@@ -602,7 +401,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
 
     private fun setDefault(port: Int) {
         defaultPort = port
-        setDefaultPort(this, port)
+        SettingsRepository.setDefaultPort(this, port)
         updateButtonLabels()
         cancelTimer()
         tvCountdown.text = getString(R.string.msg_set_default, port)
@@ -768,366 +567,4 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         }
     }
 
-    // ── 極致扁平化 UI View 樹（0 XML、單次 Measure/Layout Pass） ───────────────
-    private fun buildContentView(): View {
-        val density = resources.displayMetrics.density
-        fun dp(value: Float): Int = (value * density + 0.5f).toInt()
-
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            clipChildren = false
-            clipToPadding = false
-            val padH = dp(36f)
-            val padV = dp(20f)
-            setPadding(padH, padV, padH, padV)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-            }
-        }
-
-        // ── 1. 扁平化頂部狀態列（單層 Horizontal LinearLayout，移除中介容器） ────────
-        val topBar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            clipChildren = false
-            clipToPadding = false
-        }
-
-        // 品牌圖示
-        val ivBrand = ImageView(this).apply {
-            val d = getDrawable(R.drawable.cable_48px)?.mutate()
-            setImageDrawable(d)
-            setColorFilter(0xFF64748B.toInt())
-        }
-        topBar.addView(ivBrand, LinearLayout.LayoutParams(dp(22f), dp(22f)).apply {
-            rightMargin = dp(8f)
-        })
-
-        // 品牌標題
-        val tvBrand = TextView(this).apply {
-            text = DeviceHelper.getBrandTitle(this@MainActivity)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.08f
-            setTextColor(0xFF64748B.toInt())
-        }
-        topBar.addView(tvBrand, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        // 彈性佔位，推至最右側
-        val spacerTop = View(this)
-        topBar.addView(spacerTop, LinearLayout.LayoutParams(0, 0, 1f))
-
-        // 設定按鈕（整合原頂部全部按鈕至 SettingsActivity）
-        btnSettings = createPillButton(
-            iconRes = R.drawable.settings_48px,
-            label = getString(R.string.btn_settings),
-            density = density
-        ).first
-        topBar.addView(btnSettings, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        root.addView(topBar, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
-        // ── 2. 中間核心區（垂直置中） ──────────────────────────────────────────
-        val centerContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            clipChildren = false
-            clipToPadding = false
-        }
-
-        // 主標題
-        val tvTitle = TextView(this).apply {
-            text = getString(R.string.main_title)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 30f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(0xFFF8FAFC.toInt())
-        }
-        centerContainer.addView(tvTitle, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            bottomMargin = dp(10f)
-        })
-
-        // 倒數與提示標籤
-        tvCountdown = TextView(this).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setTextColor(0xFF94A3B8.toInt())
-            val hPad = dp(18f)
-            val vPad = dp(6f)
-            setPadding(hPad, vPad, hPad, vPad)
-            isClickable = true
-            isFocusable = false
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(16f).toFloat()
-                setColor(0xFF14161A.toInt())
-                setStroke(dp(1f), 0xFF272A30.toInt())
-            }
-            setOnClickListener(this@MainActivity)
-        }
-        centerContainer.addView(tvCountdown, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            bottomMargin = dp(28f)
-        })
-
-        // HDMI 卡片群組（橫向排列）
-        val rowCards = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            clipChildren = false
-            clipToPadding = false
-        }
-        val cardWidth = dp(210f)
-        val cardHeight = dp(136f)
-        val cardMargin = dp(14f)
-
-        val (c1, iv1, b1) = createHdmiCard(1, density)
-        val (c2, iv2, b2) = createHdmiCard(2, density)
-        val (c3, iv3, b3) = createHdmiCard(3, density)
-
-        cardHdmi1 = c1; ivIcon1 = iv1; tvBadge1 = b1
-        cardHdmi2 = c2; ivIcon2 = iv2; tvBadge2 = b2
-        cardHdmi3 = c3; ivIcon3 = iv3; tvBadge3 = b3
-
-        for (card in arrayOf(cardHdmi1, cardHdmi2, cardHdmi3)) {
-            rowCards.addView(card, LinearLayout.LayoutParams(cardWidth, cardHeight).apply {
-                setMargins(cardMargin, 0, cardMargin, 0)
-            })
-        }
-        centerContainer.addView(rowCards, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        // 應用程式快捷按鈕
-        btnApps = createPillButton(
-            iconRes = R.drawable.apps_48px,
-            label = getString(R.string.btn_apps),
-            density = density
-        ).first
-        centerContainer.addView(btnApps, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            topMargin = dp(26f)
-        })
-
-        root.addView(centerContainer, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
-
-        // ── 3. 底部操作說明 ───────────────────────────────────────────────────
-        val tvHint = TextView(this).apply {
-            text = getString(R.string.bottom_hint)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setTextColor(0xFF475569.toInt())
-        }
-        root.addView(tvHint, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            gravity = Gravity.CENTER_HORIZONTAL
-            bottomMargin = dp(6f)
-        })
-
-        setupFocusNavigation()
-
-        return root
-    }
-
-    private data class HdmiCardComponents(
-        val card: LinearLayout,
-        val ivIcon: ImageView,
-        val tvBadge: TextView
-    )
-
-    private fun createHdmiCard(
-        port: Int,
-        density: Float
-    ): HdmiCardComponents {
-        fun dp(v: Float): Int = (v * density + 0.5f).toInt()
-
-        val ivIcon = ImageView(this).apply {
-            val d = getDrawable(R.drawable.settings_input_hdmi_24px)?.mutate()
-            setImageDrawable(d)
-            setColorFilter(0xFF94A3B8.toInt())
-        }
-
-        val tvTitle = TextView(this).apply {
-            text = "HDMI $port"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(Color.WHITE)
-        }
-
-        val tvBadge = TextView(this).apply {
-            text = getString(R.string.card_default_badge)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(0xFF38BDF8.toInt())
-            visibility = View.INVISIBLE
-        }
-
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            val vPad = dp(14f)
-            val hPad = dp(16f)
-            setPadding(hPad, vPad, hPad, vPad)
-            isFocusable = true
-            isFocusableInTouchMode = false
-            isClickable = true
-            background = createCardSelector(density)
-
-            addView(ivIcon, LinearLayout.LayoutParams(dp(36f), dp(36f)).apply {
-                bottomMargin = dp(8f)
-            })
-            addView(tvTitle, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-            addView(tvBadge, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-                topMargin = dp(4f)
-            })
-
-            setOnClickListener(this@MainActivity)
-            onFocusChangeListener = this@MainActivity
-        }
-
-        return HdmiCardComponents(card, ivIcon, tvBadge)
-    }
-
-    private fun createPillButton(
-        iconRes: Int,
-        label: String,
-        density: Float
-    ): Triple<LinearLayout, TextView, ImageView> {
-        fun dp(v: Float): Int = (v * density + 0.5f).toInt()
-
-        val iv = ImageView(this).apply {
-            val d = getDrawable(iconRes)?.mutate()
-            setImageDrawable(d)
-            setColorFilter(0xFF94A3B8.toInt())
-        }
-
-        val tv = TextView(this).apply {
-            text = label
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(0xFFE2E8F0.toInt())
-        }
-
-        val button = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            val hPad = dp(16f)
-            val vPad = dp(9f)
-            setPadding(hPad, vPad, hPad, vPad)
-            isFocusable = true
-            isFocusableInTouchMode = false
-            isClickable = true
-            background = createPillSelector(density)
-
-            addView(iv, LinearLayout.LayoutParams(dp(20f), dp(20f)).apply {
-                rightMargin = dp(8f)
-            })
-            addView(tv, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-            setOnClickListener(this@MainActivity)
-            onFocusChangeListener = this@MainActivity
-        }
-
-        return Triple(button, tv, iv)
-    }
-
-    private fun setupFocusNavigation() {
-        val idSettings = View.generateViewId()
-        val idCard1 = View.generateViewId()
-        val idCard2 = View.generateViewId()
-        val idCard3 = View.generateViewId()
-        val idApps = View.generateViewId()
-
-        btnSettings.id = idSettings
-        cardHdmi1.id = idCard1
-        cardHdmi2.id = idCard2
-        cardHdmi3.id = idCard3
-        btnApps.id = idApps
-
-        // btnSettings: 位於右上角
-        btnSettings.nextFocusLeftId = idSettings
-        btnSettings.nextFocusRightId = idSettings
-        btnSettings.nextFocusUpId = idSettings
-        btnSettings.nextFocusDownId = when (defaultPort) {
-            1 -> idCard1
-            2 -> idCard2
-            else -> idCard3
-        }
-
-        // cardHdmi1: 向上導向 btnSettings
-        cardHdmi1.nextFocusUpId = idSettings
-        cardHdmi1.nextFocusDownId = idApps
-        cardHdmi1.nextFocusLeftId = idCard1
-        cardHdmi1.nextFocusRightId = idCard2
-
-        // cardHdmi2: 向上導向 btnSettings
-        cardHdmi2.nextFocusUpId = idSettings
-        cardHdmi2.nextFocusDownId = idApps
-        cardHdmi2.nextFocusLeftId = idCard1
-        cardHdmi2.nextFocusRightId = idCard3
-
-        // cardHdmi3: 向上導向 btnSettings
-        cardHdmi3.nextFocusUpId = idSettings
-        cardHdmi3.nextFocusDownId = idApps
-        cardHdmi3.nextFocusLeftId = idCard2
-        cardHdmi3.nextFocusRightId = idCard3
-
-        // btnApps: 位於卡片下方
-        btnApps.nextFocusUpId = when (defaultPort) {
-            1 -> idCard1
-            2 -> idCard2
-            else -> idCard3
-        }
-        btnApps.nextFocusDownId = idApps
-        btnApps.nextFocusLeftId = idApps
-        btnApps.nextFocusRightId = idApps
-    }
-
-    private fun createCardSelector(density: Float): Drawable {
-        val radius = 18f * density
-        val strokeFocused = (3f * density + 0.5f).toInt()
-        val strokeNormal = (1.5f * density + 0.5f).toInt()
-
-        fun rect(fillColor: Int, strokeWidth: Int, strokeColor: Int) = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = radius
-            setColor(fillColor)
-            setStroke(strokeWidth, strokeColor)
-        }
-
-        return StateListDrawable().apply {
-            addState(
-                intArrayOf(android.R.attr.state_focused),
-                rect(0xFF2563EB.toInt(), strokeFocused, 0xFF93C5FD.toInt())
-            )
-            addState(
-                intArrayOf(android.R.attr.state_pressed),
-                rect(0xFF1D4ED8.toInt(), strokeFocused, 0xFFBFDBFE.toInt())
-            )
-            addState(
-                intArrayOf(),
-                rect(0xFF14161A.toInt(), strokeNormal, 0xFF272A30.toInt())
-            )
-        }
-    }
-
-    private fun createPillSelector(density: Float): Drawable {
-        val radius = 24f * density
-        val strokeFocused = (2.5f * density + 0.5f).toInt()
-        val strokeNormal = (1.5f * density + 0.5f).toInt()
-
-        fun rect(fillColor: Int, strokeWidth: Int, strokeColor: Int) = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = radius
-            setColor(fillColor)
-            setStroke(strokeWidth, strokeColor)
-        }
-
-        return StateListDrawable().apply {
-            addState(
-                intArrayOf(android.R.attr.state_focused),
-                rect(0xFF2563EB.toInt(), strokeFocused, 0xFF93C5FD.toInt())
-            )
-            addState(
-                intArrayOf(android.R.attr.state_pressed),
-                rect(0xFF1D4ED8.toInt(), strokeFocused, 0xFFBFDBFE.toInt())
-            )
-            addState(
-                intArrayOf(),
-                rect(0xFF18181B.toInt(), strokeNormal, 0xFF2E2E33.toInt())
-            )
-        }
-    }
 }

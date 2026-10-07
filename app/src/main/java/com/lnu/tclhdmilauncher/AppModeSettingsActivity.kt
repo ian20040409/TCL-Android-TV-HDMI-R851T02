@@ -85,7 +85,7 @@ class AppModeSettingsActivity : FragmentActivity() {
             val actions = mutableListOf<GuidedAction>()
 
             // 1. App 模式開關
-            val appMode = MainActivity.isAppModeEnabled(ctx)
+            val appMode = SettingsRepository.isAppModeEnabled(ctx)
             val appModeSubActions = mutableListOf(
                 GuidedAction.Builder(ctx)
                     .id(ACTION_APP_MODE_ENABLE)
@@ -110,8 +110,8 @@ class AppModeSettingsActivity : FragmentActivity() {
             // 只有在 App 模式開啟 (Enabled) 時，才顯示更多選項（自動啟動 App、自動啟動倒數秒數）
             if (appMode) {
                 // 2. 開機 / 喚醒自動啟動 App
-                val autoPkg = MainActivity.getAutoOpenPackage(ctx)
-                val autoLabel = MainActivity.getAutoOpenLabel(ctx)
+                val autoPkg = SettingsRepository.getAutoOpenPackage(ctx)
+                val autoLabel = SettingsRepository.getAutoOpenLabel(ctx)
                 val autoText = if (autoPkg.isNotBlank()) {
                     autoLabel.ifBlank { autoPkg }
                 } else {
@@ -126,7 +126,7 @@ class AppModeSettingsActivity : FragmentActivity() {
                 )
 
                 // 3. 自動啟動倒數秒數
-                val delaySeconds = MainActivity.getAutoOpenDelaySeconds(ctx)
+                val delaySeconds = SettingsRepository.getAutoOpenDelaySeconds(ctx)
                 actions.add(
                     GuidedAction.Builder(ctx)
                         .id(ACTION_AUTO_OPEN_DELAY)
@@ -162,12 +162,12 @@ class AppModeSettingsActivity : FragmentActivity() {
             val ctx = requireContext()
             when (action.id) {
                 ACTION_APP_MODE_ENABLE -> {
-                    MainActivity.setAppModeEnabled(ctx, true)
+                    SettingsRepository.setAppModeEnabled(ctx, true)
                     setActions(buildActions(ctx))
                     return true
                 }
                 ACTION_APP_MODE_DISABLE -> {
-                    MainActivity.setAppModeEnabled(ctx, false)
+                    SettingsRepository.setAppModeEnabled(ctx, false)
                     setActions(buildActions(ctx))
                     return true
                 }
@@ -179,7 +179,7 @@ class AppModeSettingsActivity : FragmentActivity() {
             val ctx = context ?: return
             delayDialog?.dismiss()
 
-            val currentDelay = MainActivity.getAutoOpenDelaySeconds(ctx)
+            val currentDelay = SettingsRepository.getAutoOpenDelaySeconds(ctx)
             val options = listOf(
                 1 to getString(R.string.dialog_option_1s),
                 2 to getString(R.string.dialog_option_2s),
@@ -199,7 +199,7 @@ class AppModeSettingsActivity : FragmentActivity() {
                 .setTitle(getString(R.string.dialog_auto_open_delay_title))
                 .setSingleChoiceItems(labels, currentIndex) { d, which ->
                     val selectedDelay = options[which].first
-                    MainActivity.setAutoOpenDelaySeconds(ctx, selectedDelay)
+                    SettingsRepository.setAutoOpenDelaySeconds(ctx, selectedDelay)
 
                     val action = findActionById(ACTION_AUTO_OPEN_DELAY)
                     if (action != null) {
@@ -218,7 +218,7 @@ class AppModeSettingsActivity : FragmentActivity() {
             val ctx = context ?: return
             appPickerDialog?.dismiss()
 
-            val currentPkg = MainActivity.getAutoOpenPackage(ctx)
+            val currentPkg = SettingsRepository.getAutoOpenPackage(ctx)
             val displayList = ArrayList<InstalledApp>(cachedAppList.size + 1)
             displayList.add(InstalledApp("", getString(R.string.dialog_auto_open_none)))
             displayList.addAll(cachedAppList)
@@ -232,9 +232,9 @@ class AppModeSettingsActivity : FragmentActivity() {
                 .setTitle(getString(R.string.dialog_select_auto_open_app))
                 .setSingleChoiceItems(labels, currentIndex) { d, which ->
                     val selected = displayList[which]
-                    MainActivity.setAutoOpenApp(ctx, selected.pkg, selected.label)
-                    if (selected.pkg.isNotBlank() && !MainActivity.isAppModeEnabled(ctx)) {
-                        MainActivity.setAppModeEnabled(ctx, true)
+                    SettingsRepository.setAutoOpenApp(ctx, selected.pkg, selected.label)
+                    if (selected.pkg.isNotBlank() && !SettingsRepository.isAppModeEnabled(ctx)) {
+                        SettingsRepository.setAppModeEnabled(ctx, true)
                         setActions(buildActions(ctx))
                     } else {
                         val action = findActionById(ACTION_AUTO_OPEN_APP)

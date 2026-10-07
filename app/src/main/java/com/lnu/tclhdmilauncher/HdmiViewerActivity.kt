@@ -70,7 +70,7 @@ class HdmiViewerActivity : Activity() {
     private val autoSleepHandler = Handler(Looper.getMainLooper())
     private val autoSleepRunnable = Runnable {
         if (!isVideoAvailable && !isFinishing) {
-            val sleepSeconds = MainActivity.getAutoSleepSeconds(this@HdmiViewerActivity)
+            val sleepSeconds = SettingsRepository.getAutoSleepSeconds(this@HdmiViewerActivity)
             Log.i(TAG, "No signal for $sleepSeconds seconds, auto sleeping...")
             val sleepIntent = Intent(this, WakeAccessibilityService::class.java).apply {
                 action = "ACTION_SLEEP"
@@ -114,7 +114,7 @@ class HdmiViewerActivity : Activity() {
                     Log.w(TAG, "TvView onVideoUnavailable: inputId=$inputId, reason=$reason")
                     isVideoAvailable = false
                     if (!autoSleepHandler.hasCallbacks(autoSleepRunnable)) {
-                        val sleepSeconds = MainActivity.getAutoSleepSeconds(this@HdmiViewerActivity)
+                        val sleepSeconds = SettingsRepository.getAutoSleepSeconds(this@HdmiViewerActivity)
                         if (sleepSeconds > 0) {
                             autoSleepHandler.postDelayed(autoSleepRunnable, sleepSeconds * 1000L)
                         }
@@ -329,7 +329,7 @@ class HdmiViewerActivity : Activity() {
     }
 
     private fun updateSignalOverlay(text: String) {
-        if (!MainActivity.isSignalSearchScreenEnabled(this)) {
+        if (!SettingsRepository.isSignalSearchScreenEnabled(this)) {
             signalOverlay?.visibility = View.GONE
             return
         }

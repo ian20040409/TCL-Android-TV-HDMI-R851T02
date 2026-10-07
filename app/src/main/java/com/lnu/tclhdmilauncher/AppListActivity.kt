@@ -106,9 +106,9 @@ class AppListActivity : Activity() {
         override fun run() {
             if (!isAutoOpenCountdownRunning || isAutoOpenCancelled || isDestroyedFlag || isFinishing || !isActivityResumed || !hasWindowFocus()) return
             autoOpenSecondsLeft--
-            val pkg = MainActivity.getAutoOpenPackage(this@AppListActivity)
-            val label = MainActivity.getAutoOpenLabel(this@AppListActivity).ifBlank { pkg }
-            if (pkg.isBlank() || !MainActivity.isAppModeEnabled(this@AppListActivity)) {
+            val pkg = SettingsRepository.getAutoOpenPackage(this@AppListActivity)
+            val label = SettingsRepository.getAutoOpenLabel(this@AppListActivity).ifBlank { pkg }
+            if (pkg.isBlank() || !SettingsRepository.isAppModeEnabled(this@AppListActivity)) {
                 cancelAutoOpenCountdown()
                 return
             }
@@ -231,13 +231,13 @@ class AppListActivity : Activity() {
 
     private fun triggerBootOrWakeAutoOpenIfConfigured() {
         if (isAutoOpenCancelled || isDestroyedFlag || isFinishing || !isActivityResumed || !hasWindowFocus()) return
-        if (!MainActivity.isAppModeEnabled(this)) return
-        val pkg = MainActivity.getAutoOpenPackage(this)
+        if (!SettingsRepository.isAppModeEnabled(this)) return
+        val pkg = SettingsRepository.getAutoOpenPackage(this)
         if (pkg.isBlank()) return
-        val label = MainActivity.getAutoOpenLabel(this).ifBlank { pkg }
+        val label = SettingsRepository.getAutoOpenLabel(this).ifBlank { pkg }
 
         mainHandler.removeCallbacks(autoOpenTickRunnable)
-        autoOpenSecondsLeft = MainActivity.getAutoOpenDelaySeconds(this)
+        autoOpenSecondsLeft = SettingsRepository.getAutoOpenDelaySeconds(this)
         isAutoOpenCountdownRunning = true
         tvAutoOpenBanner.text = getString(R.string.auto_open_countdown_banner, autoOpenSecondsLeft, label)
         tvAutoOpenBanner.visibility = View.VISIBLE
@@ -455,9 +455,9 @@ class AppListActivity : Activity() {
     )
 
     private fun setAutoOpenSelection(pkg: String, label: String) {
-        MainActivity.setAutoOpenApp(this, pkg, label)
-        if (pkg.isNotBlank() && !MainActivity.isAppModeEnabled(this)) {
-            MainActivity.setAppModeEnabled(this, true)
+        SettingsRepository.setAutoOpenApp(this, pkg, label)
+        if (pkg.isNotBlank() && !SettingsRepository.isAppModeEnabled(this)) {
+            SettingsRepository.setAppModeEnabled(this, true)
         }
         adapter.notifyDataSetChanged()
         if (pkg.isBlank()) {
@@ -466,7 +466,7 @@ class AppListActivity : Activity() {
     }
 
     private fun showAppMenu(app: ListItem.App) {
-        val isCurrentlyAutoOpen = MainActivity.getAutoOpenPackage(this) == app.packageName
+        val isCurrentlyAutoOpen = SettingsRepository.getAutoOpenPackage(this) == app.packageName
         val options = ArrayList<MenuOption>(6).apply {
             add(MenuOption(getString(R.string.menu_open)) {
                 launchApp(app)
@@ -1204,7 +1204,7 @@ class AppListActivity : Activity() {
                 tvPkg.text = app.packageName + getString(R.string.app_frozen_suffix)
             }
             
-            tvBadge.visibility = if (MainActivity.getAutoOpenPackage(this@AppListActivity) == app.packageName) {
+            tvBadge.visibility = if (SettingsRepository.getAutoOpenPackage(this@AppListActivity) == app.packageName) {
                 View.VISIBLE
             } else {
                 View.GONE

@@ -25,7 +25,7 @@ class OobeActivity : FragmentActivity() {
             if (DeviceHelper.isTclDevice(this)) {
                 GuidedStepSupportFragment.addAsRoot(this, WelcomeStepFragment(), android.R.id.content)
             } else {
-                MainActivity.setAppModeEnabled(this, true)
+                SettingsRepository.setAppModeEnabled(this, true)
                 GuidedStepSupportFragment.addAsRoot(this, ConfigStepFragment(), android.R.id.content)
             }
         }
@@ -82,15 +82,15 @@ class OobeActivity : FragmentActivity() {
             val ctx = requireContext()
             when (action.id) {
                 ACTION_PURE_MONITOR -> {
-                    MainActivity.setAppModeEnabled(ctx, false)
+                    SettingsRepository.setAppModeEnabled(ctx, false)
                     add(parentFragmentManager, ConfigStepFragment())
                 }
                 ACTION_APP_MODE -> {
-                    MainActivity.setAppModeEnabled(ctx, true)
+                    SettingsRepository.setAppModeEnabled(ctx, true)
                     add(parentFragmentManager, ConfigStepFragment())
                 }
                 ACTION_SKIP -> {
-                    MainActivity.setOobeCompleted(ctx, true)
+                    SettingsRepository.setOobeCompleted(ctx, true)
                     val intent = Intent(ctx, MainActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     }
@@ -133,8 +133,8 @@ class OobeActivity : FragmentActivity() {
 
         override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
             val ctx = requireContext()
-            selectedPort = MainActivity.getDefaultPort(ctx)
-            selectedCountdown = MainActivity.getCountdownSeconds(ctx)
+            selectedPort = SettingsRepository.getDefaultPort(ctx)
+            selectedCountdown = SettingsRepository.getCountdownSeconds(ctx)
 
             // HDMI 1 ~ 3 選項（移除所有括號附註，只保留乾淨的 HDMI 1 / HDMI 2 / HDMI 3）
             val portSubActions = mutableListOf<GuidedAction>()
@@ -153,7 +153,7 @@ class OobeActivity : FragmentActivity() {
                 )
             }
 
-            val isAppMode = MainActivity.isAppModeEnabled(ctx)
+            val isAppMode = SettingsRepository.isAppModeEnabled(ctx)
 
             actions.add(
                 GuidedAction.Builder(ctx)
@@ -212,14 +212,14 @@ class OobeActivity : FragmentActivity() {
             val ctx = requireContext()
             if (action.id in ACTION_PORT_BASE + 1..ACTION_PORT_BASE + 3) {
                 selectedPort = (action.id - ACTION_PORT_BASE).toInt()
-                MainActivity.setDefaultPort(ctx, selectedPort)
+                SettingsRepository.setDefaultPort(ctx, selectedPort)
                 val parentAction = findActionById(ACTION_PORT_PARENT)
                 parentAction?.title = getString(R.string.oobe_port_prompt, selectedPort)
                 notifyActionChanged(findActionPositionById(ACTION_PORT_PARENT))
                 return true
             } else if (action.id in ACTION_COUNTDOWN_BASE..ACTION_COUNTDOWN_BASE + 10) {
                 selectedCountdown = (action.id - ACTION_COUNTDOWN_BASE).toInt()
-                MainActivity.setCountdownSeconds(ctx, selectedCountdown)
+                SettingsRepository.setCountdownSeconds(ctx, selectedCountdown)
                 val display = if (selectedCountdown <= 0) {
                     getString(R.string.oobe_countdown_off)
                 } else {
@@ -300,7 +300,7 @@ class OobeActivity : FragmentActivity() {
                 )
             }
 
-            val isAppMode = MainActivity.isAppModeEnabled(ctx)
+            val isAppMode = SettingsRepository.isAppModeEnabled(ctx)
             if (!isAppMode && !ShizukuHelper.isShizukuPermissionGranted()) {
                 newActions.add(
                     GuidedAction.Builder(ctx)
@@ -325,7 +325,7 @@ class OobeActivity : FragmentActivity() {
             val ctx = requireContext()
             when (action.id) {
                 ACTION_FINISH -> {
-                    MainActivity.setOobeCompleted(ctx, true)
+                    SettingsRepository.setOobeCompleted(ctx, true)
                     Toast.makeText(ctx, "Setup Completed", Toast.LENGTH_SHORT).show()
                     val intent = Intent(ctx, MainActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

@@ -110,88 +110,23 @@ class WakeAccessibilityService : AccessibilityService() {
             Log.i(TAG, "收到休眠請求，嘗試關閉螢幕 (第 $retryCount 次重試)")
             
             Thread {
-                try {
-                    // 先嘗試 GLOBAL_ACTION_LOCK_SCREEN (8)
-                    var success = false
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                        success = performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
-                        Log.i(TAG, "GLOBAL_ACTION_LOCK_SCREEN 結果: $success")
-                    }
-                    
-                    // 如果失敗，退而求其次使用 POWER_DIALOG + 幽靈點擊
-                    if (!success) {
-                        success = performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
-                        Log.i(TAG, "GLOBAL_ACTION_POWER_DIALOG 結果: $success")
-                        if (success) {
-                            PowerMenuClicker.clickPowerOff(this)
+                val success = PowerHelper.sleepScreen(this)
+                
+                // 根據使用者要求：間隔 1 秒重試，直到螢幕關閉
+                handler.postDelayed({
+                    val displayManager = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
+                    val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
+                    if (isScreenOn) {
+                        Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
+                        val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {
+                            action = "ACTION_SLEEP"
+                            putExtra("RETRY_COUNT", retryCount + 1)
                         }
+                        startService(retryIntent)
+                    } else {
+                        Log.i(TAG, "螢幕已成功關閉，停止重試。")
                     }
-
-                    // 若上述皆失敗，直接呼叫 shell 指令模擬遙控器按下電源鍵 (KEYCODE_POWER = 26) / 休眠鍵 (KEYCODE_SLEEP = 223)
-                    if (!success) {
-                        Log.i(TAG, "嘗試透過 shell 執行 input keyevent 223 (模擬遙控器休眠鍵)")
-                        try {
-                            // 優先使用 Shizuku 執行 input keyevent，如果 Shizuku 未授權，則降級使用普通 Runtime
-                            var shizukuSuccess = false
-                            if (ShizukuHelper.isShizukuPermissionGranted()) {
-                                Log.i(TAG, "使用 Shizuku 執行 input keyevent 223")
-                                val exitCode = ShizukuHelper.executeShellCommand("input keyevent 223")
-                                shizukuSuccess = (exitCode == 0)
-                            }
-
-                            if (shizukuSuccess) {
-                                success = true
-                                Log.i(TAG, "Shizuku input keyevent 223 執行結果: true")
-                            } else {
-                                Log.i(TAG, "Shizuku 不可用或失敗，改用 Runtime.getRuntime().exec 執行 input keyevent 223")
-                                val process = Runtime.getRuntime().exec("input keyevent 223")
-                                process.waitFor()
-                                success = process.exitValue() == 0
-                                Log.i(TAG, "Runtime input keyevent 223 執行結果: $success")
-                            }
-                            
-                            // 即使成功執行了 223，有時候 223 不一定有效，我們檢查螢幕狀態，若仍亮著則額外執行 26 作為保底
-                            Log.i(TAG, "延遲 500ms 後檢查螢幕狀態...")
-                            Thread.sleep(500)
-                            
-                            val displayManager = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
-                            val isScreenOnAfter223 = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
-                            
-                            if (isScreenOnAfter223) {
-                                Log.i(TAG, "螢幕尚未關閉，嘗試透過 shell 執行 input keyevent 26 (模擬遙控器電源鍵)")
-                                if (ShizukuHelper.isShizukuPermissionGranted()) {
-                                    Log.i(TAG, "使用 Shizuku 執行 input keyevent 26")
-                                    ShizukuHelper.executeShellCommand("input keyevent 26")
-                                } else {
-                                    Log.i(TAG, "改用 Runtime.getRuntime().exec 執行 input keyevent 26")
-                                    Runtime.getRuntime().exec("input keyevent 26")
-                                }
-                            } else {
-                                Log.i(TAG, "螢幕已成功關閉，無需執行保底指令。")
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "input keyevent 執行失敗", e)
-                        }
-                    }
-
-                    // 根據使用者要求：間隔 1 秒重試，直到螢幕關閉
-                    handler.postDelayed({
-                        val displayManager = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
-                        val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
-                        if (isScreenOn) {
-                            Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
-                            val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {
-                                action = "ACTION_SLEEP"
-                                putExtra("RETRY_COUNT", retryCount + 1)
-                            }
-                            startService(retryIntent)
-                        } else {
-                            Log.i(TAG, "螢幕已成功關閉，停止重試。")
-                        }
-                    }, 1000)
-                } catch (e: Exception) {
-                    Log.e(TAG, "執行休眠動作失敗", e)
-                }
+                }, 1000)
             }.start()
         }
         return super.onStartCommand(intent, flags, startId)
@@ -260,7 +195,7 @@ class WakeAccessibilityService : AccessibilityService() {
         // The input/source key is often mapped as TV_INPUT; some TCL remotes use
         // AV_INPUT or STB_INPUT.  Outside this app, open our HDMI launcher rather
         // than allowing the stock input picker to take over.
-        if (MainActivity.isButtonMapperEnabled(this) && MainActivity.isInputButtonOverrideEnabled(this) &&
+        if (SettingsRepository.isButtonMapperEnabled(this) && SettingsRepository.isInputButtonOverrideEnabled(this) &&
             (keyCode == KeyEvent.KEYCODE_TV_INPUT ||
             keyCode == KeyEvent.KEYCODE_AVR_INPUT ||
             keyCode == KeyEvent.KEYCODE_STB_INPUT)) {
@@ -275,7 +210,7 @@ class WakeAccessibilityService : AccessibilityService() {
         }
 
         // 攔截常見 TV 遙控器 Home 鍵與電視首頁鍵
-        if (MainActivity.isButtonMapperEnabled(this) && MainActivity.isHomeButtonOverrideEnabled(this) &&
+        if (SettingsRepository.isButtonMapperEnabled(this) && SettingsRepository.isHomeButtonOverrideEnabled(this) &&
             (keyCode == KeyEvent.KEYCODE_HOME ||
             keyCode == KeyEvent.KEYCODE_GUIDE ||
             keyCode == KeyEvent.KEYCODE_TV)) {
