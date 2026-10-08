@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -35,6 +38,7 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Surface
+import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import androidx.tv.material3.darkColorScheme
 
@@ -59,11 +63,14 @@ internal fun LauncherScreen(
     val portFocus = remember { List(3) { FocusRequester() } }
     val settingsFocus = remember { FocusRequester() }
     val appsFocus = remember { FocusRequester() }
-    val defaultFocus = portFocus[defaultPort.coerceIn(1, 3) - 1]
+    var lastFocusedPort by remember(defaultPort) { mutableIntStateOf(defaultPort.coerceIn(1, 3)) }
+    val returnFocus = portFocus[lastFocusedPort - 1]
 
     // Text/default-port updates must not steal focus from the user's selection.
     LaunchedEffect(focusRequestGeneration) {
-        portFocus[focusRequestPort.coerceIn(1, 3) - 1].requestFocus()
+        val port = focusRequestPort.coerceIn(1, 3)
+        lastFocusedPort = port
+        portFocus[port - 1].requestFocus()
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -90,7 +97,7 @@ internal fun LauncherScreen(
                             up = FocusRequester.Cancel
                             left = FocusRequester.Cancel
                             right = FocusRequester.Cancel
-                            down = defaultFocus
+                            down = returnFocus
                         }
                         .onFocusChanged { if (it.isFocused) onFocusedPortChanged(null) },
                 ) {
@@ -113,20 +120,49 @@ internal fun LauncherScreen(
                     text = stringResource(R.string.main_title),
                     style = MaterialTheme.typography.headlineLarge,
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    text = countdownText,
+                    text = stringResource(R.string.home_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    // Retain the mouse/touch settings shortcut without adding a D-pad stop.
-                    modifier = Modifier
-                        .pointerInput(onSettingsClick) { detectTapGestures { onSettingsClick() } }
-                        .semantics {
-                            onClick { onSettingsClick(); true }
-                        },
                 )
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(),
+                    colors = SurfaceDefaults.colors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.timer_48px),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = countdownText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Start,
+                            modifier = Modifier
+                                .weight(1f)
+                                // Retain the mouse/touch settings shortcut without adding a D-pad stop.
+                                .pointerInput(onSettingsClick) { detectTapGestures { onSettingsClick() } }
+                                .semantics {
+                                    onClick { onSettingsClick(); true }
+                                },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
                 Row(
                     modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -137,7 +173,7 @@ internal fun LauncherScreen(
                             onLongClick = { onPortLongClick(port) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(156.dp)
+                                .height(176.dp)
                                 .focusRequester(portFocus[port - 1])
                                 .focusProperties {
                                     up = settingsFocus
@@ -145,7 +181,12 @@ internal fun LauncherScreen(
                                     left = if (port > 1) portFocus[port - 2] else FocusRequester.Cancel
                                     right = if (port < 3) portFocus[port] else FocusRequester.Cancel
                                 }
-                                .onFocusChanged { if (it.isFocused) onFocusedPortChanged(port) },
+                                .onFocusChanged {
+                                    if (it.isFocused) {
+                                        lastFocusedPort = port
+                                        onFocusedPortChanged(port)
+                                    }
+                                },
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -173,14 +214,14 @@ internal fun LauncherScreen(
                         }
                     }
                 }
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(24.dp))
                 Button(
                     onClick = onAppsClick,
                     contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
                     modifier = Modifier
                         .focusRequester(appsFocus)
                         .focusProperties {
-                            up = defaultFocus
+                            up = returnFocus
                             down = FocusRequester.Cancel
                             left = FocusRequester.Cancel
                             right = FocusRequester.Cancel

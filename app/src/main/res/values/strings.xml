@@ -8,6 +8,7 @@
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI Input Selector</string>
+    <string name="home_subtitle">Choose an input to start watching</string>
     <string name="btn_countdown_off">Countdown: Off</string>
     <string name="btn_countdown_seconds">Countdown: %ds</string>
     <string name="btn_tcl_settings">TCL Settings</string>

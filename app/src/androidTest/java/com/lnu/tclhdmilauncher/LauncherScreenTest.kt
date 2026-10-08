@@ -68,7 +68,7 @@ class LauncherScreenTest {
     }
 
     @Test
-    fun upFromNondefaultCardGoesToSettingsAndDownReturnsToDefault() {
+    fun upFromNondefaultCardGoesToSettingsAndDownReturnsToSelectedPort() {
         render(defaultPort = 2)
         press(Key.DirectionRight)
         assertFocusedPort(3)
@@ -76,12 +76,12 @@ class LauncherScreenTest {
         press(Key.DirectionUp)
         assertSettingsFocused()
         press(Key.DirectionDown)
-        assertFocusedPort(2)
+        assertFocusedPort(3)
         assertNoActions()
     }
 
     @Test
-    fun downFromNondefaultCardGoesToAppsAndUpReturnsToDefault() {
+    fun downFromNondefaultCardGoesToAppsAndUpReturnsToSelectedPort() {
         render(defaultPort = 2)
         press(Key.DirectionLeft)
         assertFocusedPort(1)
@@ -89,7 +89,7 @@ class LauncherScreenTest {
         press(Key.DirectionDown)
         assertAppsFocused()
         press(Key.DirectionUp)
-        assertFocusedPort(2)
+        assertFocusedPort(1)
         assertNoActions()
     }
 
@@ -198,6 +198,29 @@ class LauncherScreenTest {
     }
 
     @Test
+    fun explicitRequestToAlreadyFocusedPortUpdatesReturnFocusAfterDefaultChanges() {
+        render(defaultPort = 2)
+        press(Key.DirectionRight)
+        assertFocusedPort(3)
+        updateInputs { it.copy(defaultPort = 1) }
+
+        updateInputs {
+            it.copy(focusRequestPort = 3, focusRequestGeneration = it.focusRequestGeneration + 1)
+        }
+
+        assertFocusedPort(3)
+        press(Key.DirectionUp)
+        assertSettingsFocused()
+        press(Key.DirectionDown)
+        assertFocusedPort(3)
+        press(Key.DirectionDown)
+        assertAppsFocused()
+        press(Key.DirectionUp)
+        assertFocusedPort(3)
+        assertNoActions()
+    }
+
+    @Test
     fun centerClickReportsEachSelectedPortWithoutLongClick() {
         render(defaultPort = 1)
 
@@ -281,6 +304,8 @@ class LauncherScreenTest {
 
     private fun assertInitialFocus(defaultPort: Int) {
         render(defaultPort)
+        composeRule.onNodeWithText(context.getString(R.string.home_subtitle)).assertIsDisplayed()
+        composeRule.onNodeWithText(inputs.value.countdownText).assertIsDisplayed()
         assertFocusedPort(defaultPort)
         assertDefaultBadge(defaultPort)
         assertNoActions()

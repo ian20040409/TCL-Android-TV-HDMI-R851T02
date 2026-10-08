@@ -6,7 +6,7 @@ The launcher home screen and App list use Google’s official `androidx.tv.mater
 
 - Use the stock TV `MaterialTheme` with `darkColorScheme()` and default typography/shapes.
 - Use stock TV `Card`, `ListItem`, `Checkbox`, `Button`, `OutlinedButton`, `Icon`, `Text` and `Surface` components.
-- Do not override per-component colors, borders, shapes, glow or focus scaling.
+- Keep the stock component colors, borders, shapes, glow and focus scaling; use only theme-provided color roles when a static information surface needs hierarchy.
 - Customize only content, layout/spacing and navigation required by this launcher.
 - Countdown/default-badge updates must not steal focus. Explicit Activity entry/resume and numeric shortcuts may request focus.
 
@@ -16,7 +16,7 @@ The launcher home screen and App list use Google’s official `androidx.tv.mater
 
 - Initial/resume focus on the configured default HDMI port.
 - Left/right moves among HDMI 1–3, without wrapping at the ends.
-- Up goes to Settings; down goes to Apps. Returning from either goes to the latest default port.
+- Up goes to Settings; down goes to Apps. Returning from either goes to the most recently focused HDMI port; explicit focus requests still take priority.
 - D-pad navigation cancels the countdown without consuming navigation events.
 - Short OK launches HDMI; held OK sets the default port and cancels the countdown.
 - Numeric keys select and launch HDMI; Input cycles from the focused port (or default on a noncard control).

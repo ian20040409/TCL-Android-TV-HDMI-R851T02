@@ -8,6 +8,7 @@
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI 訊號源切換</string>
+    <string name="home_subtitle">選擇訊號源以開始觀看</string>
     <string name="btn_countdown_off">倒數: 關閉</string>
     <string name="btn_countdown_seconds">倒數: %d秒</string>
     <string name="btn_tcl_settings">TCL 設定</string>
