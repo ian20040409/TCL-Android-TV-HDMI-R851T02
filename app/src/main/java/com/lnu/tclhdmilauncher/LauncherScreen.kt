@@ -83,11 +83,7 @@ internal fun LauncherScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(
-                    text = brandTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+
                 OutlinedButton(
                     onClick = onSettingsClick,
                     contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
