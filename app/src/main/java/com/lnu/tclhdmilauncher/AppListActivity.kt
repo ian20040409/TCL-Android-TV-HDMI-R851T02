@@ -49,6 +49,7 @@ class AppListActivity : ComponentActivity() {
     private var headerFocusGeneration by mutableStateOf(0)
     private var dialog by mutableStateOf<AppListDialog?>(null)
     private var iconLoadGeneration = 0
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private val bgExecutor = Executors.newSingleThreadExecutor()
     private var isDestroyedFlag = false
@@ -132,6 +133,7 @@ class AppListActivity : ComponentActivity() {
         }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+
                 when {
                     dialog != null -> dialog = null
                     isAutoOpenCountdownRunning -> {
@@ -168,6 +170,7 @@ class AppListActivity : ComponentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+
         isForegroundFocused = hasFocus && isActivityResumed
         if (hasFocus && isActivityResumed) {
             triggerBootOrWakeAutoOpenIfConfigured()
@@ -604,6 +607,8 @@ class AppListActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Back is handled solely by OnBackPressedDispatcher: newer Android versions
+        // may deliver its callback even when a raw Back key-down is consumed.
         if (dialog != null) return super.dispatchKeyEvent(event)
         if (event.action == KeyEvent.ACTION_DOWN) {
             if (isAutoOpenCountdownRunning) {
@@ -612,14 +617,7 @@ class AppListActivity : ComponentActivity() {
                     KeyEvent.KEYCODE_DPAD_DOWN,
                     KeyEvent.KEYCODE_DPAD_LEFT,
                     KeyEvent.KEYCODE_DPAD_RIGHT,
-                    KeyEvent.KEYCODE_BACK,
-                    KeyEvent.KEYCODE_MENU -> {
-                        cancelAutoOpenCountdown()
-                        if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-                            if (isMultiSelectMode) exitMultiSelectMode()
-                            return true
-                        }
-                    }
+                    KeyEvent.KEYCODE_MENU -> cancelAutoOpenCountdown()
                 }
             }
             if (event.keyCode == KeyEvent.KEYCODE_MENU || event.keyCode == KeyEvent.KEYCODE_SETTINGS) {
