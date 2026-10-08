@@ -1,48 +1,28 @@
 package com.lnu.tclhdmilauncher
 
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.app.Activity
-import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.Typeface
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.StateListDrawable
 import android.media.tv.TvContract
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.text.TextUtils
 import android.util.Log
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.view.accessibility.AccessibilityManager
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /**
- * TCL TV HDMI 1 / 2 / 3 原生極致輕量 Launcher
- *
- * 核心性能設計：
- * - 100% 純程式碼建構 View 樹：0 XML I/O、0 反射（節省冷啟動 ~400ms）
- * - View 樹極限扁平化：頂部狀態列單層配置，達成全畫面單一次 Measure/Layout Pass
- * - 倒數計時熱路徑 0 GC：預建構字串快取，每秒倒數 0 物件配置
- * - 記憶體化持久快取：SharedPreferences 消除主執行緒重複磁碟 I/O
- * - 預建構全域靜態 Intent：微秒級訊號源派發
- * - 共用單一 OnClickListener 與 OnFocusChangeListener：消除匿名閉包
- * - 全面對齊 Android TV 系統原生樣式（Theme_DeviceDefault_Dialog_Alert）
+ * TV Material launcher UI; countdown, CEC coordination and HDMI launching stay
+ * in the Activity so recomposition cannot restart timers or hardware sessions.
  */
-class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListener {
+class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "TCLHdmiLauncher"
@@ -138,20 +118,11 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private lateinit var textAppModeActive: String
     private lateinit var textDisabledCache: Array<String>
 
-    internal lateinit var tvCountdown: TextView
-    internal lateinit var cardHdmi1: LinearLayout
-    internal lateinit var cardHdmi2: LinearLayout
-    internal lateinit var cardHdmi3: LinearLayout
-    internal lateinit var tvBadge1: TextView
-    internal lateinit var tvBadge2: TextView
-    internal lateinit var tvBadge3: TextView
-    internal lateinit var ivIcon1: ImageView
-    internal lateinit var ivIcon2: ImageView
-    internal lateinit var ivIcon3: ImageView
-    internal lateinit var btnSettings: LinearLayout
-    internal lateinit var btnApps: LinearLayout
-
-    private var defaultPort = 3
+    private var countdownText by mutableStateOf("")
+    private var focusRequestGeneration by mutableIntStateOf(0)
+    private var focusRequestPort by mutableIntStateOf(3)
+    private var focusedPort: Int? = null
+    private var defaultPort by mutableIntStateOf(3)
     private var countdownDuration = DEFAULT_COUNTDOWN_SECONDS
     private var isAppMode = false
     private var isCancelled = false
@@ -199,13 +170,28 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         initTextCaches()
         secondsLeft = countdownDuration
 
-        setContentView(MainViewBuilder(this).build())
-
-        cardHdmi1.setOnLongClickListener { setDefault(1); true }
-        cardHdmi2.setOnLongClickListener { setDefault(2); true }
-        cardHdmi3.setOnLongClickListener { setDefault(3); true }
-
-        updateButtonLabels()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // The Home launcher must not finish when Back is pressed.
+            }
+        })
+        updateCountdownText()
+        setContent {
+            LauncherTheme {
+                LauncherScreen(
+                    brandTitle = DeviceHelper.getBrandTitle(this),
+                    defaultPort = defaultPort,
+                    countdownText = countdownText,
+                    focusRequestGeneration = focusRequestGeneration,
+                    onPortClick = { port -> cancelTimer(); switchTo(port, fromTimer = false) },
+                    onPortLongClick = ::setDefault,
+                    onSettingsClick = ::openSettings,
+                    onAppsClick = { isCancelled = false; openAppList(immediate = false) },
+                    onFocusedPortChanged = { focusedPort = it },
+                    focusRequestPort = focusRequestPort,
+                )
+            }
+        }
         focusDefaultPortButton()
         isCancelled = false
 
@@ -226,10 +212,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         setIntent(intent)
 
         loadPreferencesFromCache()
-        updateButtonLabels()
         focusDefaultPortButton()
-
-
 
         val fromAppList = intent.getBooleanExtra(EXTRA_FROM_APP_LIST, false)
         if (fromAppList) {
@@ -260,7 +243,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         isForegroundFocused = hasWindowFocus()
 
         loadPreferencesFromCache()
-        updateButtonLabels()
         focusDefaultPortButton()
 
         if (isAppMode) {
@@ -275,11 +257,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         if (hasWindowFocus()) {
             resumeTimerIfOnMainScreen()
         }
-    }
-
-    override fun onBackPressed() {
-        // Do nothing, as this is the Home Launcher.
-        // This prevents going back to OobeActivity or closing the launcher.
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -318,29 +295,12 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     }
 
     private fun focusDefaultPortButton() {
-        when (defaultPort) {
-            1 -> cardHdmi1
-            2 -> cardHdmi2
-            else -> cardHdmi3
-        }.requestFocus()
+        requestPortFocus(defaultPort)
     }
 
-    private fun updateButtonLabels() {
-        tvBadge1.visibility = if (defaultPort == 1) View.VISIBLE else View.INVISIBLE
-        tvBadge2.visibility = if (defaultPort == 2) View.VISIBLE else View.INVISIBLE
-        tvBadge3.visibility = if (defaultPort == 3) View.VISIBLE else View.INVISIBLE
-        btnApps.nextFocusUpId = when (defaultPort) {
-            1 -> cardHdmi1.id
-            2 -> cardHdmi2.id
-            else -> cardHdmi3.id
-        }
-        if (::btnSettings.isInitialized) {
-            btnSettings.nextFocusDownId = when (defaultPort) {
-                1 -> cardHdmi1.id
-                2 -> cardHdmi2.id
-                else -> cardHdmi3.id
-            }
-        }
+    private fun requestPortFocus(port: Int) {
+        focusRequestPort = port
+        focusRequestGeneration++
     }
 
     private fun initTextCaches() {
@@ -373,38 +333,31 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
-    /**
-     * 倒數計時文字更新（0 Allocation、0 GC）
-     */
+    // Keep cached countdown strings; Compose observes only the displayed text.
     private fun updateCountdownText() {
-        if (isAppMode) {
+        countdownText = if (isAppMode) {
             val autoLabel = SettingsRepository.getAutoOpenLabel(this)
-            tvCountdown.text = if (autoLabel.isNotBlank()) {
+            if (autoLabel.isNotBlank()) {
                 getString(R.string.app_mode_active_with_auto_app, autoLabel)
             } else {
                 textAppModeActive
             }
         } else if (isCancelled) {
-            tvCountdown.text = textCancelled
+            textCancelled
         } else if (countdownDuration <= 0) {
-            tvCountdown.text = textDisabledCache.getOrElse(defaultPort) { textDisabledCache[3] }
+            textDisabledCache.getOrElse(defaultPort) { textDisabledCache[3] }
         } else {
             val port = if (defaultPort in 1..3) defaultPort else 3
             val sec = if (secondsLeft in 1..30) secondsLeft else 0
-            if (sec > 0) {
-                tvCountdown.text = countdownTextCache[port][sec]
-            } else {
-                tvCountdown.text = textCancelled
-            }
+            if (sec > 0) countdownTextCache[port][sec] else textCancelled
         }
     }
 
     private fun setDefault(port: Int) {
         defaultPort = port
         SettingsRepository.setDefaultPort(this, port)
-        updateButtonLabels()
         cancelTimer()
-        tvCountdown.text = getString(R.string.msg_set_default, port)
+        countdownText = getString(R.string.msg_set_default, port)
     }
 
     private fun pauseTimer() {
@@ -457,11 +410,9 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             if (pressedPort != null) {
                 cancelTimer()
                 if (pressedPort in 1..3) {
-                    when (pressedPort) {
-                        1 -> cardHdmi1.requestFocus()
-                        2 -> cardHdmi2.requestFocus()
-                        3 -> cardHdmi3.requestFocus()
-                    }
+                    // Keep source-key cycling correct before Compose applies the focus request.
+                    focusedPort = pressedPort
+                    requestPortFocus(pressedPort)
                     switchTo(pressedPort, fromTimer = false)
                 }
                 return true
@@ -470,12 +421,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             if (keyCode == KeyEvent.KEYCODE_TV_INPUT ||
                 keyCode == KeyEvent.KEYCODE_AVR_INPUT ||
                 keyCode == KeyEvent.KEYCODE_STB_INPUT) {
-                val currentPort = when {
-                    cardHdmi1.hasFocus() -> 1
-                    cardHdmi2.hasFocus() -> 2
-                    cardHdmi3.hasFocus() -> 3
-                    else -> defaultPort
-                }
+                val currentPort = focusedPort ?: defaultPort
                 val nextPort = if (currentPort >= 3) 1 else currentPort + 1
                 cancelTimer()
                 Log.i(TAG, "Input/source key: HDMI $currentPort → HDMI $nextPort")
@@ -497,7 +443,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
                     KeyEvent.KEYCODE_DPAD_LEFT,
                     KeyEvent.KEYCODE_DPAD_RIGHT -> {
                         cancelTimer()
-                        tvCountdown.text = textCancelled
+                        countdownText = textCancelled
                     }
                 }
             }
@@ -513,57 +459,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Switch failed: ${e.message}")
-        }
-    }
-
-    // ── View.OnClickListener 單例分流（0 匿名閉包） ─────────────────────────
-    override fun onClick(v: View) {
-        when (v) {
-            cardHdmi1 -> { cancelTimer(); switchTo(1, fromTimer = false) }
-            cardHdmi2 -> { cancelTimer(); switchTo(2, fromTimer = false) }
-            cardHdmi3 -> { cancelTimer(); switchTo(3, fromTimer = false) }
-            btnSettings, tvCountdown -> openSettings()
-            btnApps -> {
-                isCancelled = false
-                openAppList(immediate = false)
-            }
-        }
-    }
-
-    // ── View.OnFocusChangeListener 單例分流（0 匿名閉包） ───────────────────
-    override fun onFocusChange(v: View, hasFocus: Boolean) {
-        val density = resources.displayMetrics.density
-        fun dp(value: Float): Int = (value * density + 0.5f).toInt()
-
-        when (v) {
-            cardHdmi1 -> updateCardFocusState(cardHdmi1, ivIcon1, tvBadge1, hasFocus, dp(8f))
-            cardHdmi2 -> updateCardFocusState(cardHdmi2, ivIcon2, tvBadge2, hasFocus, dp(8f))
-            cardHdmi3 -> updateCardFocusState(cardHdmi3, ivIcon3, tvBadge3, hasFocus, dp(8f))
-            btnSettings, btnApps -> {
-                val scale = if (hasFocus) 1.08f else 1.0f
-                v.animate().scaleX(scale).scaleY(scale).setDuration(120).start()
-                v.elevation = if (hasFocus) dp(6f).toFloat() else 0f
-            }
-        }
-    }
-
-    private fun updateCardFocusState(
-        card: View,
-        ivIcon: ImageView,
-        tvBadge: TextView,
-        hasFocus: Boolean,
-        elevationPx: Int
-    ) {
-        if (hasFocus) {
-            card.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
-            card.elevation = elevationPx.toFloat()
-            ivIcon.setColorFilter(Color.WHITE)
-            tvBadge.setTextColor(0xFFFEF08A.toInt())
-        } else {
-            card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
-            card.elevation = 0f
-            ivIcon.setColorFilter(0xFF94A3B8.toInt())
-            tvBadge.setTextColor(0xFF38BDF8.toInt())
         }
     }
 

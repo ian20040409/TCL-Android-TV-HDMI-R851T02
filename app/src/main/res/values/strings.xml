@@ -13,6 +13,9 @@
     <string name="btn_tcl_settings">TCL Settings</string>
     <string name="btn_apps">Apps</string>
     <string name="btn_settings">Settings</string>
+    <string name="btn_batch_action">Batch Actions</string>
+    <string name="btn_cancel_selection">Cancel</string>
+    <string name="app_list_loading">Loading applications…</string>
     <string name="card_default_badge">● Default</string>
     <string name="bottom_hint">[OK] Switch   •   [1 / 2 / 3] Direct Input   •   [Menu] Settings   •   [Hold OK] Set Default</string>
     <string name="countdown_active">Switching to HDMI %2$d in %1$ds (Press D-pad to cancel)</string>

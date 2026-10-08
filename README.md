@@ -105,6 +105,8 @@ This project is open-source, non-commercial, and respects your privacy:
 
 For deep technical analysis, root-cause teardowns, and firmware guides, explore:
 
+- **[Compose for TV migration](docs/compose-tv-migration.md)**: The home screen and App list now use stock TV Material 3; settings/OOBE migration is deferred. Includes validation and TCL device checks.
+
 - 📖 **[Troubleshooting Guide (docs/troubleshooting.md)](docs/troubleshooting.md)**
   - *Fix 1*: Apple TV dual-standby power loop (safely remove `com.tcl.tv`)
   - *Fix 2*: Stuck Dolby Vision / HDR10 banner (AppOps permission solution)

@@ -83,3 +83,7 @@ crashlytics-build.properties
 *.py
 *.patch
 test*.kt
+
+# Keep shared Zed project settings; ignore other local Zed files.
+/.zed/*
+!/.zed/settings.json

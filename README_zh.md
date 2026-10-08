@@ -105,6 +105,8 @@ adb shell am force-stop com.google.android.tvlauncher
 
 深入技術分析、Logcat 追蹤與韌體說明已整理至專屬文件庫：
 
+- **[Compose for TV 遷移紀錄](docs/compose-tv-migration.md)**：主畫面與 App 清單已採用官方 TV Material 3 預設元件；設定與 OOBE 尚未遷移。包含測試方式與 TCL 實機驗收清單。
+
 - 📖 **[完整排查手冊 (docs/troubleshooting_zh.md)](docs/troubleshooting_zh.md)** ([English](docs/troubleshooting.md))
   - *排查 1*：Apple TV 雙重休眠 CEC 循環開關機（安全卸載 `com.tcl.tv`）
   - *排查 2*：Dolby Vision / HDR10 橫幅永久卡死（AppOps 權限治本解法）
