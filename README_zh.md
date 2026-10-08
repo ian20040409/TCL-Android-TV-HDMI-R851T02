@@ -112,4 +112,3 @@ adb shell am force-stop com.google.android.tvlauncher
   - *排查 4*：透過前台服務 Logcat 攔截實現真正的 CEC 自動切換
 - 📑 **[常用 ADB 指令速查表 (docs/adb-cheatsheet.md)](docs/adb-cheatsheet.md)**
 - ⚙️ **[韌體相容性與 Android 9 降級指南 (docs/firmware-guide.md)](docs/firmware-guide.md)**
-- 📝 **[版本更新紀錄 (CHANGELOG.md)](CHANGELOG.md)**

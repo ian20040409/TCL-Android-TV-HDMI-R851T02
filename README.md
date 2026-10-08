@@ -112,4 +112,3 @@ For deep technical analysis, root-cause teardowns, and firmware guides, explore:
   - *Fix 4*: HDMI-CEC auto-switching via background logcat listener
 - 📑 **[ADB Cheatsheet (docs/adb-cheatsheet.md)](docs/adb-cheatsheet.md)**: Ready-to-copy ADB commands.
 - ⚙️ **[Firmware & Compatibility Guide (docs/firmware-guide.md)](docs/firmware-guide.md)**: Notes on Android 9 V662 downgrade and Android 11 status.
-- 📝 **[Changelog (CHANGELOG.md)](CHANGELOG.md)**
