@@ -8,6 +8,7 @@ build/
 captures/
 .externalNativeBuild/
 .cxx/
+/.kotlin
 
 # ====================================================================
 # 機密設定與金鑰（防範 Key、帳密外洩）
@@ -87,4 +88,4 @@ test*.kt
 # Keep shared Zed project settings; ignore other local Zed files.
 /.zed/*
 !/.zed/settings.json
-/.kotlin
+
