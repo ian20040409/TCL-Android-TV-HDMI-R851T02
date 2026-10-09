@@ -61,7 +61,16 @@ Run with a compatible JDK (validated with JDK 21):
 ./gradlew :app:connectedDebugAndroidTest :app:assembleRelease
 ```
 
-The release task validates R8/resource shrinking and produces an **unsigned** APK unless release signing is configured separately. Never replace the existing release signing key when upgrading an installed app.
+The GitHub Actions release workflow builds the R8/resource-shrunk `release` APK. It is **unsigned** unless the repository owner configures the four signing Secrets below; Android will not install an unsigned APK. For a signed APK that upgrades an existing installation, the keystore must be the same signing key used by the currently installed app (otherwise uninstalling first is required and app data may be lost).
+
+Configure these repository Actions Secrets to sign in CI:
+
+- `ANDROID_KEYSTORE_BASE64`: base64-encoded `.jks`/`.keystore` file (for example, `base64 -i release-key.jks | tr -d '\n'` on macOS)
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+GitHub does not automatically create or provide an Android signing identity. Keep the keystore and passwords private, and never replace a published app's signing key. If the existing APK was signed with a machine-local Gradle debug key, that key must be recovered; a new GitHub key will not support in-place upgrades from it.
 
 `LauncherScreenTest` renders the screen in isolation, without launching hardware HDMI or system settings. It covers initial/default focus, D-pad navigation and boundaries, recomposition preserving focus, explicit focus requests, short/held OK and action callbacks. These tests do **not** prove Activity countdown/CEC lifecycle behavior or TCL hardware compatibility.
 

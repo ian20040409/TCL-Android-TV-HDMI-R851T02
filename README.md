@@ -43,6 +43,8 @@ adb connect <TV-IP>:5555
 adb install -r app-release.apk
 ```
 
+GitHub Actions builds the R8-optimized Release APK. Android requires APKs to be signed before installation; an in-place update that preserves app data also requires the exact signing key used by the installed version. Without CI signing secrets, the workflow artifact is unsigned and cannot be installed directly. GitHub does not automatically provide an Android signing identity. The maintainer must store the existing `.jks` and passwords as repository Actions Secrets; see [build and signing instructions](docs/compose-tv-migration.md).
+
 ### 2. Set as Default TV Launcher
 ```bash
 adb shell cmd package set-home-activity com.lnu.tclhdmilauncher/.MainActivity
@@ -105,6 +107,7 @@ This project is open-source, non-commercial, and respects your privacy:
 
 For deep technical analysis, root-cause teardowns, and firmware guides, explore:
 
+- 🏗️ **[Architecture (docs/architecture.md)](docs/architecture.md)**: How the CEC log reader, Accessibility service and Shizuku work together (written in Traditional Chinese).
 - **[Compose for TV migration](docs/compose-tv-migration.md)**: The home screen and App list now use stock TV Material 3; settings/OOBE migration is deferred. Includes validation and TCL device checks.
 
 - 📖 **[Troubleshooting Guide (docs/troubleshooting.md)](docs/troubleshooting.md)**

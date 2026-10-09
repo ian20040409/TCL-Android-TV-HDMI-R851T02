@@ -43,6 +43,8 @@ adb connect <電視IP>:5555
 adb install -r app-release.apk
 ```
 
+GitHub Actions 產生的是啟用 R8 的 Release APK。若要安裝，APK 必須有簽章；若要直接覆蓋升級並保留 App 資料，簽章憑證必須與目前安裝版本完全相同。未設定 CI 簽章金鑰時，產物會是未簽名 APK，Android 無法直接安裝。GitHub 不會自動提供 Android 簽章憑證；請由維護者將既有 `.jks` 與密碼設為 Repository Actions Secrets，詳見 [建置與簽章說明](docs/compose-tv-migration.md)。
+
 ### 2. 設為預設 TV Launcher
 ```bash
 adb shell cmd package set-home-activity com.lnu.tclhdmilauncher/.MainActivity
@@ -105,6 +107,7 @@ adb shell am force-stop com.google.android.tvlauncher
 
 深入技術分析、Logcat 追蹤與韌體說明已整理至專屬文件庫：
 
+- 🏗️ **[架構說明 (docs/architecture.md)](docs/architecture.md)**：CEC log 讀取、無障礙服務與 Shizuku 的分工與互動流程。
 - **[Compose for TV 遷移紀錄](docs/compose-tv-migration.md)**：主畫面與 App 清單已採用官方 TV Material 3 預設元件；設定與 OOBE 尚未遷移。包含測試方式與 TCL 實機驗收清單。
 
 - 📖 **[完整排查手冊 (docs/troubleshooting_zh.md)](docs/troubleshooting_zh.md)** ([English](docs/troubleshooting.md))
