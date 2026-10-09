@@ -1,9 +1,10 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.power
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.os.PowerManager
 import android.util.Log
+import com.lnu.tclhdmilauncher.shizuku.ShizukuHelper
 import java.util.concurrent.Executors
 
 object PowerHelper {

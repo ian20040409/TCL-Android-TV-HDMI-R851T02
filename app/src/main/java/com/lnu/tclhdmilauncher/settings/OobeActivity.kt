@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.settings
 
 import android.content.Context
 import android.content.Intent
@@ -8,6 +8,11 @@ import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.GuidedStepSupportFragment
 import androidx.leanback.widget.GuidanceStylist
 import androidx.leanback.widget.GuidedAction
+import com.lnu.tclhdmilauncher.DeviceHelper
+import com.lnu.tclhdmilauncher.MainActivity
+import com.lnu.tclhdmilauncher.R
+import com.lnu.tclhdmilauncher.accessibility.AccessibilityHelper
+import com.lnu.tclhdmilauncher.shizuku.ShizukuHelper
 
 /**
  * 首次開箱設定精靈 (OOBE) Activity

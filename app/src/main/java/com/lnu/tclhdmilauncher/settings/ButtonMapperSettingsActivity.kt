@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.settings
 
 import android.content.Context
 import android.os.Bundle
@@ -6,6 +6,9 @@ import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.GuidedStepSupportFragment
 import androidx.leanback.widget.GuidanceStylist
 import androidx.leanback.widget.GuidedAction
+import com.lnu.tclhdmilauncher.DeviceHelper
+import com.lnu.tclhdmilauncher.R
+import com.lnu.tclhdmilauncher.accessibility.AccessibilityHelper
 
 /**
  * Button Mapper 專屬獨立設定頁面

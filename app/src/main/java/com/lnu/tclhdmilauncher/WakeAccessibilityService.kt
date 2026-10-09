@@ -10,6 +10,13 @@ import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import com.lnu.tclhdmilauncher.power.PowerHelper
+import com.lnu.tclhdmilauncher.settings.SettingsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * 待機喚醒與 Home 鍵映射無障礙服務 (Wake & Home Button Mapper Accessibility Service)
@@ -38,6 +45,8 @@ class WakeAccessibilityService : AccessibilityService() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
+    // sleepScreen() 會阻塞，必須在背景執行；服務銷毀時一併取消
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var isReceiverRegistered = false
     private var lastHomeRedirectTime = 0L
 
@@ -109,8 +118,8 @@ class WakeAccessibilityService : AccessibilityService() {
 
             Log.i(TAG, "收到休眠請求，嘗試關閉螢幕 (第 $retryCount 次重試)")
             
-            Thread {
-                val success = PowerHelper.sleepScreen(this)
+            serviceScope.launch {
+                PowerHelper.sleepScreen(this@WakeAccessibilityService)
                 
                 // 根據使用者要求：間隔 1 秒重試，直到螢幕關閉
                 handler.postDelayed({
@@ -118,7 +127,7 @@ class WakeAccessibilityService : AccessibilityService() {
                     val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
                     if (isScreenOn) {
                         Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
-                        val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {
+                        val retryIntent = Intent(this@WakeAccessibilityService, WakeAccessibilityService::class.java).apply {
                             action = "ACTION_SLEEP"
                             putExtra("RETRY_COUNT", retryCount + 1)
                         }
@@ -127,7 +136,7 @@ class WakeAccessibilityService : AccessibilityService() {
                         Log.i(TAG, "螢幕已成功關閉，停止重試。")
                     }
                 }, 1000)
-            }.start()
+            }
         }
         return super.onStartCommand(intent, flags, startId)
     }
@@ -239,10 +248,14 @@ class WakeAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        serviceScope.cancel()
+        handler.removeCallbacksAndMessages(null)
         if (isReceiverRegistered) {
             try {
                 unregisterReceiver(screenReceiver)
-            } catch (_: Exception) {}
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "unregisterReceiver failed: ${e.message}")
+            }
             isReceiverRegistered = false
         }
     }

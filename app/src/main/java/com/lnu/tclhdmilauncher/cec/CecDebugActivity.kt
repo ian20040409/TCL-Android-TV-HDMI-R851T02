@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.cec
 
 import android.app.Activity
 import android.graphics.Color
@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.lnu.tclhdmilauncher.TclHdmiApplication
 
 /** On-TV view of the CEC events observed by this app. */
 class CecDebugActivity : Activity() {

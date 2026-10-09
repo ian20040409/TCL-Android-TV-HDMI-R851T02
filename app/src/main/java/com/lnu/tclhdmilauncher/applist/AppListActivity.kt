@@ -1,5 +1,6 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.applist
 
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.ArrayMap
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -21,6 +23,14 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.graphics.drawable.toBitmap
+import com.lnu.tclhdmilauncher.MainActivity
+import com.lnu.tclhdmilauncher.R
+import com.lnu.tclhdmilauncher.WakeAccessibilityService
+import com.lnu.tclhdmilauncher.launcher.LauncherTheme
+import com.lnu.tclhdmilauncher.settings.SettingsActivity
+import com.lnu.tclhdmilauncher.settings.SettingsRepository
+import com.lnu.tclhdmilauncher.settings.ShizukuSettingsActivity
+import com.lnu.tclhdmilauncher.shizuku.ShizukuHelper
 import java.text.Collator
 import java.util.concurrent.Executors
 
@@ -28,9 +38,7 @@ import java.util.concurrent.Executors
 class AppListActivity : ComponentActivity() {
 
     companion object {
-        private const val PREFS_RECENT = "app_list_recent"
-        private const val KEY_RECENT_PKGS = "recent_pkgs"
-        private const val RECENT_SEPARATOR = "|"
+        private const val TAG = "AppListActivity"
         private const val MAX_RECENT_COUNT = 8
 
         @Volatile
@@ -57,6 +65,7 @@ class AppListActivity : ComponentActivity() {
     private var isAutoOpenCancelled = false
 
     private var autoOpenSecondsLeft = 0
+    private var autoOpenCountdownDuration = 0
     private var isAutoOpenCountdownRunning = false
     private val autoOpenTickRunnable = object : Runnable {
         override fun run() {
@@ -81,22 +90,15 @@ class AppListActivity : ComponentActivity() {
     // Ordered list of recently launched package names (most recent first)
     private val recentPackages = ArrayDeque<String>(MAX_RECENT_COUNT)
 
-    /** Load recent package list from SharedPreferences (background-safe). */
-    private fun loadRecentPackages(): List<String> {
-        val raw = getSharedPreferences(PREFS_RECENT, Context.MODE_PRIVATE)
-            .getString(KEY_RECENT_PKGS, "") ?: ""
-        return if (raw.isBlank()) emptyList()
-        else raw.split(RECENT_SEPARATOR).filter { it.isNotBlank() }
-    }
+    /** Load recent package list (background-safe). */
+    private fun loadRecentPackages(): List<String> = SettingsRepository.getRecentPackages(this)
 
     /** Push a package to the front of the recents list and persist it. */
     private fun saveRecentPackage(pkg: String) {
         recentPackages.remove(pkg)
         recentPackages.addFirst(pkg)
         while (recentPackages.size > MAX_RECENT_COUNT) recentPackages.removeLast()
-        val serialized = recentPackages.joinToString(RECENT_SEPARATOR)
-        getSharedPreferences(PREFS_RECENT, Context.MODE_PRIVATE).edit()
-            .putString(KEY_RECENT_PKGS, serialized).apply()
+        SettingsRepository.setRecentPackages(this, recentPackages.toList())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,6 +111,9 @@ class AppListActivity : ComponentActivity() {
                     icons = iconCache,
                     isLoading = isLoading,
                     countdownText = countdownText,
+                    countdownProgress = if (countdownText != null && isAutoOpenCountdownRunning && autoOpenCountdownDuration > 0) {
+                        ((autoOpenCountdownDuration - autoOpenSecondsLeft).toFloat() / autoOpenCountdownDuration).coerceIn(0f, 1f)
+                    } else null,
                     isMultiSelectMode = isMultiSelectMode,
                     selectedPackages = selectedPackages,
                     autoOpenPackage = autoOpenPackage,
@@ -205,7 +210,8 @@ class AppListActivity : ComponentActivity() {
         val label = SettingsRepository.getAutoOpenLabel(this).ifBlank { pkg }
 
         mainHandler.removeCallbacks(autoOpenTickRunnable)
-        autoOpenSecondsLeft = SettingsRepository.getAutoOpenDelaySeconds(this)
+        autoOpenCountdownDuration = SettingsRepository.getAutoOpenDelaySeconds(this)
+        autoOpenSecondsLeft = autoOpenCountdownDuration
         isAutoOpenCountdownRunning = true
         countdownText = getString(R.string.auto_open_countdown_banner, autoOpenSecondsLeft, label)
         mainHandler.postDelayed(autoOpenTickRunnable, 1000L)
@@ -234,7 +240,10 @@ class AppListActivity : ComponentActivity() {
                 WakeAccessibilityService.temporarilyIgnorePackage(pkg)
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
                 startActivity(launchIntent)
-            } catch (_: Exception) {
+            } catch (e: ActivityNotFoundException) {
+                Log.w(TAG, "Cannot launch $pkg: ${e.message}")
+            } catch (e: SecurityException) {
+                Log.w(TAG, "Not allowed to launch $pkg: ${e.message}")
             }
         }
     }
@@ -295,7 +304,8 @@ class AppListActivity : ComponentActivity() {
                 val label = try {
                     ri.loadLabel(pm)?.toString()?.takeIf { it.isNotBlank() }
                         ?: pm.getApplicationLabel(appInfo).toString()
-                } catch (_: Exception) {
+                } catch (e: RuntimeException) {
+                    Log.w(TAG, "Failed to load label for $pkg: ${e.message}")
                     pkg
                 }
 
@@ -374,7 +384,8 @@ class AppListActivity : ComponentActivity() {
             if (isDestroyedFlag) return@execute
             val icon = try {
                 packageManager.getApplicationIcon(app.appInfo).toBitmap(iconSize, iconSize)
-            } catch (_: Exception) {
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "Failed to load icon for ${app.packageName}: ${e.message}")
                 null
             }
             mainHandler.post {
@@ -483,7 +494,8 @@ class AppListActivity : ComponentActivity() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
             }
             startActivity(intent)
-        } catch (_: Exception) {
+        } catch (e: ActivityNotFoundException) {
+            Log.w(TAG, "Primary launch failed for ${app.packageName}: ${e.message}")
             val fallback = packageManager.getLeanbackLaunchIntentForPackage(app.packageName)
                 ?: packageManager.getLaunchIntentForPackage(app.packageName)
             if (fallback != null) {
@@ -491,7 +503,10 @@ class AppListActivity : ComponentActivity() {
                     WakeAccessibilityService.temporarilyIgnorePackage(app.packageName)
                     fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(fallback)
-                } catch (_: Exception) {
+                } catch (e: ActivityNotFoundException) {
+                    Log.w(TAG, "Fallback launch failed for ${app.packageName}: ${e.message}")
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "Not allowed to launch ${app.packageName}: ${e.message}")
                 }
             }
         }

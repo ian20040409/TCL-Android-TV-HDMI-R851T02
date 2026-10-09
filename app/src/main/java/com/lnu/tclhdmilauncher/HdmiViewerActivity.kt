@@ -1,6 +1,7 @@
 package com.lnu.tclhdmilauncher
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -24,6 +25,7 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.lnu.tclhdmilauncher.settings.SettingsRepository
 
 /**
  * 原生硬體 HDMI 直通播放器 (HdmiViewerActivity)
@@ -295,7 +297,10 @@ class HdmiViewerActivity : Activity() {
                 candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(candidate)
                 return
-            } catch (_: Exception) {
+            } catch (e: ActivityNotFoundException) {
+                Log.w(TAG, "Cannot open settings candidate: ${e.message}")
+            } catch (e: SecurityException) {
+                Log.w(TAG, "Not allowed to open settings candidate: ${e.message}")
             }
         }
     }
@@ -392,9 +397,7 @@ class HdmiViewerActivity : Activity() {
         handler.removeCallbacksAndMessages(null)
         autoSleepHandler.removeCallbacks(autoSleepRunnable)
         // 離開前台時釋放 TvView 硬體 Session，避免與其他 App 或重入時搶奪硬體解碼器
-        try {
-            tvView.reset()
-        } catch (_: Exception) {}
+        resetTvView()
         isVideoAvailable = false
     }
 
@@ -402,8 +405,15 @@ class HdmiViewerActivity : Activity() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
         autoSleepHandler.removeCallbacks(autoSleepRunnable)
+        resetTvView()
+    }
+
+    /** 釋放 TvView 的硬體 Session；失敗時只記錄，不影響生命週期流程。 */
+    private fun resetTvView() {
         try {
             tvView.reset()
-        } catch (_: Exception) {}
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "tvView.reset() failed: ${e.message}")
+        }
     }
 }

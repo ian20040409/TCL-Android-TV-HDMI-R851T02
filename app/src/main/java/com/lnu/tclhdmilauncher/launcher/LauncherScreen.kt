@@ -1,7 +1,10 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.launcher
 
+
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,6 +28,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -31,9 +37,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Border
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Card
+import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
@@ -41,15 +49,28 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import androidx.tv.material3.darkColorScheme
+import com.lnu.tclhdmilauncher.R
 
 @Composable
 internal fun LauncherTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = darkColorScheme(), content = content)
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = Color(0xFFB8C7FF),
+            onPrimary = Color(0xFF172D60),
+            secondary = Color(0xFFC2C7D8),
+            background = Color.Black,
+            onBackground = Color(0xFFE6E1E8),
+            surface = Color(0xFF111216),
+            onSurface = Color(0xFFE6E1E8),
+            surfaceVariant = Color(0xFF24252C),
+            onSurfaceVariant = Color(0xFFC5C3CC),
+        ),
+        content = content,
+    )
 }
 
 @Composable
 internal fun LauncherScreen(
-    brandTitle: String,
     defaultPort: Int,
     countdownText: String,
     focusRequestGeneration: Int,
@@ -59,21 +80,31 @@ internal fun LauncherScreen(
     onAppsClick: () -> Unit,
     onFocusedPortChanged: (Int?) -> Unit,
     focusRequestPort: Int = defaultPort,
+    countdownProgress: Float? = null,
 ) {
+
     val portFocus = remember { List(3) { FocusRequester() } }
     val settingsFocus = remember { FocusRequester() }
     val appsFocus = remember { FocusRequester() }
-    var lastFocusedPort by remember(defaultPort) { mutableIntStateOf(defaultPort.coerceIn(1, 3)) }
-    val returnFocus = portFocus[lastFocusedPort - 1]
+    var focusedPort by remember { mutableIntStateOf(defaultPort.coerceIn(1, 3)) }
+    // Not snapshot state: it changes on every focus move and is only needed when a focus
+    // search runs, so reading it in composition would recompose the whole screen per D-pad step.
+    val lastFocusedPort = remember(defaultPort) { intArrayOf(defaultPort.coerceIn(1, 3)) }
 
     // Text/default-port updates must not steal focus from the user's selection.
     LaunchedEffect(focusRequestGeneration) {
         val port = focusRequestPort.coerceIn(1, 3)
-        lastFocusedPort = port
+        lastFocusedPort[0] = port
         portFocus[port - 1].requestFocus()
     }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        colors = SurfaceDefaults.colors(
+            containerColor = Color.Black,
+            contentColor = MaterialTheme.colorScheme.onBackground,
+        ),
+    ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -83,7 +114,6 @@ internal fun LauncherScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End,
             ) {
-
                 OutlinedButton(
                     onClick = onSettingsClick,
                     contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
@@ -93,7 +123,7 @@ internal fun LauncherScreen(
                             up = FocusRequester.Cancel
                             left = FocusRequester.Cancel
                             right = FocusRequester.Cancel
-                            down = returnFocus
+                            down = portFocus[lastFocusedPort[0] - 1]
                         }
                         .onFocusChanged { if (it.isFocused) onFocusedPortChanged(null) },
                 ) {
@@ -132,30 +162,36 @@ internal fun LauncherScreen(
                     ),
                     shape = MaterialTheme.shapes.medium,
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    Column(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.timer_48px),
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = countdownText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Start,
-                            modifier = Modifier
-                                .weight(1f)
-                                // Retain the mouse/touch settings shortcut without adding a D-pad stop.
-                                .pointerInput(onSettingsClick) { detectTapGestures { onSettingsClick() } }
-                                .semantics {
-                                    onClick { onSettingsClick(); true }
-                                },
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+
+                            Text(
+                                text = countdownText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Start,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    // Retain the mouse/touch settings shortcut without adding a D-pad stop.
+                                    .pointerInput(onSettingsClick) { detectTapGestures { onSettingsClick() } }
+                                    .semantics {
+                                        onClick { onSettingsClick(); true }
+                                    },
+                            )
+                        }
+                        countdownProgress?.let { progress ->
+                            ActivityCountdownProgressIndicator(
+                                progress = progress,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.height(20.dp))
@@ -167,6 +203,19 @@ internal fun LauncherScreen(
                         Card(
                             onClick = { onPortClick(port) },
                             onLongClick = { onPortLongClick(port) },
+                            colors = CardDefaults.colors(
+                                containerColor = Color(0xFF17181D),
+                                contentColor = Color(0xFFD9DCE5),
+                                focusedContainerColor = Color(0xFF2864E8),
+                                focusedContentColor = Color.White,
+                                pressedContainerColor = Color(0xFF1D4FB9),
+                                pressedContentColor = Color.White,
+                            ),
+                            border = CardDefaults.border(
+                                focusedBorder = Border.None,
+                                pressedBorder = Border.None,
+                            ),
+                            scale = CardDefaults.scale(focusedScale = 1.08f, pressedScale = 0.98f),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(176.dp)
@@ -179,8 +228,11 @@ internal fun LauncherScreen(
                                 }
                                 .onFocusChanged {
                                     if (it.isFocused) {
-                                        lastFocusedPort = port
+                                        focusedPort = port
+                                        lastFocusedPort[0] = port
                                         onFocusedPortChanged(port)
+                                    } else if (focusedPort == port) {
+                                        focusedPort = 0
                                     }
                                 },
                         ) {
@@ -198,14 +250,34 @@ internal fun LauncherScreen(
                                     text = "HDMI $port",
                                     style = MaterialTheme.typography.titleLarge,
                                 )
-                                Text(
-                                    text = if (port == defaultPort) {
-                                        stringResource(R.string.card_default_badge)
-                                    } else {
-                                        ""
-                                    },
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
+                                if (port == defaultPort) {
+                                    val badgeColor = if (focusedPort == port) Color.White else Color(0xFF8FDBFF)
+                                    Row(
+                                        modifier = Modifier
+                                            .background(
+                                                color = if (focusedPort == port) {
+                                                    Color.White.copy(alpha = 0.16f)
+                                                } else {
+                                                    Color(0xFF10314B)
+                                                },
+                                                shape = RoundedCornerShape(50),
+                                            )
+                                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(badgeColor, CircleShape),
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.card_default_badge),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = badgeColor,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -217,7 +289,7 @@ internal fun LauncherScreen(
                     modifier = Modifier
                         .focusRequester(appsFocus)
                         .focusProperties {
-                            up = returnFocus
+                            up = portFocus[lastFocusedPort[0] - 1]
                             down = FocusRequester.Cancel
                             left = FocusRequester.Cancel
                             right = FocusRequester.Cancel
@@ -249,7 +321,6 @@ internal fun LauncherScreen(
 private fun LauncherScreenPreview() {
     LauncherTheme {
         LauncherScreen(
-            brandTitle = "TCL HDMI Launcher",
             defaultPort = 3,
             countdownText = stringResource(R.string.countdown_active, 3, 3),
             focusRequestGeneration = 0,

@@ -1,8 +1,9 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.shizuku
 
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import java.io.IOException
 import rikka.shizuku.Shizuku
 
 object ShizukuHelper {
@@ -267,7 +268,9 @@ object ShizukuHelper {
                 outputStream.flush()
                 try {
                     outputStream.fd.sync()
-                } catch (_: Exception) {}
+                } catch (e: IOException) {
+                    Log.w(TAG, "fd.sync() failed: ${e.message}")
+                }
                 outputStream.close()
                 inputStream.close()
 

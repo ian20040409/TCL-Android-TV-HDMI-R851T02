@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.power
 
 import android.accessibilityservice.AccessibilityService
 import android.os.Handler

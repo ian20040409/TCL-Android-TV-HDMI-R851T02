@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.settings
 
 
 import android.app.AlertDialog
@@ -14,6 +14,11 @@ import androidx.leanback.preference.LeanbackSettingsFragmentCompat
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceScreen
+import com.lnu.tclhdmilauncher.DeviceHelper
+import com.lnu.tclhdmilauncher.MainActivity
+import com.lnu.tclhdmilauncher.R
+import com.lnu.tclhdmilauncher.accessibility.AccessibilityHelper
+import com.lnu.tclhdmilauncher.cec.CecDebugActivity
 
 
 class SettingsActivity : FragmentActivity() {

@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.accessibility
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ComponentName
@@ -9,6 +9,9 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
+import com.lnu.tclhdmilauncher.DeviceHelper
+import com.lnu.tclhdmilauncher.R
+import com.lnu.tclhdmilauncher.WakeAccessibilityService
 
 /**
  * Android TV / Google TV 無障礙設定統一輔助工具 (AccessibilityHelper)
@@ -37,12 +40,15 @@ object AccessibilityHelper {
                         return true
                     }
                 }
-            } catch (_: Exception) {}
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "getEnabledAccessibilityServiceList failed: ${e.message}")
+            }
         }
 
         val enabledServicesSetting = try {
             Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
-        } catch (_: Exception) {
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Cannot read enabled accessibility services: ${e.message}")
             null
         } ?: return false
 

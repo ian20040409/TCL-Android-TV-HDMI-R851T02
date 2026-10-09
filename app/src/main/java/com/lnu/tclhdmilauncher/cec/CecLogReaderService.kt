@@ -1,9 +1,10 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.cec
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -15,13 +16,28 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import com.lnu.tclhdmilauncher.BootAndWakeReceiver
+import com.lnu.tclhdmilauncher.HdmiViewerActivity
+import com.lnu.tclhdmilauncher.MainActivity
+import com.lnu.tclhdmilauncher.R
+import com.lnu.tclhdmilauncher.TclHdmiApplication
+import com.lnu.tclhdmilauncher.WakeAccessibilityService
+import com.lnu.tclhdmilauncher.settings.SettingsRepository
+import java.io.IOException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class CecLogReaderService : Service() {
 
-    private var logcatProcess: Process? = null
-    private var isReading = false
+    // Service 專用 scope：onDestroy 時一併取消，避免背景讀取殘留
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var logcatJob: Job? = null
+    @Volatile private var logcatProcess: Process? = null
     private var isCecReceiverRegistered = false
 
     // TvInputManager：用來偵測哪個 HDMI port 狀態變化為 CONNECTED，判斷正確的 CEC 來源
@@ -150,6 +166,12 @@ class CecLogReaderService : Service() {
     companion object {
         private const val TAG = "CecLogReaderService"
         private const val CHANNEL_ID = "CecLogReaderChannel"
+
+        private val HDMI_INPUTS = listOf(
+            HdmiViewerActivity.HW_HDMI1 to 1,
+            HdmiViewerActivity.HW_HDMI2 to 2,
+            HdmiViewerActivity.HW_HDMI3 to 3,
+        )
     }
 
     override fun onCreate() {
@@ -203,76 +225,67 @@ class CecLogReaderService : Service() {
     }
 
     private fun startLogcatReader() {
-        if (isReading) return
-        isReading = true
+        if (logcatJob?.isActive == true) return
+        logcatJob = serviceScope.launch { readLogcat() }
+    }
 
-        Thread {
-            try {
-                // 清除之前的 log 雖然有時候不可靠，但還是執行一下
-                Runtime.getRuntime().exec("logcat -c").waitFor()
-                
-                // 讀取包含 HDMI CEC 的 log，移除 -T 1 避免部分設備上直接 exit
-                // 多加幾個 TCL 韌體可能使用的 CEC 相關 tag
-                val command = arrayOf("logcat", "-v", "time", "-s",
-                    "HdmiCecController", "HdmiCecLocalDeviceTv",
-                    "HdmiCecLocalDevice", "HdmiControlService",
-                    "HdmiCecNetwork", "HdmiCecMessage")
-                logcatProcess = Runtime.getRuntime().exec(command)
-                val reader = BufferedReader(InputStreamReader(logcatProcess?.inputStream))
+    private fun readLogcat() {
+        try {
+            // 清除之前的 log 雖然有時候不可靠，但還是執行一下
+            Runtime.getRuntime().exec("logcat -c").waitFor()
 
-                var line: String? = ""
-                while (isReading && reader.readLine().also { line = it } != null) {
-                    line?.let { processLogLine(it) }
+            // 讀取包含 HDMI CEC 的 log，移除 -T 1 避免部分設備上直接 exit；
+            // 多加幾個 TCL 韌體可能使用的 CEC 相關 tag
+            val command = arrayOf("logcat", "-v", "time", "-s",
+                "HdmiCecController", "HdmiCecLocalDeviceTv",
+                "HdmiCecLocalDevice", "HdmiControlService",
+                "HdmiCecNetwork", "HdmiCecMessage")
+            val process = Runtime.getRuntime().exec(command)
+            logcatProcess = process
+            process.inputStream.bufferedReader().use { reader ->
+                // onDestroy 會 destroy process，讓 readLine() 回傳 null 或丟出 IOException 而結束迴圈
+                while (serviceScope.isActive) {
+                    val line = reader.readLine() ?: break
+                    processLogLine(line)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error reading logcat", e)
-            } finally {
-                isReading = false
             }
-        }.start()
+        } catch (e: IOException) {
+            Log.e(TAG, "Error reading logcat", e)
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Not allowed to run logcat", e)
+        } finally {
+            logcatProcess?.destroy()
+            logcatProcess = null
+        }
     }
 
     private fun processLogLine(line: String) {
         if (line.contains("command:<")) CecDebugLog.add(this, line.takeLast(220))
-        if (line.contains("command:<Image View On>")) {
-            Log.i(TAG, "偵測到 CEC 喚醒訊號 (Image View On)！準備喚醒螢幕...")
-            TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
-            TclHdmiApplication.wakeScreen(this)
-            // 不再喚醒到 Launcher，避免覆蓋原生 CEC 訊號源
-        } else if (line.contains("command:<Active Source>")) {
-            // Active Source carries the source physical address, e.g. 10 00 for
-            // HDMI 1 or 30 00 for HDMI 3.  Its first nibble is the TV input port.
-            switchToPhysicalAddress(line, "CEC Active Source", 0)
-        } else if (line.contains("command:<Routing Change>")) {
-            // Routing Change contains old and new physical addresses.  Use the
-            // new address (the third parameter) when a source uses routing rather
-            // than broadcasting Active Source.
-            switchToPhysicalAddress(line, "CEC Routing Change", 2)
-        } else if (line.contains("command:<InActive Source>")) {
-            Log.i(TAG, "偵測到 CEC 待機訊號 (InActive Source)！準備關閉螢幕...")
-            goToSleep()
-        } else if (line.contains("command:<Standby>")) {
-            // Report Power Status 01 is only a response to the TV's periodic
-            // polling request, not a CEC Standby command.  Treating it as Standby
-            // caused a screen-lock attempt every time the TV polled a sleeping
-            // playback device.
-            Log.i(TAG, "偵測到 CEC Standby 指令，準備關閉螢幕...")
-            goToSleep()
+
+        when (val event = CecLogParser.parse(line)) {
+            CecLogEvent.ImageViewOn -> {
+                Log.i(TAG, "偵測到 CEC 喚醒訊號 (Image View On)！準備喚醒螢幕...")
+                TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
+                TclHdmiApplication.wakeScreen(this)
+                // 不再喚醒到 Launcher，避免覆蓋原生 CEC 訊號源
+            }
+            is CecLogEvent.ActiveSource -> switchToPort(event.port, "CEC Active Source")
+            is CecLogEvent.RoutingChange -> switchToPort(event.port, "CEC Routing Change")
+            CecLogEvent.InactiveSource -> {
+                Log.i(TAG, "偵測到 CEC 待機訊號 (InActive Source)！準備關閉螢幕...")
+                goToSleep()
+            }
+            CecLogEvent.Standby -> {
+                Log.i(TAG, "偵測到 CEC Standby 指令，準備關閉螢幕...")
+                goToSleep()
+            }
+            null -> Unit
         }
     }
 
-    private fun switchToPhysicalAddress(line: String, event: String, addressParameterIndex: Int) {
-        val params = "params:((?: [0-9a-fA-F]{2})+)".toRegex()
-            .find(line)
-            ?.groupValues
-            ?.get(1)
-            ?.trim()
-            ?.split(Regex("\\s+"))
-            ?: return
-        val firstAddressByte = params.getOrNull(addressParameterIndex) ?: return
-        val port = firstAddressByte.firstOrNull()?.digitToIntOrNull(16)
-        if (port == null || port !in 1..4) {
-            Log.w(TAG, "$event has unsupported physical address byte: $firstAddressByte")
+    private fun switchToPort(port: Int?, event: String) {
+        if (port == null) {
+            Log.w(TAG, "$event 的實體位址無法解析或不受支援")
             return
         }
 
@@ -280,17 +293,9 @@ class CecLogReaderService : Service() {
         TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
         TclHdmiApplication.wakeScreen(this)
 
-        if (port in 1..3) {
+        if (port in CecLogParser.SWITCHABLE_PORTS) {
             cancelPendingFallback() // 取消 MSG_VIEW_ON 的倒數，避免切換衝突
-            Log.i(TAG, "CEC 主動切換至 HDMI $port")
-            CecDebugLog.add(this, "$event → HDMI $port (switching)")
-            try {
-                val intent = HdmiViewerActivity.createIntent(this, port)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(intent)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to launch HdmiViewerActivity for port $port", e)
-            }
+            switchHdmiPort(this, port, event)
         } else {
             Log.i(TAG, "HDMI $port 超出支援範圍，僅喚醒螢幕")
             CecDebugLog.add(this, "$event → HDMI $port (unsupported port, wake only)")
@@ -304,21 +309,14 @@ class CecLogReaderService : Service() {
     private fun extractPortFromIntent(intent: Intent): Int? {
         for (key in arrayOf("port", "hdmi_port", "source_port", "input_port", "hdmi_id")) {
             val v = intent.getIntExtra(key, -1)
-            if (v in 1..3) return v
+            if (v in CecLogParser.SWITCHABLE_PORTS) return v
         }
         // 嘗試從 physical address 推算 port（首 nibble = port）
-        val physAddr = intent.getIntExtra("physical_address", -1)
-        if (physAddr > 0) {
-            val p = (physAddr shr 12) and 0xF
-            if (p in 1..3) return p
-        }
+        CecLogParser.portFromPhysicalAddress(intent.getIntExtra("physical_address", -1))?.let { return it }
         // 嘗試字串型態的 physical address（例如 "1000", "3000"）
         for (key in arrayOf("physical_address", "phyAddr", "address")) {
-            val str = intent.getStringExtra(key)
-            if (str != null) {
-                val p = str.firstOrNull()?.digitToIntOrNull(16)
-                if (p != null && p in 1..3) return p
-            }
+            val port = intent.getStringExtra(key)?.let(CecLogParser::portFromPhysicalAddress)
+            if (port != null) return port
         }
         return null
     }
@@ -327,15 +325,17 @@ class CecLogReaderService : Service() {
      * 主動啟動 HdmiViewerActivity 切換至指定 HDMI port。
      */
     private fun switchHdmiPort(context: Context, port: Int, event: String) {
-        if (port !in 1..3) return
+        if (port !in CecLogParser.SWITCHABLE_PORTS) return
         Log.i(TAG, "CEC $event → 主動切換至 HDMI $port")
         CecDebugLog.add(context, "$event → HDMI $port (switching)")
         try {
             val switchIntent = HdmiViewerActivity.createIntent(context, port)
             switchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(switchIntent)
-        } catch (e: Exception) {
+        } catch (e: ActivityNotFoundException) {
             Log.e(TAG, "Failed to launch HdmiViewerActivity for port $port", e)
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Not allowed to launch HdmiViewerActivity for port $port", e)
         }
     }
 
@@ -359,16 +359,14 @@ class CecLogReaderService : Service() {
     private fun queryAndLogInputStates(): String {
         val tim = tvInputManager ?: return "no TvInputManager"
         return buildString {
-            for ((inputId, port) in arrayOf(
-                HdmiViewerActivity.HW_HDMI1 to 1,
-                HdmiViewerActivity.HW_HDMI2 to 2,
-                HdmiViewerActivity.HW_HDMI3 to 3,
-            )) {
+            for ((inputId, port) in HDMI_INPUTS) {
                 try {
                     val state = tim.getInputState(inputId)
                     if (isNotEmpty()) append(" ")
                     append("H$port=${inputStateToString(state)}")
-                } catch (_: Exception) {}
+                } catch (e: RuntimeException) {
+                    Log.w(TAG, "getInputState($inputId) failed: ${e.message}")
+                }
             }
         }.ifEmpty { "query failed" }
     }
@@ -377,16 +375,14 @@ class CecLogReaderService : Service() {
     private fun findSingleConnectedPort(): Int? {
         val tim = tvInputManager ?: return null
         val connected = mutableListOf<Int>()
-        for ((inputId, port) in arrayOf(
-            HdmiViewerActivity.HW_HDMI1 to 1,
-            HdmiViewerActivity.HW_HDMI2 to 2,
-            HdmiViewerActivity.HW_HDMI3 to 3,
-        )) {
+        for ((inputId, port) in HDMI_INPUTS) {
             try {
                 if (tim.getInputState(inputId) == TvInputManager.INPUT_STATE_CONNECTED) {
                     connected.add(port)
                 }
-            } catch (_: Exception) {}
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "getInputState($inputId) failed: ${e.message}")
+            }
         }
         return if (connected.size == 1) connected[0] else null
     }
@@ -416,20 +412,24 @@ class CecLogReaderService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i(TAG, "CecLogReaderService onDestroy")
-        isReading = false
         logcatProcess?.destroy()
+        serviceScope.cancel()
         cancelPendingFallback()
 
         // 反註冊 TvInputManager callback
         try {
             tvInputManager?.unregisterCallback(tvInputCallback)
-        } catch (_: Exception) {}
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "unregisterCallback failed: ${e.message}")
+        }
 
         // 反註冊動態 CEC 廣播接收器
         if (isCecReceiverRegistered) {
             try {
                 unregisterReceiver(cecBroadcastReceiver)
-            } catch (_: Exception) {}
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "unregisterReceiver failed: ${e.message}")
+            }
             isCecReceiverRegistered = false
         }
     }
@@ -448,51 +448,5 @@ class CecLogReaderService : Service() {
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
         }
-    }
-}
-
-/** Small persistent on-device buffer for CEC troubleshooting. */
-object CecDebugLog {
-    private const val PREFS = "cec_debug"
-    private const val KEY_EVENTS = "events"
-    private const val MAX_EVENTS = 60
-
-    private val deque = java.util.ArrayDeque<String>()
-    private var isInitialized = false
-
-    @Synchronized
-    private fun ensureInitialized(context: Context) {
-        if (isInitialized) return
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val saved = prefs.getString(KEY_EVENTS, "") ?: ""
-        saved.lines().filter { it.isNotBlank() }.forEach { deque.add(it) }
-        isInitialized = true
-    }
-
-    @Synchronized
-    fun add(context: Context, message: String) {
-        ensureInitialized(context)
-        val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
-            .format(java.util.Date())
-        val entry = "$timestamp  $message"
-        deque.add(entry)
-        while (deque.size > MAX_EVENTS) {
-            deque.removeFirst()
-        }
-        val entries = deque.joinToString("\n")
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_EVENTS, entries).apply()
-    }
-
-    @Synchronized
-    fun read(context: Context): String {
-        ensureInitialized(context)
-        return if (deque.isEmpty()) "No CEC events recorded yet." else deque.joinToString("\n")
-    }
-
-    @Synchronized
-    fun clear(context: Context) {
-        deque.clear()
-        isInitialized = true
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_EVENTS).apply()
     }
 }

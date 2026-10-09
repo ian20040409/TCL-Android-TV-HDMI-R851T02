@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.launcher
 
 import android.view.ViewConfiguration
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.lnu.tclhdmilauncher.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -317,7 +318,6 @@ class LauncherScreenTest {
             val current = inputs.value
             LauncherTheme {
                 LauncherScreen(
-                    brandTitle = context.getString(R.string.brand_name),
                     defaultPort = current.defaultPort,
                     countdownText = current.countdownText,
                     focusRequestGeneration = current.focusRequestGeneration,

@@ -1,4 +1,4 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.settings
 
 import android.app.AlertDialog
 import android.content.Context
@@ -8,10 +8,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.ArrayMap
+import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.GuidedStepSupportFragment
 import androidx.leanback.widget.GuidanceStylist
 import androidx.leanback.widget.GuidedAction
+import com.lnu.tclhdmilauncher.DeviceHelper
+import com.lnu.tclhdmilauncher.R
 import java.text.Collator
 import java.util.concurrent.Executors
 
@@ -290,7 +293,8 @@ class AppModeSettingsActivity : FragmentActivity() {
                     val label = try {
                         ri.loadLabel(pm)?.toString()?.takeIf { it.isNotBlank() }
                             ?: pm.getApplicationLabel(appInfo).toString()
-                    } catch (_: Exception) {
+                    } catch (e: RuntimeException) {
+                        Log.w("AppModeSettings", "Failed to load label for $pkg: ${e.message}")
                         pkg
                     }
                     list.add(InstalledApp(pkg, label))

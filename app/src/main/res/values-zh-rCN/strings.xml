@@ -17,7 +17,7 @@
     <string name="btn_batch_action">批量操作</string>
     <string name="btn_cancel_selection">取消</string>
     <string name="app_list_loading">正在加载应用…</string>
-    <string name="card_default_badge">● 默认</string>
+    <string name="card_default_badge">默认</string>
     <string name="bottom_hint">[OK] 立即切换   •   [1 / 2 / 3] 直达信号   •   [菜单] 设置   •   [长按 OK] 设为默认</string>
     <string name="countdown_active">%1$d 秒后自动进入 HDMI %2$d（按方向键取消）</string>
     <string name="text_cancelled">请选择信号源（长按 OK 可设为默认）</string>

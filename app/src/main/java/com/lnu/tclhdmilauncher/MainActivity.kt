@@ -1,5 +1,6 @@
 package com.lnu.tclhdmilauncher
 
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -17,6 +18,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.lnu.tclhdmilauncher.accessibility.AccessibilityHelper
+import com.lnu.tclhdmilauncher.applist.AppListActivity
+import com.lnu.tclhdmilauncher.launcher.LauncherScreen
+import com.lnu.tclhdmilauncher.launcher.LauncherTheme
+import com.lnu.tclhdmilauncher.settings.OobeActivity
+import com.lnu.tclhdmilauncher.settings.SettingsActivity
+import com.lnu.tclhdmilauncher.settings.SettingsRepository
+import com.lnu.tclhdmilauncher.shizuku.ShizukuHelper
 
 /**
  * TV Material launcher UI; countdown, CEC coordination and HDMI launching stay
@@ -89,8 +98,11 @@ class MainActivity : ComponentActivity() {
                     }
                     context.startActivity(candidate)
                     return
-                } catch (_: Exception) {
+                } catch (e: ActivityNotFoundException) {
                     // 繼續嘗試下一個候選 Intent
+                    Log.w(TAG, "Settings candidate not found: ${e.message}")
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "Settings candidate not allowed: ${e.message}")
                 }
             }
         }
@@ -179,9 +191,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             LauncherTheme {
                 LauncherScreen(
-                    brandTitle = DeviceHelper.getBrandTitle(this),
                     defaultPort = defaultPort,
                     countdownText = countdownText,
+                    countdownProgress = if (!isAppMode && !isCancelled && countdownDuration > 0) {
+                        ((countdownDuration - secondsLeft + 1f) / countdownDuration).coerceIn(0f, 1f)
+                    } else null,
                     focusRequestGeneration = focusRequestGeneration,
                     onPortClick = { port -> cancelTimer(); switchTo(port, fromTimer = false) },
                     onPortLongClick = ::setDefault,
@@ -457,6 +471,10 @@ class MainActivity : ComponentActivity() {
         try {
             val intent = HdmiViewerActivity.createIntent(this, port)
             startActivity(intent)
+            // Skip the window transition: animating a Compose window against the TvView player
+            // window stutters on the TV's GPU.
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
         } catch (e: Exception) {
             Log.e(TAG, "Switch failed: ${e.message}")
         }

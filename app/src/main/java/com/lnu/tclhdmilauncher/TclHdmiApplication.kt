@@ -9,6 +9,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
+import com.lnu.tclhdmilauncher.applist.AppListActivity
+import com.lnu.tclhdmilauncher.cec.CecLogReaderService
+import com.lnu.tclhdmilauncher.power.PowerHelper
 
 /**
  * 應用程式全域 Application

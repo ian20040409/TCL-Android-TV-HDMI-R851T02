@@ -4,7 +4,7 @@
 # 保留 TvContract 與 Launcher 核心組件
 -keep class android.media.tv.** { *; }
 -keep class com.lnu.tclhdmilauncher.MainActivity { *; }
--keep class com.lnu.tclhdmilauncher.AppListActivity { *; }
+-keep class com.lnu.tclhdmilauncher.applist.AppListActivity { *; }
 -keep class com.lnu.tclhdmilauncher.BootAndWakeReceiver { *; }
 
 # 徹底剝離所有除錯元資訊，極致縮減 DEX 大小

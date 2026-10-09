@@ -1,9 +1,8 @@
-package com.lnu.tclhdmilauncher
+package com.lnu.tclhdmilauncher.applist
 
 import android.content.ComponentName
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -34,25 +32,22 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.Button
-import androidx.tv.material3.Checkbox
-import androidx.tv.material3.Icon
-import androidx.tv.material3.ListItem
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Surface
+import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
+import com.lnu.tclhdmilauncher.R
+import kotlin.reflect.KProperty
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -92,6 +87,7 @@ internal fun AppListScreen(
     onBatchClick: () -> Unit,
     onCancelSelection: () -> Unit,
     onDialogDismiss: () -> Unit,
+    countdownProgress: Float? = null,
 ) {
     // Occurrences distinguish a recent shortcut from the same component in its category.
     val keys = remember(items) {
@@ -113,8 +109,12 @@ internal fun AppListScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var navigationJob by remember { mutableStateOf<Job?>(null) }
-    var lastRowKey by remember { mutableStateOf<String?>(null) }
-    var focusTarget by remember { mutableStateOf<String?>(null) }
+    // Plain (non-snapshot) holders: written on every focus move, so they must not
+    // trigger recomposition of the whole list.
+    val lastRowKeyRef = remember { PlainRef<String?>(null) }
+    val focusTargetRef = remember { PlainRef<String?>(null) }
+    var lastRowKey: String? by lastRowKeyRef
+    var focusTarget: String? by focusTargetRef
     var initialFocusHandled by remember { mutableStateOf(false) }
     var headerUsedDuringLoad by remember { mutableStateOf(false) }
     var loadingWasActive by remember { mutableStateOf(false) }
@@ -215,43 +215,34 @@ internal fun AppListScreen(
             } else false
         }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        colors = SurfaceDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onBackground,
+        ),
+    ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Text(
-                    text = if (isMultiSelectMode) {
-                        stringResource(R.string.title_selected_count, selectedPackages.size)
-                    } else stringResource(R.string.app_list_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedButton(
-                    onClick = {
-                        if (isLoading) headerUsedDuringLoad = true
-                        if (isMultiSelectMode) onBatchClick() else onSettingsClick()
-                    },
-                    modifier = headerModifier(primary = true),
-                ) {
-                    Text(stringResource(if (isMultiSelectMode) R.string.btn_batch_action else R.string.btn_settings))
-                }
-                OutlinedButton(
-                    onClick = {
-                        if (isLoading) headerUsedDuringLoad = true
-                        if (isMultiSelectMode) onCancelSelection() else onHdmiClick()
-                    },
-                    modifier = headerModifier(primary = false),
-                ) {
-                    Text(stringResource(if (isMultiSelectMode) R.string.btn_cancel_selection else R.string.btn_hdmi_selector))
-                }
+            AppListHeader(
+                isMultiSelectMode = isMultiSelectMode,
+                selectedCount = selectedPackages.size,
+                primaryModifier = headerModifier(primary = true),
+                secondaryModifier = headerModifier(primary = false),
+                onPrimaryClick = {
+                    if (isLoading) headerUsedDuringLoad = true
+                    if (isMultiSelectMode) onBatchClick() else onSettingsClick()
+                },
+                onSecondaryClick = {
+                    if (isLoading) headerUsedDuringLoad = true
+                    if (isMultiSelectMode) onCancelSelection() else onHdmiClick()
+                },
+            )
+            if (countdownText != null) {
+                AppListCountdownStatus(countdownText, countdownProgress)
             }
-            if (countdownText != null) Text(countdownText, style = MaterialTheme.typography.bodyLarge)
             if (isLoading) Text(stringResource(R.string.app_list_loading))
             if (!isLoading && appIndices.isEmpty()) Text(stringResource(R.string.app_list_empty))
             LazyColumn(
@@ -262,11 +253,7 @@ internal fun AppListScreen(
             ) {
                 itemsIndexed(if (isLoading) emptyList() else items, key = { index, _ -> keys[index] }) { index, item ->
                     when (item) {
-                        is AppListItem.Section -> Text(
-                            text = item.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                        )
+                        is AppListItem.Section -> AppListSectionHeader(item.title)
                         is AppListItem.App -> {
                             val bitmap = icons[item.packageName]
                             val iconCallback by rememberUpdatedState(onIconNeeded)
@@ -278,49 +265,14 @@ internal fun AppListScreen(
                                 }.first { it }
                                 if (bitmap == null) iconCallback(item)
                             }
-                            ListItem(
-                                selected = isMultiSelectMode && item.packageName in selectedPackages,
+                            AppListEntryRow(
+                                item = item,
+                                icon = bitmap,
+                                isSelected = isMultiSelectMode && item.packageName in selectedPackages,
+                                isAutoOpen = item.packageName == autoOpenPackage,
+                                isMultiSelectMode = isMultiSelectMode,
                                 onClick = { onAppClick(item) },
                                 onLongClick = { onAppLongClick(item) },
-                                headlineContent = {
-                                    Text(
-                                        if (item.appInfo.enabled) item.label
-                                        else stringResource(R.string.app_disabled_suffix, item.label),
-                                    )
-                                },
-                                supportingContent = {
-                                    Text(
-                                        item.packageName + if (item.appInfo.enabled) ""
-                                        else stringResource(R.string.app_frozen_suffix),
-                                    )
-                                },
-                                leadingContent = {
-                                    if (bitmap != null) {
-                                        Image(
-                                            bitmap = bitmap.asImageBitmap(),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(40.dp),
-                                        )
-                                    } else {
-                                        Icon(
-                                            painter = painterResource(R.drawable.apps_48px),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(40.dp),
-                                        )
-                                    }
-                                },
-                                trailingContent = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (item.packageName == autoOpenPackage) Text(stringResource(R.string.badge_auto_open))
-                                        if (isMultiSelectMode) {
-                                            Checkbox(
-                                                checked = item.packageName in selectedPackages,
-                                                onCheckedChange = null,
-                                                modifier = Modifier.focusProperties { canFocus = false },
-                                            )
-                                        }
-                                    }
-                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("app-list-row-$index")
@@ -366,10 +318,25 @@ internal fun AppListScreen(
     if (dialog != null) AppListMenu(dialog, onDialogDismiss)
 }
 
+private class PlainRef<T>(var value: T) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        value = newValue
+    }
+}
+
+private fun androidx.compose.ui.input.key.KeyEvent.isConfirmKey() =
+    key == Key.Enter || key == Key.DirectionCenter || key == Key.NumPadEnter
+
 // FocusRequester cannot target an uncomposed lazy item. Wait for its layout before
 // requesting focus; the same path handles both D-pad scrolling and dialog restoration.
 private suspend fun focusLazyItem(state: LazyListState, index: Int, key: Any, requester: FocusRequester) {
-    if (state.layoutInfo.visibleItemsInfo.none { it.key == key }) state.scrollToItem(index)
+    // Fast path: an already laid-out row can take focus immediately. Waiting a frame on every
+    // D-pad step made held Up/Down feel laggy; focus itself brings the row into view.
+    if (state.layoutInfo.visibleItemsInfo.any { it.key == key }) {
+        if (runCatching { requester.requestFocus() }.isSuccess) return
+    }
+    state.scrollToItem(index)
     snapshotFlow { state.layoutInfo.visibleItemsInfo.any { it.key == key } }.first { it }
     withFrameNanos { }
     requester.requestFocus()
@@ -382,6 +349,11 @@ private fun AppListMenu(dialog: AppListDialog, onDismiss: () -> Unit) {
     val state = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var navigationJob by remember { mutableStateOf<Job?>(null) }
+    // The dialog opens while the user is still holding OK (long press). Swallow that
+    // press's repeats and release so they cannot click the auto-focused first option.
+    // A fresh press (repeatCount == 0) arms the dialog.
+    val armedRef = remember { PlainRef(false) }
+    var armed: Boolean by armedRef
     Dialog(onDismissRequest = onDismiss) {
         LaunchedEffect(dialog) {
             if (focus.isEmpty()) {
@@ -397,6 +369,10 @@ private fun AppListMenu(dialog: AppListDialog, onDismiss: () -> Unit) {
                     if (it.key == Key.Back) {
                         if (it.type == KeyEventType.KeyUp) onDismiss()
                         true
+                    } else if (it.isConfirmKey() && !armed) {
+                        if (it.type == KeyEventType.KeyUp) armed = true
+                        else if (it.nativeKeyEvent.repeatCount == 0) armed = true
+                        !armed || it.type == KeyEventType.KeyUp
                     } else false
                 },
         ) {
