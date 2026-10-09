@@ -84,6 +84,49 @@ object ShizukuHelper {
                 }
             }
         }
+
+        grantAccessibilityService(context)
+    }
+
+    /**
+     * Enable WakeAccessibilityService through the shell-owned secure settings.
+     * Keep any accessibility services the user has already enabled.
+     */
+    private fun grantAccessibilityService(context: Context) {
+        if (AccessibilityHelper.isServiceEnabled(context)) {
+            Log.d(TAG, "WakeAccessibilityService is already enabled")
+            return
+        }
+
+        val service = "${context.packageName}/${WakeAccessibilityService::class.java.name}"
+        val dollar = '$'
+        val command = """
+            current=$dollar(settings get secure enabled_accessibility_services 2>/dev/null)
+            service='$service'
+            case ":${dollar}current:" in
+                *":${dollar}service:"*) ;;
+                *)
+                    if [ -z "${dollar}current" ] || [ "${dollar}current" = "null" ]; then
+                        current="${dollar}service"
+                    else
+                        current="${dollar}current:${dollar}service"
+                    fi
+                    settings put secure enabled_accessibility_services "${dollar}current" || exit ${dollar}?
+                    ;;
+            esac
+            settings put secure accessibility_enabled 1
+        """.trimIndent()
+
+        try {
+            val exitCode = executeShellCommand(command)
+            if (exitCode == 0) {
+                Log.i(TAG, "Enabled WakeAccessibilityService via Shizuku shell")
+            } else {
+                Log.e(TAG, "Failed to enable WakeAccessibilityService via Shizuku, exit: $exitCode")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error enabling WakeAccessibilityService via Shizuku", e)
+        }
     }
 
     private val newProcessMethod by lazy {
@@ -97,23 +140,32 @@ object ShizukuHelper {
         method
     }
 
-    /**
-     * 執行 Shizuku Shell 指令
-     */
-    fun executeShellCommand(command: String): Int {
-        if (!Shizuku.pingBinder()) return -1
+    /** Start a long-running shell process through Shizuku (for example, logcat). */
+    fun startShellProcess(command: String): Process? {
+        if (!isShizukuPermissionGranted()) return null
         return try {
-            val process = newProcessMethod.invoke(
+            newProcessMethod.invoke(
                 null,
                 arrayOf("sh", "-c", command),
                 null,
                 null
             ) as Process
-            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting Shizuku shell process", e)
+            null
+        }
+    }
+
+    /**
+     * 執行 Shizuku Shell 指令
+     */
+    fun executeShellCommand(command: String): Int {
+        val process = startShellProcess(command) ?: return -1
+        return try {
             process.waitFor()
             process.exitValue()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error executing Shizuku shell command", e)
             -1
         }
     }

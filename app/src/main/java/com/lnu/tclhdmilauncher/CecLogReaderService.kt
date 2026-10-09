@@ -15,20 +15,34 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import rikka.shizuku.Shizuku
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
 class CecLogReaderService : Service() {
 
-    private var logcatProcess: Process? = null
-    private var isReading = false
+    @Volatile private var logcatProcess: Process? = null
+    @Volatile private var isReading = false
+    @Volatile private var logcatGeneration = 0
+    @Volatile private var serviceDestroyed = false
     private var isCecReceiverRegistered = false
 
     // TvInputManager：用來偵測哪個 HDMI port 狀態變化為 CONNECTED，判斷正確的 CEC 來源
     private var tvInputManager: TvInputManager? = null
     @Volatile private var pendingCecSwitchTime: Long = 0
+    @Volatile private var lastViewOnReceivedAt: Long = 0
     private val cecHandler = Handler(Looper.getMainLooper())
     private var pendingFallbackRunnable: Runnable? = null
+
+    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, _ ->
+        cecHandler.post { restartLogcatReader() }
+    }
+    private val shizukuBinderReceivedListener = Shizuku.OnBinderReceivedListener {
+        cecHandler.post { restartLogcatReader() }
+    }
+    private val shizukuBinderDeadListener = Shizuku.OnBinderDeadListener {
+        cecHandler.post { restartLogcatReader() }
+    }
 
     /**
      * TvInputCallback：監聽 HDMI 輸入狀態變化。
@@ -42,10 +56,13 @@ class CecLogReaderService : Service() {
             Log.i(TAG, "TvInputCallback: HDMI $port → $stateStr")
             CecDebugLog.add(this@CecLogReaderService, "InputState: HDMI $port → $stateStr")
 
-            // 如果有等待中的 CEC 切換（MSG_VIEW_ON 後 5 秒內）且此 port 剛變為 CONNECTED
+            // Only route from TvInput state when this is the sole connected HDMI port.
+            val pendingSince = pendingCecSwitchTime
             if (state == TvInputManager.INPUT_STATE_CONNECTED &&
-                System.currentTimeMillis() - pendingCecSwitchTime < 5000) {
-                Log.i(TAG, "CEC TvInput 狀態匹配 → 切換至 HDMI $port")
+                pendingSince > 0 &&
+                System.currentTimeMillis() - pendingSince < 5000 &&
+                findSingleConnectedPort() == port) {
+                Log.i(TAG, "CEC TvInput 唯一連線埠 → HDMI $port")
                 cancelPendingFallback()
                 pendingCecSwitchTime = 0
                 TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
@@ -79,8 +96,14 @@ class CecLogReaderService : Service() {
 
             when (action) {
                 "com.tcl.action.cec.MSG_VIEW_ON" -> {
+                    val now = System.currentTimeMillis()
+                    if (lastViewOnReceivedAt > 0 && now - lastViewOnReceivedAt < 1200L) {
+                        CecDebugLog.add(context, "MSG_VIEW_ON duplicate ignored ($extraInfo)")
+                        return
+                    }
+                    lastViewOnReceivedAt = now
                     Log.i(TAG, "（前台服務）收到 MSG_VIEW_ON ($extraInfo)")
-                    TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
+                    TclHdmiApplication.lastCecWakeTime = now
                     TclHdmiApplication.wakeScreen(context)
 
                     // 記錄目前各 HDMI port 的輸入狀態
@@ -102,22 +125,25 @@ class CecLogReaderService : Service() {
                         return
                     }
 
-                    // 3. 無法立即判定 → 等待 TvInputCallback 偵測狀態變化（最多 1.5 秒後 fallback）
-                    // 或是等待 Logcat 攔截到 <Active Source> 進行精準切換
+                    // 無法判定時等待唯一 HDMI 連線狀態或 logcat 的 Active Source，絕不猜預設埠。
                     pendingCecSwitchTime = System.currentTimeMillis()
                     cancelPendingFallback()
                     val svc = this@CecLogReaderService
-                    val fallbackPort = SettingsRepository.getDefaultPort(context)
                     pendingFallbackRunnable = Runnable {
                         if (pendingCecSwitchTime > 0) {
                             pendingCecSwitchTime = 0
-                            val p = findSingleConnectedPort() ?: fallbackPort
-                            CecDebugLog.add(svc, "MSG_VIEW_ON fallback → HDMI $p ($stateLog)")
-                            switchHdmiPort(svc, p, "MSG_VIEW_ON fallback")
+                            pendingFallbackRunnable = null
+                            val uniquePort = findSingleConnectedPort()
+                            if (uniquePort != null) {
+                                CecDebugLog.add(svc, "MSG_VIEW_ON unique-port fallback → HDMI $uniquePort ($stateLog)")
+                                switchHdmiPort(svc, uniquePort, "MSG_VIEW_ON unique-port fallback")
+                            } else {
+                                CecDebugLog.add(svc, "MSG_VIEW_ON unresolved: multiple/no connected ports ($stateLog); waiting for CEC Active Source")
+                            }
                         }
                     }
                     cecHandler.postDelayed(pendingFallbackRunnable!!, 1500)
-                    CecDebugLog.add(context, "MSG_VIEW_ON ($stateLog) → waiting for TvInput state/logcat...")
+                    CecDebugLog.add(context, "MSG_VIEW_ON ($stateLog) → waiting for unique TvInput state/logcat...")
                 }
 
                 "com.tcl.action.cec.MSG_ACTIVE_SOURCE" -> {
@@ -164,6 +190,13 @@ class CecLogReaderService : Service() {
             .build()
 
         startForeground(1001, notification)
+        try {
+            Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
+            Shizuku.addBinderReceivedListener(shizukuBinderReceivedListener)
+            Shizuku.addBinderDeadListener(shizukuBinderDeadListener)
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to observe Shizuku state", e)
+        }
         startLogcatReader()
 
         // 註冊動態 CEC 廣播接收器（解決 Android O+ 靜態接收器被封鎖的問題）
@@ -203,55 +236,91 @@ class CecLogReaderService : Service() {
     }
 
     private fun startLogcatReader() {
-        if (isReading) return
+        if (isReading || serviceDestroyed) return
         isReading = true
+        val generation = ++logcatGeneration
 
         Thread {
-            try {
-                // 清除之前的 log 雖然有時候不可靠，但還是執行一下
-                Runtime.getRuntime().exec("logcat -c").waitFor()
-                
-                // 讀取包含 HDMI CEC 的 log，移除 -T 1 避免部分設備上直接 exit
-                // 多加幾個 TCL 韌體可能使用的 CEC 相關 tag
-                val command = arrayOf("logcat", "-v", "time", "-s",
-                    "HdmiCecController", "HdmiCecLocalDeviceTv",
-                    "HdmiCecLocalDevice", "HdmiControlService",
-                    "HdmiCecNetwork", "HdmiCecMessage")
-                logcatProcess = Runtime.getRuntime().exec(command)
-                val reader = BufferedReader(InputStreamReader(logcatProcess?.inputStream))
+            while (isReading && !serviceDestroyed && generation == logcatGeneration) {
+                var process: Process? = null
+                try {
+                    val command = "logcat -b all -v time -s " +
+                        "HdmiCecController HdmiCecLocalDeviceTv HdmiCecLocalDevice " +
+                        "HdmiControlService HdmiCecNetwork HdmiCecMessage HdmiCec CecLogReaderService 2>&1"
+                    val useShizuku = ShizukuHelper.isShizukuPermissionGranted()
+                    process = if (useShizuku) {
+                        ShizukuHelper.startShellProcess(command)
+                    } else {
+                        null
+                    } ?: Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+                    logcatProcess = process
+                    Log.i(TAG, "CEC logcat reader started via ${if (useShizuku) "Shizuku shell" else "app process"}")
+                    CecDebugLog.add(this@CecLogReaderService, "Logcat reader: ${if (useShizuku) "Shizuku shell" else "app process"}")
 
-                var line: String? = ""
-                while (isReading && reader.readLine().also { line = it } != null) {
-                    line?.let { processLogLine(it) }
+                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    while (isReading && !serviceDestroyed && generation == logcatGeneration) {
+                        val line = reader.readLine() ?: break
+                        processLogLine(line)
+                    }
+                    if (isReading && !serviceDestroyed && generation == logcatGeneration) {
+                        Log.w(TAG, "CEC logcat process exited (${process.waitFor()}); retrying")
+                    }
+                } catch (e: Exception) {
+                    if (isReading && !serviceDestroyed) {
+                        Log.e(TAG, "Error reading CEC logcat; retrying", e)
+                    }
+                } finally {
+                    process?.destroy()
+                    if (logcatProcess === process) logcatProcess = null
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error reading logcat", e)
-            } finally {
-                isReading = false
+
+                if (isReading && !serviceDestroyed && generation == logcatGeneration) {
+                    try {
+                        Thread.sleep(3000L)
+                    } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                    }
+                }
             }
-        }.start()
+            if (generation == logcatGeneration) isReading = false
+        }.apply {
+            name = "CecLogcatReader"
+            start()
+        }
+    }
+
+    private fun restartLogcatReader() {
+        if (serviceDestroyed) return
+        logcatGeneration++
+        isReading = false
+        logcatProcess?.destroy()
+        logcatProcess = null
+        cecHandler.postDelayed({ startLogcatReader() }, 300L)
     }
 
     private fun processLogLine(line: String) {
-        if (line.contains("command:<")) CecDebugLog.add(this, line.takeLast(220))
-        if (line.contains("command:<Image View On>")) {
+        val normalized = line.lowercase(java.util.Locale.ROOT)
+        if (line.contains("command:<") || normalized.contains("<active source>") || normalized.contains("<routing change>")) {
+            CecDebugLog.add(this, line.takeLast(220))
+        }
+        if (normalized.contains("<image view on>")) {
             Log.i(TAG, "偵測到 CEC 喚醒訊號 (Image View On)！準備喚醒螢幕...")
             TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
             TclHdmiApplication.wakeScreen(this)
             // 不再喚醒到 Launcher，避免覆蓋原生 CEC 訊號源
-        } else if (line.contains("command:<Active Source>")) {
+        } else if (normalized.contains("<active source>")) {
             // Active Source carries the source physical address, e.g. 10 00 for
             // HDMI 1 or 30 00 for HDMI 3.  Its first nibble is the TV input port.
             switchToPhysicalAddress(line, "CEC Active Source", 0)
-        } else if (line.contains("command:<Routing Change>")) {
+        } else if (normalized.contains("<routing change>")) {
             // Routing Change contains old and new physical addresses.  Use the
             // new address (the third parameter) when a source uses routing rather
             // than broadcasting Active Source.
             switchToPhysicalAddress(line, "CEC Routing Change", 2)
-        } else if (line.contains("command:<InActive Source>")) {
+        } else if (normalized.contains("<inactive source>")) {
             Log.i(TAG, "偵測到 CEC 待機訊號 (InActive Source)！準備關閉螢幕...")
             goToSleep()
-        } else if (line.contains("command:<Standby>")) {
+        } else if (normalized.contains("<standby>")) {
             // Report Power Status 01 is only a response to the TV's periodic
             // polling request, not a CEC Standby command.  Treating it as Standby
             // caused a screen-lock attempt every time the TV polled a sleeping
@@ -262,7 +331,7 @@ class CecLogReaderService : Service() {
     }
 
     private fun switchToPhysicalAddress(line: String, event: String, addressParameterIndex: Int) {
-        val params = "params:((?: [0-9a-fA-F]{2})+)".toRegex()
+        val params = "params:\\s*((?:[0-9a-fA-F]{2}(?:\\s+|$))+)".toRegex(RegexOption.IGNORE_CASE)
             .find(line)
             ?.groupValues
             ?.get(1)
@@ -277,6 +346,8 @@ class CecLogReaderService : Service() {
         }
 
         Log.i(TAG, "偵測到 $event（HDMI $port）")
+        cancelPendingFallback()
+        pendingCecSwitchTime = 0
         TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
         TclHdmiApplication.wakeScreen(this)
 
@@ -328,6 +399,8 @@ class CecLogReaderService : Service() {
      */
     private fun switchHdmiPort(context: Context, port: Int, event: String) {
         if (port !in 1..3) return
+        cancelPendingFallback()
+        pendingCecSwitchTime = 0
         Log.i(TAG, "CEC $event → 主動切換至 HDMI $port")
         CecDebugLog.add(context, "$event → HDMI $port (switching)")
         try {
@@ -416,9 +489,20 @@ class CecLogReaderService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i(TAG, "CecLogReaderService onDestroy")
+        serviceDestroyed = true
+        logcatGeneration++
         isReading = false
         logcatProcess?.destroy()
+        logcatProcess = null
+        cecHandler.removeCallbacksAndMessages(null)
         cancelPendingFallback()
+        try {
+            Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
+            Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
+            Shizuku.removeBinderDeadListener(shizukuBinderDeadListener)
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to remove Shizuku listeners", e)
+        }
 
         // 反註冊 TvInputManager callback
         try {

@@ -45,9 +45,12 @@ class ShizukuSettingsActivity : FragmentActivity() {
         private val mainHandler = Handler(Looper.getMainLooper())
         private var isDownloading = false
 
-        private val onRequestPermissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, _ ->
+        private val onRequestPermissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
             if (requestCode == REQUEST_CODE_SHIZUKU) {
                 mainHandler.post {
+                    if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        context?.let { ShizukuHelper.tryGrantPermissions(it) }
+                    }
                     refreshUI()
                 }
             }
@@ -55,6 +58,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
 
         private val onBinderReceivedListener = Shizuku.OnBinderReceivedListener {
             mainHandler.post {
+                context?.let { ShizukuHelper.tryGrantPermissions(it) }
                 refreshUI()
             }
         }
