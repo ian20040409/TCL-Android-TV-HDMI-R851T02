@@ -57,6 +57,8 @@ internal fun LauncherTheme(content: @Composable () -> Unit) {
         colorScheme = darkColorScheme(
             primary = Color(0xFFB8C7FF),
             onPrimary = Color(0xFF172D60),
+            primaryContainer = Color(0xFF304578),
+            onPrimaryContainer = Color(0xFFDAE1FF),
             secondary = Color(0xFFC2C7D8),
             background = Color.Black,
             onBackground = Color(0xFFE6E1E8),
@@ -206,10 +208,10 @@ internal fun LauncherScreen(
                             colors = CardDefaults.colors(
                                 containerColor = Color(0xFF17181D),
                                 contentColor = Color(0xFFD9DCE5),
-                                focusedContainerColor = Color(0xFF2864E8),
-                                focusedContentColor = Color.White,
-                                pressedContainerColor = Color(0xFF1D4FB9),
-                                pressedContentColor = Color.White,
+                                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                focusedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                pressedContainerColor = MaterialTheme.colorScheme.primary,
+                                pressedContentColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                             border = CardDefaults.border(
                                 focusedBorder = Border.None,
