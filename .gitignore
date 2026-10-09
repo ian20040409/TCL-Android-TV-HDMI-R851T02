@@ -90,3 +90,4 @@ test*.kt
 !/.zed/settings.json
 
 /old stable ver
+/newUI
