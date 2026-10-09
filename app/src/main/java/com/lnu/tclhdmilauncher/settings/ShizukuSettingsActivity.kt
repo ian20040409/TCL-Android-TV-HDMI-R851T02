@@ -13,6 +13,7 @@ import androidx.leanback.widget.GuidanceStylist
 import androidx.leanback.widget.GuidedAction
 import com.lnu.tclhdmilauncher.DeviceHelper
 import com.lnu.tclhdmilauncher.R
+import com.lnu.tclhdmilauncher.cec.CecLogReaderService
 import com.lnu.tclhdmilauncher.cec.CecDebugActivity
 import com.lnu.tclhdmilauncher.shizuku.ShizukuHelper
 import rikka.shizuku.Shizuku
@@ -235,6 +236,7 @@ class ShizukuSettingsActivity : FragmentActivity() {
                 }
                 ACTION_GRANT_APP_PERMS -> {
                     ShizukuHelper.tryGrantPermissions(ctx)
+                    CecLogReaderService.restartLogcatReader(ctx)
                     Toast.makeText(ctx, R.string.shizuku_toast_granted_system_perms, Toast.LENGTH_SHORT).show()
                     refreshUI()
                 }

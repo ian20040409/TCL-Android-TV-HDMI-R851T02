@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.lnu.tclhdmilauncher.accessibility.AccessibilityHelper
 import com.lnu.tclhdmilauncher.applist.AppListActivity
+import com.lnu.tclhdmilauncher.cec.CecLogReaderService
 import com.lnu.tclhdmilauncher.launcher.LauncherScreen
 import com.lnu.tclhdmilauncher.launcher.LauncherTheme
 import com.lnu.tclhdmilauncher.settings.OobeActivity
@@ -165,6 +166,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         ShizukuHelper.tryGrantPermissions(this)
+        CecLogReaderService.restartLogcatReader(this)
 
         if (!SettingsRepository.isOobeCompleted(this)) {
             val oobeIntent = Intent(this, OobeActivity::class.java).apply {

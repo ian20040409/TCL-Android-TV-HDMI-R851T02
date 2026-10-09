@@ -4,6 +4,8 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.Manifest
+import android.content.pm.PackageManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -30,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -39,6 +42,7 @@ class CecLogReaderService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var logcatJob: Job? = null
     @Volatile private var logcatProcess: Process? = null
+    @Volatile private var restartLogcatRequested = false
     private var isCecReceiverRegistered = false
 
     // TvInputManager：用來偵測哪個 HDMI port 狀態變化為 CONNECTED，判斷正確的 CEC 來源
@@ -167,12 +171,23 @@ class CecLogReaderService : Service() {
     companion object {
         private const val TAG = "CecLogReaderService"
         private const val CHANNEL_ID = "CecLogReaderChannel"
+        private const val ACTION_RESTART_LOGCAT_READER = "com.lnu.tclhdmilauncher.action.RESTART_CEC_LOGCAT"
 
         private val HDMI_INPUTS = listOf(
             HdmiViewerActivity.HW_HDMI1 to 1,
             HdmiViewerActivity.HW_HDMI2 to 2,
             HdmiViewerActivity.HW_HDMI3 to 3,
         )
+
+        fun restartLogcatReader(context: Context) {
+            if (context.checkSelfPermission(Manifest.permission.READ_LOGS) != PackageManager.PERMISSION_GRANTED) return
+            val intent = Intent(context, CecLogReaderService::class.java).setAction(ACTION_RESTART_LOGCAT_READER)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
     }
 
     override fun onCreate() {
@@ -218,6 +233,11 @@ class CecLogReaderService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i(TAG, "CecLogReaderService onStartCommand")
+        if (intent?.action == ACTION_RESTART_LOGCAT_READER) {
+            restartLogcatRequested = true
+            logcatProcess?.destroy()
+            if (logcatJob?.isActive != true) startLogcatReader()
+        }
         return START_STICKY
     }
 
@@ -226,33 +246,66 @@ class CecLogReaderService : Service() {
         logcatJob = serviceScope.launch { readLogcat() }
     }
 
-    private fun readLogcat() {
-        try {
-            // 清除之前的 log 雖然有時候不可靠，但還是執行一下
-            Runtime.getRuntime().exec("logcat -c").waitFor()
-
-            // 讀取包含 HDMI CEC 的 log，移除 -T 1 避免部分設備上直接 exit；
-            // 多加幾個 TCL 韌體可能使用的 CEC 相關 tag
-            val command = arrayOf("logcat", "-v", "time", "-s",
-                "HdmiCecController", "HdmiCecLocalDeviceTv",
-                "HdmiCecLocalDevice", "HdmiControlService",
-                "HdmiCecNetwork", "HdmiCecMessage")
-            val process = Runtime.getRuntime().exec(command)
-            logcatProcess = process
-            process.inputStream.bufferedReader().use { reader ->
-                // onDestroy 會 destroy process，讓 readLine() 回傳 null 或丟出 IOException 而結束迴圈
-                while (serviceScope.isActive) {
-                    val line = reader.readLine() ?: break
-                    processLogLine(line)
+    private suspend fun readLogcat() {
+        var clearExistingLogs = true
+        var lastReportedReadLogs: Boolean? = null
+        var failureReported = false
+        while (serviceScope.isActive) {
+            var process: Process? = null
+            try {
+                if (clearExistingLogs) {
+                    runCatching { Runtime.getRuntime().exec(arrayOf("logcat", "-c")).waitFor() }
+                    clearExistingLogs = false
                 }
+
+                val hasReadLogs = checkSelfPermission(Manifest.permission.READ_LOGS) == PackageManager.PERMISSION_GRANTED
+                if (hasReadLogs != lastReportedReadLogs) {
+                    CecDebugLog.add(this, "CEC logcat reader starting (READ_LOGS=$hasReadLogs)")
+                    lastReportedReadLogs = hasReadLogs
+                }
+
+                // 讀取包含 HDMI CEC 的 log，移除 -T 1 避免部分設備上直接 exit；
+                // 多加幾個 TCL 韌體可能使用的 CEC 相關 tag
+                val command = arrayOf("logcat", "-v", "time", "-s",
+                    "HdmiCecController", "HdmiCecLocalDeviceTv",
+                    "HdmiCecLocalDevice", "HdmiControlService",
+                    "HdmiCecNetwork", "HdmiCecMessage")
+                val currentProcess = Runtime.getRuntime().exec(command)
+                process = currentProcess
+                logcatProcess = currentProcess
+                currentProcess.inputStream.bufferedReader().use { reader ->
+                    while (serviceScope.isActive) {
+                        val line = reader.readLine() ?: break
+                        failureReported = false
+                        processLogLine(line)
+                    }
+                }
+
+                if (serviceScope.isActive) {
+                    val exitCode = runCatching { currentProcess.waitFor() }.getOrDefault(-1)
+                    if (!failureReported) {
+                        CecDebugLog.add(this, "CEC logcat reader ended (exit=$exitCode); reconnecting")
+                        failureReported = true
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Error reading logcat; retrying", e)
+                if (!failureReported) CecDebugLog.add(this, "CEC logcat reader I/O failure; reconnecting")
+                failureReported = true
+            } catch (e: SecurityException) {
+                Log.e(TAG, "Not allowed to run logcat; retrying", e)
+                if (!failureReported) CecDebugLog.add(this, "CEC logcat permission denied; reconnecting")
+                failureReported = true
+            } finally {
+                process?.destroy()
+                if (logcatProcess === process) logcatProcess = null
             }
-        } catch (e: IOException) {
-            Log.e(TAG, "Error reading logcat", e)
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Not allowed to run logcat", e)
-        } finally {
-            logcatProcess?.destroy()
-            logcatProcess = null
+
+            if (serviceScope.isActive) {
+                val restartNow = restartLogcatRequested
+                restartLogcatRequested = false
+                delay(if (restartNow) 250L else 3_000L)
+            }
         }
     }
 

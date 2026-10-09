@@ -89,3 +89,4 @@ test*.kt
 /.zed/*
 !/.zed/settings.json
 
+/old stable ver

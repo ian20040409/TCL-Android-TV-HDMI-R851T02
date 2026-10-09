@@ -178,7 +178,7 @@ class HdmiViewerActivity : Activity() {
             Log.i(TAG, "onNewIntent: Ignoring request for port $newPort because it is already active.")
             return
         }
-        
+
         intent?.let { resolveAndTune(it) }
     }
 
