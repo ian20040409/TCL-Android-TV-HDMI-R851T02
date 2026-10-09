@@ -10,14 +10,6 @@ import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
-import androidx.core.content.ContextCompat
-import com.lnu.tclhdmilauncher.power.PowerHelper
-import com.lnu.tclhdmilauncher.settings.SettingsRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 
 /**
  * 待機喚醒與 Home 鍵映射無障礙服務 (Wake & Home Button Mapper Accessibility Service)
@@ -46,8 +38,6 @@ class WakeAccessibilityService : AccessibilityService() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
-    // sleepScreen() 會阻塞，必須在背景執行；服務銷毀時一併取消
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var isReceiverRegistered = false
     private var lastHomeRedirectTime = 0L
 
@@ -88,7 +78,11 @@ class WakeAccessibilityService : AccessibilityService() {
             }
             // TCL sends MSG_VIEW_ON from a different process.  Declare this
             // receiver exported on Android 13+ so the broadcast is deliverable.
-            ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(screenReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(screenReceiver, filter)
+            }
             isReceiverRegistered = true
         }
     }
@@ -115,8 +109,8 @@ class WakeAccessibilityService : AccessibilityService() {
 
             Log.i(TAG, "收到休眠請求，嘗試關閉螢幕 (第 $retryCount 次重試)")
             
-            serviceScope.launch {
-                PowerHelper.sleepScreen(this@WakeAccessibilityService)
+            Thread {
+                val success = PowerHelper.sleepScreen(this)
                 
                 // 根據使用者要求：間隔 1 秒重試，直到螢幕關閉
                 handler.postDelayed({
@@ -124,7 +118,7 @@ class WakeAccessibilityService : AccessibilityService() {
                     val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
                     if (isScreenOn) {
                         Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
-                        val retryIntent = Intent(this@WakeAccessibilityService, WakeAccessibilityService::class.java).apply {
+                        val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {
                             action = "ACTION_SLEEP"
                             putExtra("RETRY_COUNT", retryCount + 1)
                         }
@@ -133,7 +127,7 @@ class WakeAccessibilityService : AccessibilityService() {
                         Log.i(TAG, "螢幕已成功關閉，停止重試。")
                     }
                 }, 1000)
-            }
+            }.start()
         }
         return super.onStartCommand(intent, flags, startId)
     }
@@ -221,8 +215,11 @@ class WakeAccessibilityService : AccessibilityService() {
             keyCode == KeyEvent.KEYCODE_GUIDE ||
             keyCode == KeyEvent.KEYCODE_TV)) {
             
-            // Explicit user Home/Guide input must win over the CEC auto-switch guard.
-            // The CEC guard still prevents automatic window-state redirects below.
+            if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 15000) {
+                Log.i(TAG, "Ignoring Home/Guide key completely because of recent CEC wake.")
+                return true // 攔截並丟棄，防止原生系統跳回桌面
+            }
+
             if (event.action == KeyEvent.ACTION_UP) {
                 val now = System.currentTimeMillis()
                 if (now - lastHomeRedirectTime > 400L) {
@@ -242,14 +239,10 @@ class WakeAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
-        serviceScope.cancel()
-        handler.removeCallbacksAndMessages(null)
         if (isReceiverRegistered) {
             try {
                 unregisterReceiver(screenReceiver)
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "unregisterReceiver failed: ${e.message}")
-            }
+            } catch (_: Exception) {}
             isReceiverRegistered = false
         }
     }

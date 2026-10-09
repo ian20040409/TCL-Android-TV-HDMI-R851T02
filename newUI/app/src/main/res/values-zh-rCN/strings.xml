@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_category_general">App 设置</string>
+    <string name="pref_category_advanced">进阶设置</string>
+    <string name="pref_category_system">系统设置</string>
+    <string name="pref_category_about">关于</string>
+
+    <string name="app_name">HDMI Launcher</string>
+    <string name="brand_name">TCL TV HDMI</string>
+    <string name="main_title">HDMI 信号源切换</string>
+    <string name="home_subtitle">选择信号源以开始观看</string>
+    <string name="btn_countdown_off">倒计时: 关闭</string>
+    <string name="btn_countdown_seconds">倒计时: %d秒</string>
+    <string name="btn_tcl_settings">TCL 设置</string>
+    <string name="btn_apps">应用程序</string>
+    <string name="btn_settings">设置</string>
+    <string name="btn_batch_action">批量操作</string>
+    <string name="btn_cancel_selection">取消</string>
+    <string name="app_list_loading">正在加载应用…</string>
+    <string name="card_default_badge">默认</string>
+    <string name="bottom_hint">[OK] 立即切换   •   [1 / 2 / 3] 直达信号   •   [菜单] 设置   •   [长按 OK] 设为默认</string>
+    <string name="countdown_active">%1$d 秒后自动进入 HDMI %2$d（按方向键取消）</string>
+    <string name="text_cancelled">请选择信号源（长按 OK 可设为默认）</string>
+    <string name="countdown_disabled">自动切换已关闭（默认 HDMI %d）</string>
+    <string name="msg_set_default">已将 HDMI %d 设为默认信号源</string>
+    <string name="toast_set_default">已设 HDMI %d 为默认</string>
+    <string name="toast_error_open_settings">无法打开系统设置</string>
+    <string name="toast_switching_hdmi">切换至 HDMI %d</string>
+    <string name="toast_hdmi_range_error">本设备仅支持 HDMI 1 ~ 3</string>
+    <string name="toast_switch_failed">切换 HDMI %d 失败</string>
+    <string name="dialog_countdown_title">自动切换信号源倒计时秒数</string>
+    <string name="dialog_option_off">关闭（不自动切换）</string>
+    <string name="dialog_option_1s">1 秒</string>
+    <string name="dialog_option_2s">2 秒</string>
+    <string name="dialog_option_3s_default">3 秒（默认）</string>
+    <string name="dialog_option_5s">5 秒</string>
+    <string name="dialog_option_10s">10 秒</string>
+    <string name="dialog_option_15s">15 秒</string>
+    <string name="dialog_option_30s">30 秒</string>
+    <string name="toast_countdown_off">已关闭自动切换信号源</string>
+    <string name="toast_countdown_set">倒计时秒数已设为 %d 秒</string>
+    <string name="dialog_cancel">取消</string>
+
+    <!-- 设置页面 (Settings Activity) -->
+    <string name="settings_title">设置</string>
+    <string name="settings_hint">[OK] 调整 / 切换   •   [返回] 返回主页</string>
+    <string name="setting_category_launcher">Launcher 偏好设置</string>
+    <string name="setting_category_system">电视与系统设置</string>
+    <string name="setting_app_mode_title">App 模式</string>
+    <string name="setting_app_mode_desc_on">主页默认打开应用程序列表</string>
+    <string name="setting_app_mode_desc_off">主页默认打开 HDMI 信号源切换</string>
+    <string name="setting_countdown_title">自动倒计时秒数</string>
+    <string name="setting_countdown_desc">开机 %d 秒后自动进入默认信号源</string>
+    <string name="setting_countdown_desc_off">关闭自动进入（停留在信号源菜单）</string>
+    <string name="setting_default_port_title">默认信号源</string>
+    <string name="setting_default_port_desc">当前默认进入：HDMI %d</string>
+    <string name="setting_signal_search_title">信号搜索画面</string>
+    <string name="setting_signal_search_desc_on">切换信号源时显示检测提示 HUD</string>
+    <string name="setting_signal_search_desc_off">直接硬件直通播放，不显示提示 HUD</string>
+    <string name="setting_wake_guard_title">待机唤醒保障</string>
+    <string name="setting_wake_guard_desc_on">无障碍服务已启用（100% 待机唤醒返回）</string>
+    <string name="setting_wake_guard_desc_off">服务未开启（强烈建议开启避免唤醒黑屏）</string>
+    <string name="setting_button_mapper_title">Button Mapper 按键映射设置</string>
+    <string name="setting_button_mapper_desc">在无障碍设置启用 HDMI Launcher，即可映射 Home 与输入源按键。</string>
+    <string name="setting_button_mapper_summary">Home：%1$s · 输入源：%2$s</string>
+    <string name="setting_mapper_home_title">覆盖 Home 键</string>
+    <string name="setting_mapper_input_title">覆盖输入源键</string>
+    <string name="setting_mapper_accessibility">打开无障碍设置</string>
+    <string name="setting_auto_open_title">自动启动 App</string>
+    <string name="setting_auto_open_desc_none">未设置（开机停留在应用程序列表）</string>
+    <string name="setting_auto_open_desc_app">开机 / 唤醒后自动启动：%s</string>
+    <string name="setting_tcl_settings_title">TCL 电视设置</string>
+    <string name="setting_tcl_settings_desc">打开 TCL 原厂图像、声音与显示设置</string>
+    <string name="setting_android_settings_title">Android 系统设置</string>
+    <string name="setting_android_settings_desc">打开设备偏好设置、网络与账号</string>
+    <string name="setting_reset_app_title">重置 App</string>
+    <string name="setting_reset_app_desc">恢复所有 Launcher 默认值并重新执行设置</string>
+    <string name="dialog_reset_app_title">重置所有设置</string>
+    <string name="dialog_reset_app_msg">确定要重置 Launcher 所有设置吗？这将清除所有自定义偏好，并重新执行开箱设置向导。</string>
+    <string name="dialog_reset_app_confirm">重置</string>
+    <string name="toast_app_reset_completed">已重置 Launcher 所有设置</string>
+    <string name="setting_state_on">开启</string>
+    <string name="setting_state_off">关闭</string>
+    <string name="setting_state_enabled">已启用</string>
+    <string name="setting_state_disabled">未开启</string>
+    <string name="setting_action_open">打开</string>
+    <string name="dialog_default_port_title">选择开机默认信号源</string>
+    <string name="port_hdmi_1">HDMI 1</string>
+    <string name="port_hdmi_2">HDMI 2</string>
+    <string name="port_hdmi_3">HDMI 3</string>
+
+    <!-- App Drawer (AppListActivity) -->
+    <string name="app_list_title">应用程序</string>
+    <string name="app_list_hint">[OK] 启动  •  [长按 OK] 更多选项  •  [返回] 返回上一页</string>
+    <string name="app_list_empty">未找到可启动的应用程序</string>
+    <string name="section_recent">最近使用  (%d)</string>
+    <string name="section_tv_apps">TV 应用程序  (%d)</string>
+    <string name="section_mobile_apps">手机 App  (%d)</string>
+    <string name="section_system_apps">系统应用程序  (%d)</string>
+    <string name="menu_open">打开应用程序</string>
+    <string name="menu_uninstall">卸载</string>
+    <string name="menu_disable">停用应用程序</string>
+    <string name="menu_app_info">应用信息</string>
+    <string name="toast_cannot_launch">无法启动 %s</string>
+    <string name="toast_disable_hint">请在设置页面点击“停用”</string>
+
+    <!-- Accessibility Service -->
+    <string name="accessibility_service_label">HDMI Launcher 待机唤醒与 Home 键映射</string>
+    <string name="accessibility_service_description">确保电视待机唤醒时自动返回桌面，并将遥控器 Home 键映射为直接开启本 Launcher。</string>
+
+    <!-- Accessibility Wake UI -->
+    <string name="btn_wake_guard_on">无障碍唤醒: 已开启</string>
+    <string name="btn_wake_guard_off">无障碍唤醒: 未开启</string>
+    <string name="dialog_wake_guard_title">待机唤醒保障</string>
+    <string name="dialog_wake_guard_msg_on">已启用无障碍唤醒与 Home 键映射服务。\n\n• 电视睡眠唤醒 100% 强制返回本桌面\n• 按遥控器 Home 键一律直达本桌面</string>
+    <string name="dialog_wake_guard_msg_off">目前尚未开启无障碍服务。\n\n启用后，将获得两大系统级能力：\n1. 待机睡眠苏醒时 100% 强制返回本桌面（不掉入 AV 或无信号）\n2. 启用 Button Mapper 功能：遥控器 Home 键一律改为打开本 Launcher 桌面。\n\n点击“前往设置”后，若电视进入主设置页，请依序进入：\n“设备偏好设置”➔“无障碍 / 协助工具”➔ 开启本服务。</string>
+    <string name="dialog_btn_go_settings">前往设置</string>
+    <string name="dialog_btn_manage">管理设置</string>
+    <string name="dialog_btn_ok">确认</string>
+    <string name="toast_wake_guard_hint">提示：尚未开启待机无障碍唤醒，可点击顶部“无障碍唤醒”进行设置</string>
+
+    <!-- App Mode -->
+    <string name="app_mode_settings_title">App 模式设置</string>
+    <string name="app_mode_settings_hint">[OK] 调整 / 切换   •   [返回] 返回上一页</string>
+    <string name="setting_auto_open_delay_title">自动启动倒计时秒数</string>
+    <string name="setting_auto_open_delay_desc">开机 / 唤醒后 %d 秒自动启动</string>
+    <string name="dialog_auto_open_delay_title">自动启动倒计时秒数</string>
+    <string name="dialog_select_auto_open_app">选择自动启动应用程序</string>
+    <string name="btn_app_mode_on">App 模式: 开启</string>
+    <string name="btn_app_mode_off">App 模式: 关闭</string>
+    <string name="btn_hdmi_selector">HDMI 切换</string>
+    <string name="app_mode_active_status">App 模式已开启（默认打开应用程序列表）</string>
+    <string name="app_mode_active_with_auto_app">App 模式已开启（自动启动：%s）</string>
+    <string name="toast_app_mode_on">已开启 App 模式：默认打开应用程序列表</string>
+    <string name="toast_app_mode_off">已关闭 App 模式：默认打开 HDMI 信号源切换</string>
+    <string name="btn_auto_open_none">自动启动: 无</string>
+    <string name="btn_auto_open_app">自动启动: %s</string>
+    <string name="menu_set_auto_open">设为自动启动</string>
+    <string name="menu_clear_auto_open">取消自动启动</string>
+    <string name="dialog_auto_open_title">选择自动启动的 App</string>
+    <string name="dialog_auto_open_none">不自动启动（停留在应用程序列表）</string>
+    <string name="toast_auto_open_set">已设置自动启动：%s</string>
+    <string name="toast_auto_open_cleared">已取消自动启动 App</string>
+    <string name="badge_auto_open">● 自动启动</string>
+    <string name="auto_open_countdown_banner">%1$d 秒后自动启动 %2$s（按方向键取消）</string>
+
+    <!-- 信号搜索画面 -->
+    <string name="btn_signal_search_on">信号搜索画面: 开启</string>
+    <string name="btn_signal_search_off">信号搜索画面: 关闭</string>
+
+    <!-- HDMI 状态提示 HUD -->
+    <string name="hdmi_searching_signal">HDMI %d • 正在搜索信号...</string>
+    <string name="hdmi_no_signal">HDMI %d • 无信号</string>
+    <string name="hdmi_signal_connected">HDMI %d • 信号已连接</string>
+
+    <!-- OOBE 开箱设置向导 -->
+    <string name="setting_oobe_title">首次开箱设置向导 (OOBE)</string>
+    <string name="setting_oobe_desc">重新执行开箱引导设置流程</string>
+    <string name="oobe_welcome_title">欢迎使用 HDMI 启动器</string>
+    <string name="oobe_welcome_breadcrumb">开箱导览 • 1/3</string>
+    <string name="oobe_welcome_description">将您的 TCL 电视打造为极速纯净的外接屏幕。请选择您的首选开机模式：</string>
+    <string name="oobe_mode_pure_title">纯显示器模式</string>
+    <string name="oobe_mode_pure_desc">开机直接切换至外接设备（Apple TV / PS5 等），零后台干扰</string>
+    <string name="oobe_mode_app_title">App 桌面模式</string>
+    <string name="oobe_mode_app_desc">开机默认打开电视应用程序列表，并保留 HDMI 快捷卡片</string>
+    <string name="oobe_config_title">默认信号源与自动启动</string>
+    <string name="oobe_config_breadcrumb">开箱导览 • 2/3</string>
+    <string name="oobe_config_description">请选择开机默认切换的 HDMI 信号源与倒计时秒数：</string>
+    <string name="oobe_port_prompt">默认信号源: HDMI %d</string>
+    <string name="oobe_countdown_prompt">自动启动倒数: %s</string>
+    <string name="oobe_countdown_off">关闭自动启动</string>
+    <string name="oobe_action_next">下一步</string>
+    <string name="oobe_system_title">无障碍设置</string>
+    <string name="oobe_system_breadcrumb">开箱导览 • 3/3</string>
+    <string name="oobe_system_description">启用无障碍服务以实现桌面覆盖与唤醒守护，确保电视待机唤醒稳定返回。您亦可随时在设置中调整。</string>
+    <string name="oobe_action_wake_guard">启用无障碍桌面覆盖与唤醒守护</string>
+    <string name="oobe_action_wake_guard_desc">开启无障碍服务，自动覆盖 Google TV 原厂桌面并保证 100% 待机唤醒返回</string>
+    <string name="oobe_action_finish">完成设置并开始使用</string>
+    <string name="oobe_action_finish_desc">保存所有设置并立即进入启动器</string>
+    <string name="oobe_skip">跳过设置（使用默认值）</string>
+    <string name="toast_accessibility_fallback_settings">未找到专用设置页，已为您打开系统设置</string>
+    <string name="dialog_accessibility_req_title">需要无障碍服务</string>
+    <string name="dialog_accessibility_req_msg">自动休眠 (STR) 与按键映射功能需要无障碍服务权限才能正常运行。\n\n【系统设置开启路径】\n设备偏好设置（或系统）➔ 无障碍 / 协助工具 ➔ 开启“TCL HDMI Launcher”</string>
+    <string name="dialog_accessibility_req_go">前往设置</string>
+
+    <!-- Shizuku Management -->
+    <string name="setting_shizuku_title">Shizuku API 设置与检测</string>
+    <string name="setting_shizuku_desc">检测 Shizuku 服务状态、请求授权与下载安装 APK</string>
+    <string name="shizuku_settings_title">Shizuku API 检测与下载</string>
+    <string name="shizuku_settings_hint">[OK] 选择 / 执行   •   [返回] 返回上一页</string>
+    <string name="shizuku_status_title">Shizuku 服务状态</string>
+    <string name="shizuku_status_running_granted">服务运行中，权限已授予 (%s)</string>
+    <string name="shizuku_status_running_not_granted">服务运行中，但尚未授予本 App 访问权限</string>
+    <string name="shizuku_status_installed_not_running">App 已安装，但 Shizuku 服务未启动</string>
+    <string name="shizuku_status_not_installed">尚未安装 Shizuku 应用程序</string>
+    <string name="shizuku_action_request_perm">请求 Shizuku 访问权限</string>
+    <string name="shizuku_action_request_perm_desc">弹出 Shizuku 授权对话框，允许 Launcher 使用 API</string>
+    <string name="shizuku_action_grant_system_perms">通过 Shizuku 授予系统权限</string>
+    <string name="shizuku_action_grant_system_perms_desc">自动授予本 App READ_LOGS 与 DUMP 权限</string>
+    <string name="shizuku_action_launch_app">打开 Shizuku 应用程序</string>
+    <string name="shizuku_action_launch_app_desc">打开 Shizuku 管理员以启动服务或查看 ADB 状态</string>
+    <string name="shizuku_action_install_local_apk">安装已下载的 Shizuku APK</string>
+    <string name="shizuku_action_install_local_apk_desc">已检测到本机下载的 Shizuku_latest.apk，点击直接安装</string>
+    <string name="shizuku_action_redownload_apk">重新下载最新版 Shizuku APK</string>
+    <string name="shizuku_action_redownload_apk_desc">覆盖本机文件并重新从 GitHub 下载</string>
+    <string name="shizuku_action_download_apk">下载并安装最新版 Shizuku</string>
+    <string name="shizuku_action_download_apk_desc">从 GitHub Releases 自动获取最新版 APK 并安装</string>
+    <string name="shizuku_action_open_browser">打开 GitHub Releases 网页</string>
+    <string name="shizuku_action_open_browser_desc">使用系统浏览器打开 Shizuku 发布页面</string>
+    <string name="shizuku_action_refresh">刷新状态</string>
+    <string name="shizuku_action_refresh_desc">重新检测 Shizuku Binder 连接与授权状态</string>
+    <string name="shizuku_toast_granted_system_perms">已通过 Shizuku 成功授予系统权限</string>
+    <string name="shizuku_toast_cannot_launch">无法打开 Shizuku 管理员</string>
+    <string name="shizuku_toast_refreshed">Shizuku 状态已更新</string>
+    <string name="shizuku_fetching_link">正在从 GitHub API 查询最新版本...</string>
+    <string name="shizuku_starting_download">准备开始下载 APK...</string>
+    <string name="shizuku_downloading">下载中</string>
+    <string name="shizuku_download_success">APK 下载完成，正在打开安装程序...</string>
+    <string name="shizuku_download_failed">下载失败</string>
+    <string name="shizuku_fetch_failed">无法获取下载链接，请检查网络连接</string>
+    <string name="cec_debug_title">CEC 调试日志</string>
+    <string name="cec_debug_desc">查看 CEC 唤醒、信号源切换与待机事件记录</string>
+
+    <!-- Batch Action / Freeze Strings -->
+    <string name="section_frozen_apps">已停用 App (%d)</string>
+    <string name="menu_batch_select">選取 (批次停用/啟用)</string>
+    <string name="menu_freeze">透過 Shizuku 停用 (凍結)</string>
+    <string name="menu_unfreeze">透過 Shizuku 啟用 (解凍)</string>
+    <string name="toast_unfreeze_first">請先長按解凍 %s</string>
+    <string name="toast_freeze_success">已透過 Shizuku %1$s %2$s</string>
+    <string name="toast_shizuku_fail">Shizuku 操作失敗，請確認 Shizuku 正在執行並已授權</string>
+    <string name="title_selected_count">已選取 %d 個</string>
+    <string name="menu_batch_freeze">停用 (凍結) 已選取</string>
+    <string name="menu_batch_unfreeze">啟用 (解凍) 已選取</string>
+    <string name="menu_select_all">全選</string>
+    <string name="title_batch_action">批次操作 (%d 個)</string>
+    <string name="toast_batch_success">已批次%1$s %2$d 個 App</string>
+    <string name="toast_batch_fail">，失敗 %d 個</string>
+    <string name="action_enable">啟用</string>
+    <string name="action_disable">停用</string>
+    <string name="action_enable_upper">啟用</string>
+    <string name="action_disable_upper">停用</string>
+    <string name="app_disabled_suffix">%s (已停用)</string>
+    <string name="app_frozen_suffix"> [FROZEN]</string>
+
+    <!-- HDMI settings / auto sleep -->
+    <string name="setting_hdmi_settings_title">HDMI 设置</string>
+    <string name="setting_hdmi_settings_desc">设置 HDMI 输入、自动切换倒计时与信号信息显示</string>
+    <string name="setting_auto_sleep_title">无信号自动休眠</string>
+    <string name="setting_auto_sleep_desc">无信号 %d 秒后自动休眠 (待机)</string>
+    <string name="setting_auto_sleep_desc_off">关闭自动休眠</string>
+    <string name="dialog_auto_sleep_title">自动休眠秒数</string>
+</resources>
+

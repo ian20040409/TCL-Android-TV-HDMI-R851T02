@@ -1,8 +1,6 @@
 package com.lnu.tclhdmilauncher
 
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -26,7 +24,6 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.lnu.tclhdmilauncher.settings.SettingsRepository
 
 /**
  * 原生硬體 HDMI 直通播放器 (HdmiViewerActivity)
@@ -71,10 +68,7 @@ class HdmiViewerActivity : Activity() {
     private var isVideoAvailable = false
 
     private val autoSleepHandler = Handler(Looper.getMainLooper())
-    // Handler.hasCallbacks() 需要 API 29，minSdk 為 28，因此自行追蹤排程狀態
-    private var isAutoSleepScheduled = false
     private val autoSleepRunnable = Runnable {
-        isAutoSleepScheduled = false
         if (!isVideoAvailable && !isFinishing) {
             val sleepSeconds = SettingsRepository.getAutoSleepSeconds(this@HdmiViewerActivity)
             Log.i(TAG, "No signal for $sleepSeconds seconds, auto sleeping...")
@@ -83,11 +77,6 @@ class HdmiViewerActivity : Activity() {
             }
             startService(sleepIntent)
         }
-    }
-
-    private fun cancelAutoSleep() {
-        autoSleepHandler.removeCallbacks(autoSleepRunnable)
-        isAutoSleepScheduled = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,7 +105,7 @@ class HdmiViewerActivity : Activity() {
                     Log.i(TAG, "TvView onVideoAvailable: $inputId (video rendering active)")
                     retryCount = 0
                     isVideoAvailable = true
-                    cancelAutoSleep()
+                    autoSleepHandler.removeCallbacks(autoSleepRunnable)
                     hideSignalOverlay()
                     tvView.post { tvView.requestFocus() }
                 }
@@ -124,10 +113,9 @@ class HdmiViewerActivity : Activity() {
                 override fun onVideoUnavailable(inputId: String?, reason: Int) {
                     Log.w(TAG, "TvView onVideoUnavailable: inputId=$inputId, reason=$reason")
                     isVideoAvailable = false
-                    if (!isAutoSleepScheduled) {
+                    if (!autoSleepHandler.hasCallbacks(autoSleepRunnable)) {
                         val sleepSeconds = SettingsRepository.getAutoSleepSeconds(this@HdmiViewerActivity)
                         if (sleepSeconds > 0) {
-                            isAutoSleepScheduled = true
                             autoSleepHandler.postDelayed(autoSleepRunnable, sleepSeconds * 1000L)
                         }
                     }
@@ -178,7 +166,7 @@ class HdmiViewerActivity : Activity() {
             Log.i(TAG, "onNewIntent: Ignoring request for port $newPort because it is already active.")
             return
         }
-
+        
         intent?.let { resolveAndTune(it) }
     }
 
@@ -212,7 +200,7 @@ class HdmiViewerActivity : Activity() {
         if (!isRetry) retryCount = 0
         currentPort = port
         isVideoAvailable = false
-        cancelAutoSleep()
+        autoSleepHandler.removeCallbacks(autoSleepRunnable)
         val inputId = when (port) {
             1 -> HW_HDMI1
             2 -> HW_HDMI2
@@ -245,8 +233,6 @@ class HdmiViewerActivity : Activity() {
         }
     }
 
-    // TV 遙控器的 BACK 仍以實體 KeyEvent 傳遞，不會觸發手勢返回，故不需要 OnBackPressedDispatcher
-    @SuppressLint("GestureBackNavigation")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             when (event.keyCode) {
@@ -309,10 +295,7 @@ class HdmiViewerActivity : Activity() {
                 candidate.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(candidate)
                 return
-            } catch (e: ActivityNotFoundException) {
-                Log.w(TAG, "Cannot open settings candidate: ${e.message}")
-            } catch (e: SecurityException) {
-                Log.w(TAG, "Not allowed to open settings candidate: ${e.message}")
+            } catch (_: Exception) {
             }
         }
     }
@@ -407,25 +390,20 @@ class HdmiViewerActivity : Activity() {
         super.onStop()
         isForegroundFocused = false
         handler.removeCallbacksAndMessages(null)
-        cancelAutoSleep()
+        autoSleepHandler.removeCallbacks(autoSleepRunnable)
         // 離開前台時釋放 TvView 硬體 Session，避免與其他 App 或重入時搶奪硬體解碼器
-        resetTvView()
+        try {
+            tvView.reset()
+        } catch (_: Exception) {}
         isVideoAvailable = false
     }
 
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
-        cancelAutoSleep()
-        resetTvView()
-    }
-
-    /** 釋放 TvView 的硬體 Session；失敗時只記錄，不影響生命週期流程。 */
-    private fun resetTvView() {
+        autoSleepHandler.removeCallbacks(autoSleepRunnable)
         try {
             tvView.reset()
-        } catch (e: RuntimeException) {
-            Log.w(TAG, "tvView.reset() failed: ${e.message}")
-        }
+        } catch (_: Exception) {}
     }
 }

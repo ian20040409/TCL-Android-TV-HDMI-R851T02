@@ -16,10 +16,10 @@
     <uses-permission android:name="android.permission.READ_LOGS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- 讀取 CEC Active Routing Path 必需權限（需透過 ADB shell pm grant 授予） -->
-    <uses-permission android:name="android.permission.DUMP" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.DUMP" />
     <!-- API 34+ requires a declared foreground-service type before startForeground(). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.DEVICE_POWER" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.DEVICE_POWER" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
 
@@ -97,7 +97,7 @@
 
         <!-- App 清單啟動器：無任何 intent-filter，只由 MainActivity 顯式呼叫 -->
         <activity
-            android:name=".applist.AppListActivity"
+            android:name=".AppListActivity"
             android:exported="false"
             android:theme="@style/Theme.PureBlackDarkOnly"
             android:screenOrientation="landscape"
@@ -105,7 +105,7 @@
 
         <!-- Button Mapper 專屬設定頁面：按鍵映射與無障礙權限 -->
         <activity
-            android:name=".settings.ButtonMapperSettingsActivity"
+            android:name=".ButtonMapperSettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.GuidedStepSettings"
             android:screenOrientation="landscape"
@@ -113,21 +113,21 @@
 
         <!-- 集中設定頁面：管理 Launcher 全部偏好與系統捷徑 -->
         <activity
-            android:name=".settings.SettingsActivity"
+            android:name=".SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.Settings"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 
         <activity
-            android:name=".cec.CecDebugActivity"
+            android:name=".CecDebugActivity"
             android:exported="false"
             android:theme="@style/Theme.PureBlackDarkOnly"
             android:screenOrientation="landscape" />
 
         <!-- App 模式專屬設定頁面：獨立管理 App 模式偏好與自動啟動 -->
         <activity
-            android:name=".settings.AppModeSettingsActivity"
+            android:name=".AppModeSettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.GuidedStepSettings"
             android:screenOrientation="landscape"
@@ -135,7 +135,7 @@
 
         <!-- Shizuku API 檢測與 APK 下載管理頁面 -->
         <activity
-            android:name=".settings.ShizukuSettingsActivity"
+            android:name=".ShizukuSettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.GuidedStepSettings"
             android:screenOrientation="landscape"
@@ -161,7 +161,7 @@
 
         <!-- 首次開箱設定引導精靈 (OOBE) -->
         <activity
-            android:name=".settings.OobeActivity"
+            android:name=".OobeActivity"
             android:exported="false"
             android:theme="@style/Theme.Oobe"
             android:screenOrientation="landscape"
@@ -239,7 +239,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <service android:name=".cec.CecLogReaderService"
+        <service android:name=".CecLogReaderService"
                  android:exported="false"
                  android:foregroundServiceType="dataSync" />
 

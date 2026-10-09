@@ -8,16 +8,12 @@
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI 訊號源切換</string>
-    <string name="home_subtitle">選擇訊號源以開始觀看</string>
     <string name="btn_countdown_off">倒數: 關閉</string>
     <string name="btn_countdown_seconds">倒數: %d秒</string>
     <string name="btn_tcl_settings">TCL 設定</string>
     <string name="btn_apps">應用程式</string>
     <string name="btn_settings">設定</string>
-    <string name="btn_batch_action">批次操作</string>
-    <string name="btn_cancel_selection">取消</string>
-    <string name="app_list_loading">正在載入應用程式…</string>
-    <string name="card_default_badge">預設</string>
+    <string name="card_default_badge">● 預設</string>
     <string name="bottom_hint">[OK] 立即切換   •   [1 / 2 / 3] 直達訊號   •   [選單] 設定   •   [長按 OK] 設為預設</string>
     <string name="countdown_active">%1$d 秒後自動進入 HDMI %2$d（按方向鍵取消）</string>
     <string name="text_cancelled">請選擇訊號源（長按 OK 可設為預設）</string>
@@ -242,13 +238,5 @@
     <string name="action_disable_upper">停用</string>
     <string name="app_disabled_suffix">%s (已停用)</string>
     <string name="app_frozen_suffix"> [FROZEN]</string>
-
-    <!-- HDMI settings / auto sleep -->
-    <string name="setting_hdmi_settings_title">HDMI 設定</string>
-    <string name="setting_hdmi_settings_desc">設定 HDMI 輸入、自動切換倒數與訊號資訊顯示</string>
-    <string name="setting_auto_sleep_title">無訊號自動休眠</string>
-    <string name="setting_auto_sleep_desc">無訊號 %d 秒後自動休眠 (待機)</string>
-    <string name="setting_auto_sleep_desc_off">關閉自動休眠</string>
-    <string name="dialog_auto_sleep_title">自動休眠秒數</string>
 </resources>
 

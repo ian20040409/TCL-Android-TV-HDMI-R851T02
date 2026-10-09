@@ -1,7 +1,6 @@
 package com.lnu.tclhdmilauncher
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 
 /**
@@ -34,11 +33,11 @@ object DeviceHelper {
         val hasTclPackage = try {
             context.packageManager.getPackageInfo("com.tcl.settings", 0)
             true
-        } catch (_: PackageManager.NameNotFoundException) {
+        } catch (_: Exception) {
             try {
                 context.packageManager.getPackageInfo("com.tcl.tv", 0)
                 true
-            } catch (_: PackageManager.NameNotFoundException) {
+            } catch (_: Exception) {
                 false
             }
         }

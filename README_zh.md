@@ -43,8 +43,6 @@ adb connect <電視IP>:5555
 adb install -r app-release.apk
 ```
 
-GitHub Actions 產生的是啟用 R8 的 Release APK。若要安裝，APK 必須有簽章；若要直接覆蓋升級並保留 App 資料，簽章憑證必須與目前安裝版本完全相同。未設定 CI 簽章金鑰時，產物會是未簽名 APK，Android 無法直接安裝。GitHub 不會自動提供 Android 簽章憑證；請由維護者將既有 `.jks` 與密碼設為 Repository Actions Secrets，詳見 [建置與簽章說明](docs/compose-tv-migration.md)。
-
 ### 2. 設為預設 TV Launcher
 ```bash
 adb shell cmd package set-home-activity com.lnu.tclhdmilauncher/.MainActivity
@@ -59,7 +57,7 @@ adb shell am force-stop com.google.android.tvlauncher
 *(隨時可透過 `adb shell pm enable com.google.android.tvlauncher` 還原)*
 
 ### 4. 啟用待機守護與 CEC 自動切換（建議）
-- **待機喚醒守護 (無障礙服務)**：可點擊狀態列的「喚醒守護」前往系統設定手動開啟；若已授予 App Shizuku 權限，App 會透過 shell 自動啟用此服務。可避免待機喚醒黑屏並提供 Home 鍵重定向。
+- **待機喚醒守護 (無障礙服務)**：點擊狀態列的「喚醒守護」，在系統設定中開啟，可避免待機喚醒黑屏並提供 Home 鍵重定向。
 - **CEC 自動切換**：授予讀取日誌權限，外接設備開機時自動跳轉對應端口：
   ```bash
   adb shell pm grant com.lnu.tclhdmilauncher android.permission.READ_LOGS
@@ -106,9 +104,6 @@ adb shell am force-stop com.google.android.tvlauncher
 ## 技術文件與排查指引 (Docs Index)
 
 深入技術分析、Logcat 追蹤與韌體說明已整理至專屬文件庫：
-
-- 🏗️ **[架構說明 (docs/architecture.md)](docs/architecture.md)**：CEC log 讀取、無障礙服務與 Shizuku 的分工與互動流程。
-- **[Compose for TV 遷移紀錄](docs/compose-tv-migration.md)**：主畫面與 App 清單已採用官方 TV Material 3 預設元件；設定與 OOBE 尚未遷移。包含測試方式與 TCL 實機驗收清單。
 
 - 📖 **[完整排查手冊 (docs/troubleshooting_zh.md)](docs/troubleshooting_zh.md)** ([English](docs/troubleshooting.md))
   - *排查 1*：Apple TV 雙重休眠 CEC 循環開關機（安全卸載 `com.tcl.tv`）
