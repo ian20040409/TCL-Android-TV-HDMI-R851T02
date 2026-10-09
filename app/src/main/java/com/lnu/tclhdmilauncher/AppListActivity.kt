@@ -1,11 +1,23 @@
 package com.lnu.tclhdmilauncher
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.core.graphics.drawable.toBitmap
+import com.lnu.tclhdmilauncher.applist.AppListDialog
+import com.lnu.tclhdmilauncher.applist.AppListItem
+import com.lnu.tclhdmilauncher.applist.AppListScreen
+import com.lnu.tclhdmilauncher.launcher.LauncherTheme
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.graphics.Bitmap
 import android.content.pm.ResolveInfo
 import android.graphics.Color
 import android.graphics.Typeface
@@ -46,7 +58,7 @@ import java.util.concurrent.Executors
  * - 快取 ComponentName：點擊啟動 App 時 0 PackageManager 查詢開銷
  * - 雙階段極速渲染：先載入文字清單（< 15ms 瞬間顯示），App 圖示依可視範圍背景非同步延遲載入（避免一次解碼 60+ 圖示造成 GC 卡頓）
  */
-class AppListActivity : Activity() {
+class AppListActivity : ComponentActivity() {
 
     companion object {
         private const val PREFS_RECENT = "app_list_recent"
@@ -101,6 +113,7 @@ class AppListActivity : Activity() {
     private var isAutoOpenCancelled = false
 
     private var autoOpenSecondsLeft = 0
+    private var autoOpenCountdownDuration = 0
     private var isAutoOpenCountdownRunning = false
     private val autoOpenTickRunnable = object : Runnable {
         override fun run() {
@@ -113,7 +126,7 @@ class AppListActivity : Activity() {
                 return
             }
             if (autoOpenSecondsLeft > 0) {
-                tvAutoOpenBanner.text = getString(R.string.auto_open_countdown_banner, autoOpenSecondsLeft, label)
+                uiCountdownText = getString(R.string.auto_open_countdown_banner, autoOpenSecondsLeft, label)
                 mainHandler.postDelayed(this, 1000L)
             } else {
                 cancelAutoOpenCountdown()
@@ -124,6 +137,15 @@ class AppListActivity : Activity() {
 
     // Ordered list of recently launched package names (most recent first)
     private val recentPackages = ArrayDeque<String>(MAX_RECENT_COUNT)
+
+    private var uiItems by mutableStateOf<List<AppListItem>>(emptyList())
+    private val uiIcons = mutableStateMapOf<String, Bitmap>()
+    private var uiIsLoading by mutableStateOf(true)
+    private var uiCountdownText by mutableStateOf<String?>(null)
+    private var uiAutoOpenPackage by mutableStateOf("")
+    private var uiIsMultiSelectMode by mutableStateOf(false)
+    private var uiSelectedPackages by mutableStateOf<Set<String>>(emptySet())
+    private var uiHeaderFocusGeneration by mutableStateOf(0)
 
     /** Load recent package list from SharedPreferences (background-safe). */
     private fun loadRecentPackages(): List<String> {
@@ -145,37 +167,67 @@ class AppListActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(buildContentView())
-
-        adapter = AppListAdapter()
-        listView.adapter = adapter
-
-        listView.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
-            cancelAutoOpenCountdown()
-            val item = items.getOrNull(pos)
-            if (item is ListItem.App) {
-                if (isMultiSelectMode) {
-                    toggleSelection(item.packageName)
-                } else {
-                    launchApp(item)
-                }
+        uiAutoOpenPackage = SettingsRepository.getAutoOpenPackage(this)
+        setContent {
+            LauncherTheme {
+                AppListScreen(
+                    items = uiItems,
+                    icons = uiIcons,
+                    isLoading = uiIsLoading,
+                    countdownText = uiCountdownText,
+                    countdownProgress = if (uiCountdownText != null && isAutoOpenCountdownRunning && autoOpenCountdownDuration > 0) {
+                        ((autoOpenCountdownDuration - autoOpenSecondsLeft).toFloat() / autoOpenCountdownDuration).coerceIn(0f, 1f)
+                    } else null,
+                    isMultiSelectMode = uiIsMultiSelectMode,
+                    selectedPackages = uiSelectedPackages,
+                    autoOpenPackage = uiAutoOpenPackage,
+                    headerFocusGeneration = uiHeaderFocusGeneration,
+                    dialog = null,
+                    onAppClick = { uiApp ->
+                        cancelAutoOpenCountdown()
+                        val app = items.firstOrNull {
+                            it is ListItem.App && it.packageName == uiApp.packageName
+                        } as? ListItem.App
+                        if (app != null) {
+                            if (isMultiSelectMode) toggleSelection(app.packageName) else launchApp(app)
+                        }
+                    },
+                    onAppLongClick = { uiApp ->
+                        cancelAutoOpenCountdown()
+                        val app = items.firstOrNull {
+                            it is ListItem.App && it.packageName == uiApp.packageName
+                        } as? ListItem.App
+                        if (app != null) {
+                            if (isMultiSelectMode) showBatchActionDialog() else showAppMenu(app)
+                        }
+                    },
+                    onIconNeeded = { uiApp ->
+                        val app = items.firstOrNull {
+                            it is ListItem.App && it.packageName == uiApp.packageName
+                        } as? ListItem.App
+                        if (app != null) loadIconAsync(app)
+                    },
+                    onSettingsClick = ::openSettings,
+                    onHdmiClick = ::returnToMainActivity,
+                    onBatchClick = ::showBatchActionDialog,
+                    onCancelSelection = ::exitMultiSelectMode,
+                    onDialogDismiss = {},
+                )
             }
         }
 
-        listView.onItemLongClickListener = AdapterView.OnItemLongClickListener { _, _, pos, _ ->
-            cancelAutoOpenCountdown()
-            val item = items.getOrNull(pos)
-            if (item is ListItem.App) {
-                if (isMultiSelectMode) {
-                    showBatchActionDialog()
-                } else {
-                    showAppMenu(item)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    isAutoOpenCountdownRunning -> {
+                        cancelAutoOpenCountdown()
+                        if (isMultiSelectMode) exitMultiSelectMode()
+                    }
+                    isMultiSelectMode -> exitMultiSelectMode()
+                    else -> returnToMainActivity()
                 }
-                true
-            } else {
-                false
             }
-        }
+        })
 
         loadApps()
 
@@ -195,6 +247,7 @@ class AppListActivity : Activity() {
         super.onResume()
         isActivityResumed = true
         isForegroundFocused = hasWindowFocus()
+        uiAutoOpenPackage = SettingsRepository.getAutoOpenPackage(this)
         isAutoOpenCancelled = false
         if (hasWindowFocus()) {
             triggerBootOrWakeAutoOpenIfConfigured()
@@ -226,6 +279,7 @@ class AppListActivity : Activity() {
         mainHandler.removeCallbacksAndMessages(null)
         bgExecutor.shutdownNow()
         iconCache.clear()
+        uiIcons.clear()
         loadingIcons.clear()
     }
 
@@ -238,9 +292,9 @@ class AppListActivity : Activity() {
 
         mainHandler.removeCallbacks(autoOpenTickRunnable)
         autoOpenSecondsLeft = SettingsRepository.getAutoOpenDelaySeconds(this)
+        autoOpenCountdownDuration = autoOpenSecondsLeft
         isAutoOpenCountdownRunning = true
-        tvAutoOpenBanner.text = getString(R.string.auto_open_countdown_banner, autoOpenSecondsLeft, label)
-        tvAutoOpenBanner.visibility = View.VISIBLE
+        uiCountdownText = getString(R.string.auto_open_countdown_banner, autoOpenSecondsLeft, label)
         mainHandler.postDelayed(autoOpenTickRunnable, 1000L)
     }
 
@@ -249,9 +303,7 @@ class AppListActivity : Activity() {
         if (isAutoOpenCountdownRunning) {
             isAutoOpenCountdownRunning = false
             mainHandler.removeCallbacks(autoOpenTickRunnable)
-            if (::tvAutoOpenBanner.isInitialized) {
-                tvAutoOpenBanner.visibility = View.GONE
-            }
+            uiCountdownText = null
         }
     }
 
@@ -275,9 +327,7 @@ class AppListActivity : Activity() {
     }
 
     private fun loadApps() {
-        progressBar.visibility = View.VISIBLE
-        listView.visibility = View.GONE
-        tvEmpty.visibility = View.GONE
+        uiIsLoading = true
 
         // Read recents on the main thread (SharedPreferences is main-thread-safe)
         val savedRecents = loadRecentPackages()
@@ -394,19 +444,21 @@ class AppListActivity : Activity() {
                 if (isDestroyedFlag || isFinishing) return@post
                 items.clear()
                 items.addAll(result)
-                adapter.notifyDataSetChanged()
-
-                progressBar.visibility = View.GONE
-                if (items.isEmpty()) {
-                    tvEmpty.visibility = View.VISIBLE
-                } else {
-                    listView.visibility = View.VISIBLE
-                    if (!btnSettings.hasFocus() && !btnHdmi.hasFocus()) {
-                        listView.requestFocus()
-                        val firstApp = items.indexOfFirst { it is ListItem.App }
-                        if (firstApp >= 0) listView.setSelection(firstApp)
+                uiItems = result.map { item ->
+                    when (item) {
+                        is ListItem.Section -> AppListItem.Section(item.title)
+                        is ListItem.App -> AppListItem.App(
+                            label = item.label,
+                            packageName = item.packageName,
+                            componentName = item.componentName,
+                            isLeanback = item.isLeanback,
+                            appInfo = item.appInfo,
+                            isSystem = item.isSystem,
+                            isDisableable = item.isDisableable,
+                        )
                     }
                 }
+                uiIsLoading = false
             }
         }
     }
@@ -437,16 +489,7 @@ class AppListActivity : Activity() {
     }
 
     private fun updateVisibleRowIcon(pkg: String, icon: Drawable) {
-        val first = listView.firstVisiblePosition
-        val last = listView.lastVisiblePosition
-        for (pos in first..last) {
-            val child = listView.getChildAt(pos - first) ?: continue
-            val holder = child.tag as? AppViewHolder ?: continue
-            if (holder.boundPackage == pkg) {
-                holder.ivIcon.clearColorFilter()
-                holder.ivIcon.setImageDrawable(icon)
-            }
-        }
+        uiIcons[pkg] = icon.toBitmap(width = 48, height = 48)
     }
 
     private data class MenuOption(
@@ -456,10 +499,10 @@ class AppListActivity : Activity() {
 
     private fun setAutoOpenSelection(pkg: String, label: String) {
         SettingsRepository.setAutoOpenApp(this, pkg, label)
+        uiAutoOpenPackage = pkg
         if (pkg.isNotBlank() && !SettingsRepository.isAppModeEnabled(this)) {
             SettingsRepository.setAppModeEnabled(this, true)
         }
-        adapter.notifyDataSetChanged()
         if (pkg.isBlank()) {
             cancelAutoOpenCountdown()
         }
@@ -528,6 +571,7 @@ class AppListActivity : Activity() {
         // 且「不」呼叫 finish()，讓 AppListActivity 持續擋在 MainActivity 上方，
         // 確保外部 App 轉場或關閉時絕對不會誤喚醒底層的 MainActivity 計時器！
         iconCache.clear()
+        uiIcons.clear()
         loadingIcons.clear()
     }
 
@@ -599,14 +643,12 @@ class AppListActivity : Activity() {
         selectedPackages.clear()
         selectedPackages.add(initialPkg)
         updateHeaderUI()
-        adapter.notifyDataSetChanged()
     }
 
     private fun exitMultiSelectMode() {
         isMultiSelectMode = false
         selectedPackages.clear()
         updateHeaderUI()
-        adapter.notifyDataSetChanged()
     }
 
     private fun toggleSelection(pkg: String) {
@@ -620,26 +662,12 @@ class AppListActivity : Activity() {
             selectedPackages.add(pkg)
         }
         updateHeaderUI()
-        adapter.notifyDataSetChanged()
     }
 
     private fun updateHeaderUI() {
-        if (isMultiSelectMode) {
-            tvTitle.text = getString(R.string.title_selected_count, selectedPackages.size)
-            tvHint.visibility = View.GONE
-            btnSettings.visibility = View.GONE
-            btnHdmi.visibility = View.GONE
-            btnBatchAction.visibility = View.VISIBLE
-            btnCancelSelect.visibility = View.VISIBLE
-            btnBatchAction.requestFocus()
-        } else {
-            tvTitle.text = getString(R.string.app_list_title)
-            tvHint.visibility = View.VISIBLE
-            btnSettings.visibility = View.VISIBLE
-            btnHdmi.visibility = View.VISIBLE
-            btnBatchAction.visibility = View.GONE
-            btnCancelSelect.visibility = View.GONE
-        }
+        uiIsMultiSelectMode = isMultiSelectMode
+        uiSelectedPackages = selectedPackages.toSet()
+        uiHeaderFocusGeneration++
     }
 
     private fun showBatchActionDialog() {
@@ -673,12 +701,10 @@ class AppListActivity : Activity() {
             }
         }
         updateHeaderUI()
-        adapter.notifyDataSetChanged()
     }
 
     private fun executeBatchFreeze(freeze: Boolean) {
-        progressBar.visibility = View.VISIBLE
-        listView.visibility = View.GONE
+        uiIsLoading = true
         bgExecutor.execute {
             var successCount = 0
             var failCount = 0
@@ -724,9 +750,6 @@ class AppListActivity : Activity() {
                     KeyEvent.KEYCODE_BACK,
                     KeyEvent.KEYCODE_MENU -> {
                         cancelAutoOpenCountdown()
-                        if (::tvAutoOpenBanner.isInitialized) {
-                            tvAutoOpenBanner.visibility = View.GONE
-                        }
                         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
                             if (isMultiSelectMode) exitMultiSelectMode()
                             return true
@@ -738,22 +761,7 @@ class AppListActivity : Activity() {
                 if (isMultiSelectMode) showBatchActionDialog() else openSettings()
                 return true
             }
-            if (listView.hasFocus() && event.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                val firstAppPos = items.indexOfFirst { it is ListItem.App }
-                if (firstAppPos < 0 || listView.selectedItemPosition <= firstAppPos) {
-                    if (isMultiSelectMode) btnBatchAction.requestFocus() else btnSettings.requestFocus()
-                    return true
-                }
-            } else if ((btnSettings.hasFocus() || btnHdmi.hasFocus() || btnBatchAction.hasFocus() || btnCancelSelect.hasFocus()) && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (items.isNotEmpty()) {
-                    listView.requestFocus()
-                    val firstAppPos = items.indexOfFirst { it is ListItem.App }
-                    if (firstAppPos >= 0 && listView.selectedItemPosition < firstAppPos) {
-                        listView.setSelection(firstAppPos)
-                    }
-                    return true
-                }
-            }
+
         }
         return super.dispatchKeyEvent(event)
     }

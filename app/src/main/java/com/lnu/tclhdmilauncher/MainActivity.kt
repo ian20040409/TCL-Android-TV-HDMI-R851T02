@@ -1,7 +1,15 @@
 package com.lnu.tclhdmilauncher
 
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.app.Activity
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.lnu.tclhdmilauncher.launcher.LauncherScreen
+import com.lnu.tclhdmilauncher.launcher.LauncherTheme
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
@@ -42,7 +50,7 @@ import android.widget.TextView
  * - 共用單一 OnClickListener 與 OnFocusChangeListener：消除匿名閉包
  * - 全面對齊 Android TV 系統原生樣式（Theme_DeviceDefault_Dialog_Alert）
  */
-class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListener {
+class MainActivity : ComponentActivity(), View.OnClickListener, View.OnFocusChangeListener {
 
     companion object {
         private const val TAG = "TCLHdmiLauncher"
@@ -151,7 +159,11 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     internal lateinit var btnSettings: LinearLayout
     internal lateinit var btnApps: LinearLayout
 
-    private var defaultPort = 3
+    private var defaultPort by mutableIntStateOf(3)
+    private var countdownUiText by mutableStateOf("")
+    private var focusRequestGeneration by mutableIntStateOf(0)
+    private var focusRequestPort by mutableIntStateOf(3)
+    private var focusedPort: Int? = null
     private var countdownDuration = DEFAULT_COUNTDOWN_SECONDS
     private var isAppMode = false
     private var isCancelled = false
@@ -199,11 +211,34 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         initTextCaches()
         secondsLeft = countdownDuration
 
-        setContentView(MainViewBuilder(this).build())
+        setContent {
+            LauncherTheme {
+                LauncherScreen(
+                    defaultPort = defaultPort,
+                    countdownText = countdownUiText,
+                    focusRequestGeneration = focusRequestGeneration,
+                    focusRequestPort = focusRequestPort,
+                    countdownProgress = if (!isAppMode && !isCancelled && countdownDuration > 0) {
+                        (1f - secondsLeft.toFloat() / countdownDuration).coerceIn(0f, 1f)
+                    } else null,
+                    onPortClick = { port ->
+                        cancelTimer()
+                        switchTo(port, fromTimer = false)
+                    },
+                    onPortLongClick = ::setDefault,
+                    onSettingsClick = ::openSettings,
+                    onAppsClick = {
+                        isCancelled = false
+                        openAppList(immediate = false)
+                    },
+                    onFocusedPortChanged = { focusedPort = it },
+                )
+            }
+        }
 
-        cardHdmi1.setOnLongClickListener { setDefault(1); true }
-        cardHdmi2.setOnLongClickListener { setDefault(2); true }
-        cardHdmi3.setOnLongClickListener { setDefault(3); true }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = Unit
+        })
 
         updateButtonLabels()
         focusDefaultPortButton()
@@ -318,29 +353,16 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     }
 
     private fun focusDefaultPortButton() {
-        when (defaultPort) {
-            1 -> cardHdmi1
-            2 -> cardHdmi2
-            else -> cardHdmi3
-        }.requestFocus()
+        requestPortFocus(defaultPort)
+    }
+
+    private fun requestPortFocus(port: Int) {
+        focusRequestPort = port
+        focusRequestGeneration++
     }
 
     private fun updateButtonLabels() {
-        tvBadge1.visibility = if (defaultPort == 1) View.VISIBLE else View.INVISIBLE
-        tvBadge2.visibility = if (defaultPort == 2) View.VISIBLE else View.INVISIBLE
-        tvBadge3.visibility = if (defaultPort == 3) View.VISIBLE else View.INVISIBLE
-        btnApps.nextFocusUpId = when (defaultPort) {
-            1 -> cardHdmi1.id
-            2 -> cardHdmi2.id
-            else -> cardHdmi3.id
-        }
-        if (::btnSettings.isInitialized) {
-            btnSettings.nextFocusDownId = when (defaultPort) {
-                1 -> cardHdmi1.id
-                2 -> cardHdmi2.id
-                else -> cardHdmi3.id
-            }
-        }
+        // defaultPort is Compose state; updating it refreshes the default badge and focus map.
     }
 
     private fun initTextCaches() {
@@ -379,22 +401,22 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private fun updateCountdownText() {
         if (isAppMode) {
             val autoLabel = SettingsRepository.getAutoOpenLabel(this)
-            tvCountdown.text = if (autoLabel.isNotBlank()) {
+            countdownUiText = if (autoLabel.isNotBlank()) {
                 getString(R.string.app_mode_active_with_auto_app, autoLabel)
             } else {
                 textAppModeActive
             }
         } else if (isCancelled) {
-            tvCountdown.text = textCancelled
+            countdownUiText = textCancelled
         } else if (countdownDuration <= 0) {
-            tvCountdown.text = textDisabledCache.getOrElse(defaultPort) { textDisabledCache[3] }
+            countdownUiText = textDisabledCache.getOrElse(defaultPort) { textDisabledCache[3] }
         } else {
             val port = if (defaultPort in 1..3) defaultPort else 3
             val sec = if (secondsLeft in 1..30) secondsLeft else 0
             if (sec > 0) {
-                tvCountdown.text = countdownTextCache[port][sec]
+                countdownUiText = countdownTextCache[port][sec]
             } else {
-                tvCountdown.text = textCancelled
+                countdownUiText = textCancelled
             }
         }
     }
@@ -404,7 +426,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
         SettingsRepository.setDefaultPort(this, port)
         updateButtonLabels()
         cancelTimer()
-        tvCountdown.text = getString(R.string.msg_set_default, port)
+        countdownUiText = getString(R.string.msg_set_default, port)
     }
 
     private fun pauseTimer() {
@@ -457,11 +479,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             if (pressedPort != null) {
                 cancelTimer()
                 if (pressedPort in 1..3) {
-                    when (pressedPort) {
-                        1 -> cardHdmi1.requestFocus()
-                        2 -> cardHdmi2.requestFocus()
-                        3 -> cardHdmi3.requestFocus()
-                    }
+                    requestPortFocus(pressedPort)
                     switchTo(pressedPort, fromTimer = false)
                 }
                 return true
@@ -470,12 +488,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             if (keyCode == KeyEvent.KEYCODE_TV_INPUT ||
                 keyCode == KeyEvent.KEYCODE_AVR_INPUT ||
                 keyCode == KeyEvent.KEYCODE_STB_INPUT) {
-                val currentPort = when {
-                    cardHdmi1.hasFocus() -> 1
-                    cardHdmi2.hasFocus() -> 2
-                    cardHdmi3.hasFocus() -> 3
-                    else -> defaultPort
-                }
+                val currentPort = focusedPort ?: defaultPort
                 val nextPort = if (currentPort >= 3) 1 else currentPort + 1
                 cancelTimer()
                 Log.i(TAG, "Input/source key: HDMI $currentPort → HDMI $nextPort")
@@ -497,7 +510,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
                     KeyEvent.KEYCODE_DPAD_LEFT,
                     KeyEvent.KEYCODE_DPAD_RIGHT -> {
                         cancelTimer()
-                        tvCountdown.text = textCancelled
+                        countdownUiText = textCancelled
                     }
                 }
             }

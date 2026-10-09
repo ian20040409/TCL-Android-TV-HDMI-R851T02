@@ -8,12 +8,13 @@
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI Input Selector</string>
+    <string name="home_subtitle">Choose an input to start watching</string>
     <string name="btn_countdown_off">Countdown: Off</string>
     <string name="btn_countdown_seconds">Countdown: %ds</string>
     <string name="btn_tcl_settings">TCL Settings</string>
     <string name="btn_apps">Apps</string>
     <string name="btn_settings">Settings</string>
-    <string name="card_default_badge">● Default</string>
+    <string name="card_default_badge">Default</string>
     <string name="bottom_hint">[OK] Switch   •   [1 / 2 / 3] Direct Input   •   [Menu] Settings   •   [Hold OK] Set Default</string>
     <string name="countdown_active">Switching to HDMI %2$d in %1$ds (Press D-pad to cancel)</string>
     <string name="text_cancelled">Select an input (Long-press OK to set default)</string>
@@ -87,6 +88,10 @@
 
     <!-- App Drawer (AppListActivity) -->
     <string name="app_list_title">Applications</string>
+    <string name="app_list_loading">Loading applications…</string>
+    <string name="btn_batch_action">Batch Actions</string>
+    <string name="btn_cancel_selection">Cancel</string>
+
     <string name="app_list_hint">[OK] Open  •  [Hold OK] More Options  •  [Back] Return</string>
     <string name="app_list_empty">No launchable applications found</string>
     <string name="section_recent">Recently Used (%d)</string>

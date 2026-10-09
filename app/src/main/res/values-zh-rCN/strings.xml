@@ -8,12 +8,13 @@
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI 信号源切换</string>
+    <string name="home_subtitle">选择信号源以开始观看</string>
     <string name="btn_countdown_off">倒计时: 关闭</string>
     <string name="btn_countdown_seconds">倒计时: %d秒</string>
     <string name="btn_tcl_settings">TCL 设置</string>
     <string name="btn_apps">应用程序</string>
     <string name="btn_settings">设置</string>
-    <string name="card_default_badge">● 默认</string>
+    <string name="card_default_badge">默认</string>
     <string name="bottom_hint">[OK] 立即切换   •   [1 / 2 / 3] 直达信号   •   [菜单] 设置   •   [长按 OK] 设为默认</string>
     <string name="countdown_active">%1$d 秒后自动进入 HDMI %2$d（按方向键取消）</string>
     <string name="text_cancelled">请选择信号源（长按 OK 可设为默认）</string>
@@ -87,6 +88,9 @@
 
     <!-- App Drawer (AppListActivity) -->
     <string name="app_list_title">应用程序</string>
+    <string name="app_list_loading">正在加载应用程序…</string>
+    <string name="btn_batch_action">批量操作</string>
+    <string name="btn_cancel_selection">取消</string>
     <string name="app_list_hint">[OK] 启动  •  [长按 OK] 更多选项  •  [返回] 返回上一页</string>
     <string name="app_list_empty">未找到可启动的应用程序</string>
     <string name="section_recent">最近使用  (%d)</string>
