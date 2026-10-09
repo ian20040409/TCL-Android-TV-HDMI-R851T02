@@ -178,6 +178,9 @@
     <string name="dialog_accessibility_req_title">需要無障礙服務</string>
     <string name="dialog_accessibility_req_msg">自動休眠 (STR) 與按鍵映射功能需要無障礙服務權限才能正常運作。\n\n【系統設定開啟路徑】\n裝置偏好設定（或系統）➔ 無障礙 / 協助工具 ➔ 開啟「TCL HDMI Launcher」</string>
     <string name="dialog_accessibility_req_go">前往設定</string>
+    <string name="dialog_accessibility_shizuku">使用 Shizuku 啟用</string>
+    <string name="toast_accessibility_shizuku_enabled">已透過 Shizuku 啟用無障礙服務</string>
+    <string name="toast_accessibility_shizuku_failed">Shizuku 無法啟用服務，將開啟系統設定</string>
 
     <!-- Shizuku Management -->
     <string name="setting_shizuku_title">Shizuku API 设置与检测</string>

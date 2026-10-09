@@ -98,6 +98,37 @@ object ShizukuHelper {
     }
 
     /**
+     * 使用已授權的 Shizuku shell 啟用本應用的無障礙服務。
+     * 保留其他已啟用的服務，並由系統 AccessibilityManager 依安全設定重新載入。
+     */
+    fun enableAccessibilityService(context: Context): Boolean {
+        if (!isShizukuPermissionGranted()) return false
+
+        val component = "${context.packageName}/${WakeAccessibilityService::class.java.name}"
+        val script = """
+            component='$component'
+            enabled=${'$'}(settings get secure enabled_accessibility_services 2>/dev/null)
+            case ":${'$'}enabled:" in
+                *":${'$'}component:"*) ;;
+                *)
+                    if [ -n "${'$'}enabled" ] && [ "${'$'}enabled" != "null" ]; then
+                        enabled="${'$'}enabled:${'$'}component"
+                    else
+                        enabled="${'$'}component"
+                    fi
+                    settings put secure enabled_accessibility_services "${'$'}enabled" || exit 1
+                    ;;
+            esac
+            settings put secure accessibility_enabled 1 || exit 1
+            actual=${'$'}(settings get secure enabled_accessibility_services 2>/dev/null)
+            case ":${'$'}actual:" in *":${'$'}component:"*) ;; *) exit 1 ;; esac
+            [ "${'$'}(settings get secure accessibility_enabled 2>/dev/null)" = "1" ]
+        """.trimIndent()
+
+        return executeShellCommand(script) == 0
+    }
+
+    /**
      * 執行 Shizuku Shell 指令
      */
     fun executeShellCommand(command: String): Int {

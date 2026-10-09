@@ -184,6 +184,9 @@
     <string name="dialog_accessibility_req_title">Accessibility Required</string>
     <string name="dialog_accessibility_req_msg">Auto-sleep (STR) and Button Mapping require Accessibility Service permissions to function properly.\n\n[System Settings Path]\nDevice Preferences (or System) ➔ Accessibility ➔ Enable "TCL HDMI Launcher"</string>
     <string name="dialog_accessibility_req_go">Go to Settings</string>
+    <string name="dialog_accessibility_shizuku">Enable with Shizuku</string>
+    <string name="toast_accessibility_shizuku_enabled">Accessibility service enabled with Shizuku</string>
+    <string name="toast_accessibility_shizuku_failed">Shizuku could not enable the service. Opening system settings.</string>
 
     <!-- Shizuku Management -->
     <string name="setting_shizuku_title">Shizuku Settings</string>

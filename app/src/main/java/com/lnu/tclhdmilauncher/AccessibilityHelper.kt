@@ -118,7 +118,7 @@ object AccessibilityHelper {
         }
 
         val msg = DeviceHelper.filterBrandText(context, context.getString(R.string.dialog_accessibility_req_msg))
-        android.app.AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        val builder = android.app.AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle(context.getString(R.string.dialog_accessibility_req_title))
             .setMessage(msg)
             .setPositiveButton(context.getString(R.string.dialog_accessibility_req_go)) { d, _ ->
@@ -131,7 +131,21 @@ object AccessibilityHelper {
             .setNegativeButton(context.getString(R.string.dialog_cancel)) { d, _ ->
                 d.dismiss()
             }
-            .create().also { dialog ->
+
+        if (ShizukuHelper.isShizukuPermissionGranted()) {
+            builder.setNeutralButton(R.string.dialog_accessibility_shizuku) { _, _ ->
+                val enabled = ShizukuHelper.enableAccessibilityService(context)
+                val messageRes = if (enabled) {
+                    R.string.toast_accessibility_shizuku_enabled
+                } else {
+                    R.string.toast_accessibility_shizuku_failed
+                }
+                Toast.makeText(context, messageRes, Toast.LENGTH_LONG).show()
+                if (!enabled) openAndroidSystemSettings(context)
+            }
+        }
+
+        builder.create().also { dialog ->
                 dialog.setOnShowListener {
                     dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)?.requestFocus()
                 }
