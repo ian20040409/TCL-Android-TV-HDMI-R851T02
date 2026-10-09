@@ -3,16 +3,38 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val ciKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+val ciKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val ciKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+val ciKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+val hasCiSigning = listOf(
+    ciKeystorePath,
+    ciKeystorePassword,
+    ciKeyAlias,
+    ciKeyPassword
+).all { !it.isNullOrBlank() }
+
 android {
     namespace  = "com.lnu.tclhdmilauncher"
     compileSdk = 37
+
+    if (hasCiSigning) {
+        signingConfigs {
+            create("ciRelease") {
+                storeFile = file(ciKeystorePath!!)
+                storePassword = ciKeystorePassword
+                keyAlias = ciKeyAlias
+                keyPassword = ciKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.lnu.tclhdmilauncher"
         minSdk        = 28
         targetSdk     = 36
-        versionCode   = 22
-        versionName   = "2.2.2"
+        versionCode   = 23
+        versionName   = "3.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -20,6 +42,9 @@ android {
         release {
             isMinifyEnabled   = true
             isShrinkResources = true
+            if (hasCiSigning) {
+                signingConfig = signingConfigs.getByName("ciRelease")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -29,10 +54,27 @@ android {
             isMinifyEnabled   = false
             isShrinkResources = false
         }
+        // 可在 Android Studio 的 Build Variants 選取，使用 R8 完整最佳化後直接安裝。
+        create("optimized") {
+            initWith(getByName("debug"))
+            isDebuggable      = false
+            isMinifyEnabled   = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            matchingFallbacks += listOf("debug")
+        }
     }
 
     buildFeatures {
         compose = true
+    }
+
+    testOptions {
+        // 讓 JVM 單元測試中的 android.jar stub 回傳預設值，而不是丟出 "Stub!"
+        unitTests.isReturnDefaultValues = true
     }
 
     compileOptions {
@@ -64,6 +106,8 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.tv.material)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.kotlinx.coroutines.android)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
@@ -73,11 +117,12 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
 
-    implementation("androidx.leanback:leanback:1.0.0")
-    implementation("androidx.leanback:leanback-preference:1.2.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    
-    val shizuku_version = "13.1.5"
-    implementation("dev.rikka.shizuku:api:$shizuku_version")
-    implementation("dev.rikka.shizuku:provider:$shizuku_version")
+    implementation(libs.androidx.leanback)
+    implementation(libs.androidx.leanback.preference)
+    implementation(libs.androidx.appcompat)
+
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
+
+    testImplementation(libs.junit)
 }
