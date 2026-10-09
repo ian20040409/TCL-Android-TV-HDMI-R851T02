@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -11,8 +10,8 @@ android {
         applicationId = "com.lnu.tclhdmilauncher"
         minSdk        = 28
         targetSdk     = 36
-        versionCode   = 40
-        versionName   = "4.0"
+        versionCode   = 41
+        versionName   = "4.1.0"
     }
 
     buildTypes {
@@ -28,10 +27,6 @@ android {
             isMinifyEnabled   = false
             isShrinkResources = false
         }
-    }
-
-    buildFeatures {
-        compose = true
     }
 
     compileOptions {
@@ -57,17 +52,6 @@ android {
 
 // 引入 Android TV 官方 Leanback 支援庫（供 GuidedStepSupportFragment OOBE 精靈使用）
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.tv.material)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.kotlinx.coroutines.android)
-
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
     implementation("androidx.leanback:leanback:1.0.0")
     implementation("androidx.leanback:leanback-preference:1.2.0")
     implementation("androidx.appcompat:appcompat:1.6.1")

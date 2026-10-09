@@ -8,13 +8,12 @@
     <string name="app_name">HDMI Launcher</string>
     <string name="brand_name">TCL TV HDMI</string>
     <string name="main_title">HDMI 訊號源切換</string>
-    <string name="home_subtitle">選擇訊號源以開始觀看</string>
     <string name="btn_countdown_off">倒數: 關閉</string>
     <string name="btn_countdown_seconds">倒數: %d秒</string>
     <string name="btn_tcl_settings">TCL 設定</string>
     <string name="btn_apps">應用程式</string>
     <string name="btn_settings">設定</string>
-    <string name="card_default_badge">預設</string>
+    <string name="card_default_badge">● 預設</string>
     <string name="bottom_hint">[OK] 立即切換   •   [1 / 2 / 3] 直達訊號   •   [選單] 設定   •   [長按 OK] 設為預設</string>
     <string name="countdown_active">%1$d 秒後自動進入 HDMI %2$d（按方向鍵取消）</string>
     <string name="text_cancelled">請選擇訊號源（長按 OK 可設為預設）</string>
@@ -88,9 +87,6 @@
 
     <!-- App Drawer (AppListActivity) -->
     <string name="app_list_title">應用程式</string>
-    <string name="app_list_loading">正在載入應用程式…</string>
-    <string name="btn_batch_action">批次操作</string>
-    <string name="btn_cancel_selection">取消</string>
     <string name="app_list_hint">[OK] 啟動  •  [長按 OK] 更多選項  •  [返回] 回上頁</string>
     <string name="app_list_empty">沒有找到可啟動的應用程式</string>
     <string name="section_recent">最近使用  (%d)</string>
@@ -186,9 +182,6 @@
     <string name="dialog_accessibility_req_title">需要無障礙服務</string>
     <string name="dialog_accessibility_req_msg">自動休眠 (STR) 與按鍵映射功能需要無障礙服務權限才能正常運作。\n\n【系統設定開啟路徑】\n裝置偏好設定（或系統）➔ 無障礙 / 協助工具 ➔ 開啟「TCL HDMI Launcher」</string>
     <string name="dialog_accessibility_req_go">前往設定</string>
-    <string name="dialog_accessibility_shizuku">使用 Shizuku 啟用</string>
-    <string name="toast_accessibility_shizuku_enabled">已透過 Shizuku 啟用無障礙服務</string>
-    <string name="toast_accessibility_shizuku_failed">Shizuku 無法啟用服務，將開啟系統設定</string>
 
     <!-- Shizuku Management -->
     <string name="setting_shizuku_title">Shizuku API 設定與檢測</string>
