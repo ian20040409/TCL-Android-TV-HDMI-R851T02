@@ -2,6 +2,7 @@ package com.lnu.tclhdmilauncher.settings
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -50,9 +51,15 @@ class ShizukuSettingsActivity : FragmentActivity() {
         private val mainHandler = Handler(Looper.getMainLooper())
         private var isDownloading = false
 
-        private val onRequestPermissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, _ ->
+        private val onRequestPermissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
             if (requestCode == REQUEST_CODE_SHIZUKU) {
                 mainHandler.post {
+                    if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                        context?.let { ctx ->
+                            ShizukuHelper.tryGrantPermissions(ctx)
+                            CecLogReaderService.restartLogcatReader(ctx)
+                        }
+                    }
                     refreshUI()
                 }
             }

@@ -59,7 +59,7 @@ adb shell am force-stop com.google.android.tvlauncher
 *(隨時可透過 `adb shell pm enable com.google.android.tvlauncher` 還原)*
 
 ### 4. 啟用待機守護與 CEC 自動切換（建議）
-- **待機喚醒守護 (無障礙服務)**：點擊狀態列的「喚醒守護」，在系統設定中開啟，可避免待機喚醒黑屏並提供 Home 鍵重定向。
+- **待機喚醒守護 (無障礙服務)**：可點擊狀態列的「喚醒守護」前往系統設定手動開啟；若已授予 App Shizuku 權限，App 會透過 shell 自動啟用此服務。可避免待機喚醒黑屏並提供 Home 鍵重定向。
 - **CEC 自動切換**：授予讀取日誌權限，外接設備開機時自動跳轉對應端口：
   ```bash
   adb shell pm grant com.lnu.tclhdmilauncher android.permission.READ_LOGS

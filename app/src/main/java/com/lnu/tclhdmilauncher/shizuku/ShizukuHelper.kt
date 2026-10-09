@@ -1,8 +1,10 @@
 package com.lnu.tclhdmilauncher.shizuku
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import com.lnu.tclhdmilauncher.WakeAccessibilityService
 import java.io.IOException
 import rikka.shizuku.Shizuku
 
@@ -84,6 +86,39 @@ object ShizukuHelper {
                     Log.e(TAG, "Error granting $permission via Shizuku", e)
                 }
             }
+        }
+
+        enableAccessibilityService(context)
+    }
+
+    private fun enableAccessibilityService(context: Context) {
+        val service = ComponentName(context, WakeAccessibilityService::class.java).flattenToString()
+        val command = """
+            SERVICE='$service'
+            CURRENT=${'$'}(settings get secure enabled_accessibility_services)
+            case ":${'$'}CURRENT:" in
+                *":${'$'}SERVICE:"*) ;;
+                *)
+                    if [ -z "${'$'}CURRENT" ] || [ "${'$'}CURRENT" = "null" ]; then
+                        CURRENT="${'$'}SERVICE"
+                    else
+                        CURRENT="${'$'}CURRENT:${'$'}SERVICE"
+                    fi
+                    settings put secure enabled_accessibility_services "${'$'}CURRENT" || exit ${'$'}?
+                    ;;
+            esac
+            settings put secure accessibility_enabled 1
+        """.trimIndent()
+
+        try {
+            val exitCode = executeShellCommand(command)
+            if (exitCode == 0) {
+                Log.i(TAG, "Enabled accessibility service via Shizuku: $service")
+            } else {
+                Log.e(TAG, "Failed to enable accessibility service via Shizuku, exit: $exitCode")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error enabling accessibility service via Shizuku", e)
         }
     }
 

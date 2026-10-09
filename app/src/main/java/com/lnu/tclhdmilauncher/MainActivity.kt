@@ -148,8 +148,8 @@ class MainActivity : ComponentActivity() {
         override fun run() {
             if (isAppMode || countdownDuration <= 0 || isDestroyed || isCancelled || isFinishing || !isActivityResumed || !hasWindowFocus()) return
             if (TclHdmiApplication.isCecInputOverrideActive()) {
-                cancelTimer()
-                Log.i(TAG, "CEC input override is active; cancelling default-port countdown")
+                // Keep the countdown paused while CEC selects an input, then resume automatically.
+                handler.postDelayed(this, 1000L)
                 return
             }
             secondsLeft--
@@ -387,13 +387,13 @@ class MainActivity : ComponentActivity() {
             updateCountdownText()
             return
         }
+        if (isCancelled || isFinishing || !isActivityResumed || !hasWindowFocus()) return
         if (TclHdmiApplication.isCecInputOverrideActive()) {
-            cancelTimer()
-            Log.i(TAG, "CEC input override is active; suppressing default-port countdown")
+            Log.i(TAG, "CEC input override is active; deferring default-port countdown")
             updateCountdownText()
+            handler.postDelayed(tickRunnable, 1000L)
             return
         }
-        if (isCancelled || isFinishing || !isActivityResumed || !hasWindowFocus()) return
         if (secondsLeft <= 0) secondsLeft = countdownDuration
         updateCountdownText()
         handler.postDelayed(tickRunnable, 1000L)

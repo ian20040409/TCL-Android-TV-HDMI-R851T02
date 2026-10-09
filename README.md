@@ -59,7 +59,7 @@ adb shell am force-stop com.google.android.tvlauncher
 *(Reversible anytime via `adb shell pm enable com.google.android.tvlauncher`)*
 
 ### 4. Enable Wake Guard & CEC Auto-Switch (Recommended)
-- **Wake Guard (Accessibility Service)**: Click **Wake Guard** on the top status bar and toggle ON in system settings to ensure reliable wakeups and Home button redirection.
+- **Wake Guard (Accessibility Service)**: Enable it manually from system settings via **Wake Guard** on the top status bar, or grant the app Shizuku permission to enable the service automatically through shell. It helps ensure reliable wakeups and Home button redirection.
 - **CEC Auto-Switch**: Grant log reading permission so the launcher can auto-route active HDMI devices on wake:
   ```bash
   adb shell pm grant com.lnu.tclhdmilauncher android.permission.READ_LOGS

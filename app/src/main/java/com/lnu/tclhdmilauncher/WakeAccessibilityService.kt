@@ -221,11 +221,8 @@ class WakeAccessibilityService : AccessibilityService() {
             keyCode == KeyEvent.KEYCODE_GUIDE ||
             keyCode == KeyEvent.KEYCODE_TV)) {
             
-            if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 15000) {
-                Log.i(TAG, "Ignoring Home/Guide key completely because of recent CEC wake.")
-                return true // 攔截並丟棄，防止原生系統跳回桌面
-            }
-
+            // Explicit user Home/Guide input must win over the CEC auto-switch guard.
+            // The CEC guard still prevents automatic window-state redirects below.
             if (event.action == KeyEvent.ACTION_UP) {
                 val now = System.currentTimeMillis()
                 if (now - lastHomeRedirectTime > 400L) {

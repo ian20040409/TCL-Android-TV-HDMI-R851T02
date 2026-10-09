@@ -25,7 +25,8 @@ import com.lnu.tclhdmilauncher.MainActivity
 import com.lnu.tclhdmilauncher.R
 import com.lnu.tclhdmilauncher.TclHdmiApplication
 import com.lnu.tclhdmilauncher.WakeAccessibilityService
-import com.lnu.tclhdmilauncher.settings.SettingsRepository
+
+import com.lnu.tclhdmilauncher.shizuku.ShizukuHelper
 import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -123,22 +124,25 @@ class CecLogReaderService : Service() {
                         return
                     }
 
-                    // 3. 無法立即判定 → 等待 TvInputCallback 偵測狀態變化（最多 1.5 秒後 fallback）
-                    // 或是等待 Logcat 攔截到 <Active Source> 進行精準切換
+                    // 無法立即判定時，留給 TvInputCallback / logcat 足夠時間取得來源資訊。
+                    // MSG_VIEW_ON 不帶 port，且多個 HDMI 同時 CONNECTED 時不能安全地猜預設輸入。
                     pendingCecSwitchTime = System.currentTimeMillis()
                     cancelPendingFallback()
                     val svc = this@CecLogReaderService
-                    val fallbackPort = SettingsRepository.getDefaultPort(context)
                     pendingFallbackRunnable = Runnable {
                         if (pendingCecSwitchTime > 0) {
                             pendingCecSwitchTime = 0
-                            val p = findSingleConnectedPort() ?: fallbackPort
-                            CecDebugLog.add(svc, "MSG_VIEW_ON fallback → HDMI $p ($stateLog)")
-                            switchHdmiPort(svc, p, "MSG_VIEW_ON fallback")
+                            val port = findSingleConnectedPort()
+                            if (port != null) {
+                                CecDebugLog.add(svc, "MSG_VIEW_ON fallback → HDMI $port (${queryAndLogInputStates()})")
+                                switchHdmiPort(svc, port, "MSG_VIEW_ON fallback")
+                            } else {
+                                CecDebugLog.add(svc, "MSG_VIEW_ON unresolved; no unique connected HDMI (${queryAndLogInputStates()}); not switching")
+                            }
                         }
                     }
-                    cecHandler.postDelayed(pendingFallbackRunnable!!, 1500)
-                    CecDebugLog.add(context, "MSG_VIEW_ON ($stateLog) → waiting for TvInput state/logcat...")
+                    cecHandler.postDelayed(pendingFallbackRunnable!!, 5000)
+                    CecDebugLog.add(context, "MSG_VIEW_ON ($stateLog) → waiting up to 5s for TvInput state/logcat...")
                 }
 
                 "com.tcl.action.cec.MSG_ACTIVE_SOURCE" -> {
@@ -258,7 +262,13 @@ class CecLogReaderService : Service() {
                     clearExistingLogs = false
                 }
 
-                val hasReadLogs = checkSelfPermission(Manifest.permission.READ_LOGS) == PackageManager.PERMISSION_GRANTED
+                var hasReadLogs = checkSelfPermission(Manifest.permission.READ_LOGS) == PackageManager.PERMISSION_GRANTED
+                if (!hasReadLogs) {
+                    // 開機後服務比 MainActivity 先啟動，沒有 READ_LOGS 就看不到 <Active Source>，
+                    // 因此在服務內自行透過 Shizuku 補授權。
+                    runCatching { ShizukuHelper.tryGrantPermissions(this) }
+                    hasReadLogs = checkSelfPermission(Manifest.permission.READ_LOGS) == PackageManager.PERMISSION_GRANTED
+                }
                 if (hasReadLogs != lastReportedReadLogs) {
                     CecDebugLog.add(this, "CEC logcat reader starting (READ_LOGS=$hasReadLogs)")
                     lastReportedReadLogs = hasReadLogs
