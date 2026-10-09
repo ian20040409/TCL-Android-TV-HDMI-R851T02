@@ -16,10 +16,10 @@
     <uses-permission android:name="android.permission.READ_LOGS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- 讀取 CEC Active Routing Path 必需權限（需透過 ADB shell pm grant 授予） -->
-    <uses-permission android:name="android.permission.DUMP" />
+    <uses-permission android:name="android.permission.DUMP" tools:ignore="ProtectedPermissions" />
     <!-- API 34+ requires a declared foreground-service type before startForeground(). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.DEVICE_POWER" />
+    <uses-permission android:name="android.permission.DEVICE_POWER" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
 

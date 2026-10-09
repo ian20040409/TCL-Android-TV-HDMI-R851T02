@@ -3,6 +3,7 @@ package com.lnu.tclhdmilauncher.applist
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.ResolveInfo
@@ -621,6 +622,8 @@ class AppListActivity : ComponentActivity() {
         finish()
     }
 
+    // Lint 誤報：ComponentActivity.dispatchKeyEvent 實為公開 API（非受限）
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Back is handled solely by OnBackPressedDispatcher: newer Android versions
         // may deliver its callback even when a raw Back key-down is consumed.

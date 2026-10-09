@@ -16,6 +16,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.lnu.tclhdmilauncher.BootAndWakeReceiver
 import com.lnu.tclhdmilauncher.HdmiViewerActivity
 import com.lnu.tclhdmilauncher.MainActivity
@@ -199,11 +200,7 @@ class CecLogReaderService : Service() {
             }
             // MSG_VIEW_ON originates from TCL's system process, so the dynamically
             // registered receiver must be exported on Android 13+.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(cecBroadcastReceiver, cecFilter, Context.RECEIVER_EXPORTED)
-            } else {
-                registerReceiver(cecBroadcastReceiver, cecFilter)
-            }
+            ContextCompat.registerReceiver(this, cecBroadcastReceiver, cecFilter, ContextCompat.RECEIVER_EXPORTED)
             isCecReceiverRegistered = true
             Log.i(TAG, "已註冊動態 CEC 廣播接收器 (MSG_VIEW_ON, MSG_ACTIVE_SOURCE, MSG_ROUTING_CHANGE, MSG_SET_STREAM_PATH, voicestandby)")
         }

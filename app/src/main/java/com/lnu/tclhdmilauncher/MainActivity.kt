@@ -3,6 +3,7 @@ package com.lnu.tclhdmilauncher
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.tv.TvContract
 import android.os.Bundle
@@ -401,6 +402,8 @@ class MainActivity : ComponentActivity() {
         handler.removeCallbacks(tickRunnable)
     }
 
+    // Lint 誤報：ComponentActivity.dispatchKeyEvent 實為公開 API（非受限）
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             val keyCode = event.keyCode

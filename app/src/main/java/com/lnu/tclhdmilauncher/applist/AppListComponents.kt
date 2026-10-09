@@ -13,6 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -70,6 +73,9 @@ internal fun AppListCountdownStatus(countdownText: String, countdownProgress: Fl
     }
 }
 
+private val FrozenTextColor = Color(0xFF64748B)
+private val GrayscaleFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+
 @Composable
 internal fun AppListSectionHeader(title: String) {
     Text(
@@ -91,6 +97,7 @@ internal fun AppListEntryRow(
     onLongClick: () -> Unit,
 ) {
     val imageBitmap = remember(icon) { icon?.asImageBitmap() }
+    val isFrozen = !item.appInfo.enabled
 
     ListItem(
         selected = isSelected,
@@ -100,6 +107,7 @@ internal fun AppListEntryRow(
             Text(
                 if (item.appInfo.enabled) item.label
                 else stringResource(R.string.app_disabled_suffix, item.label),
+                color = if (isFrozen) FrozenTextColor else Color.Unspecified,
             )
         },
         supportingContent = {
@@ -114,6 +122,7 @@ internal fun AppListEntryRow(
                     bitmap = imageBitmap,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
+                    colorFilter = if (isFrozen) GrayscaleFilter else null,
                 )
             } else {
                 Icon(

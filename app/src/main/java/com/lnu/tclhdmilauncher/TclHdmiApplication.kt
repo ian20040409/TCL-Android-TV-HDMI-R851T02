@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.lnu.tclhdmilauncher.applist.AppListActivity
 import com.lnu.tclhdmilauncher.cec.CecLogReaderService
 import com.lnu.tclhdmilauncher.power.PowerHelper
@@ -129,11 +130,7 @@ class TclHdmiApplication : Application() {
         }
         // The filter includes TCL's cross-process CEC broadcast.  Android 13+
         // requires this explicit flag for non-system-only dynamic receivers.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(screenReceiver, filter, Context.RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(screenReceiver, filter)
-        }
+        ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
 
         // 啟動 CEC 監控服務
         try {

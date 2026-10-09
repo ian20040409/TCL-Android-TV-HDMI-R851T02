@@ -246,4 +246,8 @@
     <string name="action_disable_upper">停用</string>
     <string name="app_disabled_suffix">%s (已停用)</string>
     <string name="app_frozen_suffix"> [FROZEN]</string>
+
+    <!-- HDMI settings -->
+    <string name="setting_hdmi_settings_title">HDMI 設定</string>
+    <string name="setting_hdmi_settings_desc">設定 HDMI 輸入、自動切換倒數與訊號資訊顯示</string>
 </resources>

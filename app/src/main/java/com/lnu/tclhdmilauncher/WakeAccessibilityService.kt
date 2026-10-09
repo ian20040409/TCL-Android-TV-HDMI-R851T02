@@ -10,6 +10,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import androidx.core.content.ContextCompat
 import com.lnu.tclhdmilauncher.power.PowerHelper
 import com.lnu.tclhdmilauncher.settings.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
@@ -87,11 +88,7 @@ class WakeAccessibilityService : AccessibilityService() {
             }
             // TCL sends MSG_VIEW_ON from a different process.  Declare this
             // receiver exported on Android 13+ so the broadcast is deliverable.
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(screenReceiver, filter, Context.RECEIVER_EXPORTED)
-            } else {
-                registerReceiver(screenReceiver, filter)
-            }
+            ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
             isReceiverRegistered = true
         }
     }

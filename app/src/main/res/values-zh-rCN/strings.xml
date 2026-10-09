@@ -242,5 +242,13 @@
     <string name="action_disable_upper">停用</string>
     <string name="app_disabled_suffix">%s (已停用)</string>
     <string name="app_frozen_suffix"> [FROZEN]</string>
+
+    <!-- HDMI settings / auto sleep -->
+    <string name="setting_hdmi_settings_title">HDMI 设置</string>
+    <string name="setting_hdmi_settings_desc">设置 HDMI 输入、自动切换倒计时与信号信息显示</string>
+    <string name="setting_auto_sleep_title">无信号自动休眠</string>
+    <string name="setting_auto_sleep_desc">无信号 %d 秒后自动休眠 (待机)</string>
+    <string name="setting_auto_sleep_desc_off">关闭自动休眠</string>
+    <string name="dialog_auto_sleep_title">自动休眠秒数</string>
 </resources>
 
