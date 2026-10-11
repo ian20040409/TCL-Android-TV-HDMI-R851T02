@@ -269,7 +269,8 @@ class CecLogReaderService : Service() {
             while (isReading && !serviceDestroyed && generation == logcatGeneration) {
                 var process: Process? = null
                 try {
-                    val command = "logcat -T 1 -v time -s " +
+                    val startTimeStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+                    val command = "logcat -T '$startTimeStr' -v time -s " +
                         "HdmiCecController HdmiCecLocalDeviceTv HdmiCecLocalDevice " +
                         "HdmiControlService HdmiCecNetwork HdmiCecMessage HdmiCec 2>&1"
                     val useShizuku = ShizukuHelper.isShizukuPermissionGranted()
@@ -279,18 +280,14 @@ class CecLogReaderService : Service() {
                         null
                     } ?: Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
                     logcatProcess = process
-                    Log.i(TAG, "CEC logcat reader started via ${if (useShizuku) "Shizuku shell" else "app process"}")
-                    CecDebugLog.add(this@CecLogReaderService, "Logcat reader: ${if (useShizuku) "Shizuku shell" else "app process"}")
+                    Log.i(TAG, "CEC logcat reader started (from $startTimeStr) via ${if (useShizuku) "Shizuku shell" else "app process"}")
+                    CecDebugLog.add(this@CecLogReaderService, "Logcat reader started ($startTimeStr): ${if (useShizuku) "Shizuku shell" else "app process"}")
 
                     val reader = BufferedReader(InputStreamReader(process.inputStream))
-                    var isFirstLine = true
                     while (isReading && !serviceDestroyed && generation == logcatGeneration) {
                         val line = reader.readLine() ?: break
-                        if (isFirstLine) {
-                            isFirstLine = false
-                            // -T 1 提供的一行定位錨點為過去的歷史緩存，予以丟棄，只處理此後產生的即時日誌
-                            continue
-                        }
+                        // 忽略 buffer divider (例如 --------- beginning of system)
+                        if (line.startsWith("---------")) continue
                         processLogLine(line)
                     }
                     if (isReading && !serviceDestroyed && generation == logcatGeneration) {
@@ -357,11 +354,33 @@ class CecLogReaderService : Service() {
             }
         }
 
-        if (normalized.contains("<image view on>")) {
-            Log.i(TAG, "偵測到 CEC 喚醒訊號 (Image View On)！準備喚醒螢幕...")
+        if (normalized.contains("<image view on>") || normalized.contains("<text view on>")) {
+            val isTextViewOn = normalized.contains("<text view on>")
+            val msgType = if (isTextViewOn) "Text View On" else "Image View On"
+            Log.i(TAG, "偵測到 CEC 喚醒訊號 ($msgType)！準備喚醒與切換...")
             TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
             TclHdmiApplication.wakeScreen(this)
-            // 不再喚醒到 Launcher，避免覆蓋原生 CEC 訊號源
+
+            val port = if (src != null && src != 0) logicalAddressToPort[src] else null
+            val targetPort = port ?: findSingleConnectedPort()
+            if (targetPort != null && targetPort in 1..3) {
+                switchHdmiPort(this, targetPort, "CEC $msgType")
+            } else {
+                pendingCecSwitchTime = System.currentTimeMillis()
+                cancelPendingFallback()
+                val svc = this@CecLogReaderService
+                pendingFallbackRunnable = Runnable {
+                    if (pendingCecSwitchTime > 0) {
+                        pendingCecSwitchTime = 0
+                        pendingFallbackRunnable = null
+                        val uniquePort = findSingleConnectedPort()
+                        if (uniquePort != null) {
+                            switchHdmiPort(svc, uniquePort, "CEC $msgType fallback")
+                        }
+                    }
+                }
+                cecHandler.postDelayed(pendingFallbackRunnable!!, 1500)
+            }
         } else if (normalized.contains("<active source>")) {
             // Active Source carries the source physical address, e.g. 10 00 for
             // HDMI 1 or 30 00 for HDMI 3.  Its first nibble is the TV input port.

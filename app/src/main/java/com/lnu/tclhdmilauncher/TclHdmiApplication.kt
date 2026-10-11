@@ -25,9 +25,9 @@ class TclHdmiApplication : Application() {
         @Volatile
         var lastCecWakeTime: Long = 0
 
-        /** Prevent the launcher's default-port timer from overriding a CEC input. */
+        /** Prevent the launcher's default-port timer from overriding a CEC input during immediate wake transition. */
         fun isCecInputOverrideActive(): Boolean =
-            System.currentTimeMillis() - lastCecWakeTime < 15_000L
+            System.currentTimeMillis() - lastCecWakeTime < 2000L
 
         /**
          * 強制啟動並拉回 Launcher 至最前景（依 App Mode 設定進入 AppListActivity 或 MainActivity）

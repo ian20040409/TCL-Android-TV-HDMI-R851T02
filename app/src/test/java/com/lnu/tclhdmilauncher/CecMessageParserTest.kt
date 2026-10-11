@@ -209,4 +209,21 @@ class CecMessageParserTest {
         )
         assertTrue("當前正在觀看 HDMI 1，收到 Inactive Source 應正確連動電視休眠", inactiveDecision.shouldSleep)
     }
+
+    @Test
+    fun testWakeMessageDetection() {
+        // 喚醒與切換訊號源指令
+        assertTrue(CecMessageParser.isWakeMessage("command:<Image View On> src: 4, dst: 0"))
+        assertTrue(CecMessageParser.isWakeMessage("command:<Text View On> src: 4, dst: 0"))
+        assertTrue(CecMessageParser.isWakeMessage("command:<Active Source> src: 4, dest: 15, params: 10 00"))
+        assertTrue(CecMessageParser.isWakeMessage("command:<Routing Change> src: 1, dest: 15, params: 10 00 20 00"))
+
+        // 非喚醒指令（狀態輪詢、回報、休眠）
+        assertFalse(CecMessageParser.isWakeMessage("command:<Give Physical Address> src: 0, dst: 3"))
+        assertFalse(CecMessageParser.isWakeMessage("command:<Give Device Power Status> src: 0, dst: 4"))
+        assertFalse(CecMessageParser.isWakeMessage("command:<Report Power Status> src: 4, dst: 0, params: 00"))
+        assertFalse(CecMessageParser.isWakeMessage("command:<Standby> src: 4, dest: 15"))
+        assertFalse(CecMessageParser.isWakeMessage("command:<Inactive Source> src: 4, dest: 0, params: 10 00"))
+        assertFalse(CecMessageParser.isWakeMessage("command:<Active Source> src: 0, dest: 15, params: 10 00")) // 來自電視自身
+    }
 }

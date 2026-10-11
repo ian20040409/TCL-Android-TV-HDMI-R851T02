@@ -31,6 +31,23 @@ object CecMessageParser {
     }
 
     /**
+     * Checks if a CEC log message represents an external wake-up or active source request.
+     */
+    fun isWakeMessage(line: String): Boolean {
+        val normalized = line.lowercase(java.util.Locale.ROOT)
+        if (normalized.contains("<image view on>") || normalized.contains("<text view on>")) {
+            return true
+        }
+        val src = extractSrc(line)
+        if (src != null && src != 0) {
+            if (normalized.contains("<active source>") || normalized.contains("<routing change>")) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
      * Evaluates whether an incoming CEC Standby, Inactive Source, or voicestandby signal
      * should put the TV into sleep mode.
      *

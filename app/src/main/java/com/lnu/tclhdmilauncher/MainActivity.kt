@@ -162,11 +162,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private val tickRunnable = object : Runnable {
         override fun run() {
             if (isAppMode || countdownDuration <= 0 || isDestroyed || isCancelled || isFinishing || !isActivityResumed || !hasWindowFocus()) return
-            if (TclHdmiApplication.isCecInputOverrideActive()) {
-                cancelTimer()
-                Log.i(TAG, "CEC input override is active; cancelling default-port countdown")
-                return
-            }
             secondsLeft--
             if (secondsLeft > 0) {
                 updateCountdownText()
@@ -246,6 +241,7 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
             return
         }
 
+        TclHdmiApplication.lastCecWakeTime = 0L
         secondsLeft = countdownDuration
         isCancelled = false
         updateCountdownText()
@@ -414,12 +410,6 @@ class MainActivity : Activity(), View.OnClickListener, View.OnFocusChangeListene
     private fun resumeTimerIfOnMainScreen() {
         handler.removeCallbacks(tickRunnable)
         if (isAppMode || countdownDuration <= 0) {
-            updateCountdownText()
-            return
-        }
-        if (TclHdmiApplication.isCecInputOverrideActive()) {
-            cancelTimer()
-            Log.i(TAG, "CEC input override is active; suppressing default-port countdown")
             updateCountdownText()
             return
         }

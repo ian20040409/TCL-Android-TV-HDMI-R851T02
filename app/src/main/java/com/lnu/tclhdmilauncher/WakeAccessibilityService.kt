@@ -195,8 +195,9 @@ class WakeAccessibilityService : AccessibilityService() {
         if (stockLauncherPackages.contains(pkgName)) {
             val now = System.currentTimeMillis()
             
-            if (now - TclHdmiApplication.lastCecWakeTime < 15000) {
-                Log.i(TAG, "Ignoring system launcher window because CEC woke the screen recently.")
+            // 僅在開機瞬間極短時間（2秒）避免 CEC 換源前被系統原生桌面干擾
+            if (now - TclHdmiApplication.lastCecWakeTime < 2000L) {
+                Log.i(TAG, "Ignoring system launcher window because CEC woke the screen very recently.")
                 return
             }
             
@@ -233,17 +234,13 @@ class WakeAccessibilityService : AccessibilityService() {
             (keyCode == KeyEvent.KEYCODE_HOME ||
             keyCode == KeyEvent.KEYCODE_GUIDE ||
             keyCode == KeyEvent.KEYCODE_TV)) {
-            
-            if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 15000) {
-                Log.i(TAG, "Ignoring Home/Guide key completely because of recent CEC wake.")
-                return true // 攔截並丟棄，防止原生系統跳回桌面
-            }
 
             if (event.action == KeyEvent.ACTION_UP) {
                 val now = System.currentTimeMillis()
                 if (now - lastHomeRedirectTime > 400L) {
                     lastHomeRedirectTime = now
                     Log.i(TAG, "Home key intercepted in onKeyEvent, redirecting to HDMI Launcher...")
+                    TclHdmiApplication.lastCecWakeTime = 0L // 使用者明確按下主畫面鍵，清除過往 CEC 喚醒壓制狀態
                     TclHdmiApplication.wakeToLauncher(this)
                 }
             }
