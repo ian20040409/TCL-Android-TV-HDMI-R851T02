@@ -116,6 +116,10 @@ class WakeAccessibilityService : AccessibilityService() {
                 handler.postDelayed({
                     val displayManager = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
                     val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
+                    if (retryCount > 0 && HdmiViewerActivity.isViewingActive && HdmiViewerActivity.isVideoRenderingActive) {
+                        Log.i(TAG, "偵測到 HDMI 視訊已恢復渲染播放中，中止休眠重試。")
+                        return@postDelayed
+                    }
                     if (isScreenOn) {
                         Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
                         val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {

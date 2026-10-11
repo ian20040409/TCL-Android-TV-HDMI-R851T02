@@ -41,7 +41,9 @@ class CecDebugActivity : Activity() {
             textSize = 24f
         })
         root.addView(TextView(this).apply {
-            text = "CEC override: ${if (TclHdmiApplication.isCecInputOverrideActive()) "ACTIVE" else "idle"}"
+            val activePort = HdmiViewerActivity.getActiveViewingPort()?.let { "HDMI $it" } ?: "None (launcher/app)"
+            val videoStatus = if (HdmiViewerActivity.isVideoRenderingActive) "Rendering" else "No signal / Inactive"
+            text = "CEC override: ${if (TclHdmiApplication.isCecInputOverrideActive()) "ACTIVE" else "idle"} | Viewing: $activePort | Video: $videoStatus"
             setTextColor(Color.LTGRAY)
             textSize = 15f
         })

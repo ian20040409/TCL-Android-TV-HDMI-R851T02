@@ -10,8 +10,8 @@ android {
         applicationId = "com.lnu.tclhdmilauncher"
         minSdk        = 28
         targetSdk     = 36
-        versionCode   = 41
-        versionName   = "4.1.1"
+        versionCode   = 42
+        versionName   = "4.2.0"
     }
 
     buildTypes {
@@ -59,4 +59,6 @@ dependencies {
     val shizuku_version = "13.1.5"
     implementation("dev.rikka.shizuku:api:$shizuku_version")
     implementation("dev.rikka.shizuku:provider:$shizuku_version")
+
+    testImplementation("junit:junit:4.13.2")
 }

@@ -33,6 +33,8 @@ class CecLogReaderService : Service() {
     @Volatile private var lastViewOnReceivedAt: Long = 0
     private val cecHandler = Handler(Looper.getMainLooper())
     private var pendingFallbackRunnable: Runnable? = null
+    private val logicalAddressToPort = java.util.concurrent.ConcurrentHashMap<Int, Int>()
+    @Volatile private var lastIgnoredStandbyTime: Long = 0
 
     private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, _ ->
         cecHandler.post { restartLogcatReader() }
@@ -165,9 +167,31 @@ class CecLogReaderService : Service() {
                 }
 
                 "com.tcl.voicestandby" -> {
-                    Log.i(TAG, "（前台服務）收到 com.tcl.voicestandby 廣播！準備關閉螢幕...")
-                    CecDebugLog.add(context, "MSG_STANDBY (com.tcl.voicestandby) → requesting sleep")
-                    goToSleep()
+                    val now = System.currentTimeMillis()
+                    if (now - lastIgnoredStandbyTime < 2500L) {
+                        Log.i(TAG, "收到 com.tcl.voicestandby，但剛忽略非當前輸入之 CEC 休眠，予以抑制")
+                        CecDebugLog.add(context, "MSG_STANDBY (voicestandby) suppressed (correlated with ignored standby)")
+                        return
+                    }
+
+                    val currentViewingPort = HdmiViewerActivity.getActiveViewingPort()
+                    val isVideoActive = HdmiViewerActivity.isVideoRenderingActive
+                    val isViewerActive = HdmiViewerActivity.isViewingActive
+
+                    val decision = CecMessageParser.evaluateSleepAction(
+                        sourcePort = null,
+                        src = null,
+                        currentViewingPort = currentViewingPort,
+                        isVideoActive = isVideoActive,
+                        isViewerActive = isViewerActive
+                    )
+
+                    Log.i(TAG, "com.tcl.voicestandby 判斷結果: shouldSleep=${decision.shouldSleep}, reason=${decision.reason}")
+                    CecDebugLog.add(context, "MSG_STANDBY (voicestandby) → ${decision.reason}")
+
+                    if (decision.shouldSleep) {
+                        goToSleep()
+                    }
                 }
             }
         }
@@ -300,9 +324,21 @@ class CecLogReaderService : Service() {
 
     private fun processLogLine(line: String) {
         val normalized = line.lowercase(java.util.Locale.ROOT)
-        if (line.contains("command:<") || normalized.contains("<active source>") || normalized.contains("<routing change>")) {
+        if (line.contains("command:<") || normalized.contains("<active source>") || normalized.contains("<routing change>") || normalized.contains("<inactive source>") || normalized.contains("<standby>")) {
             CecDebugLog.add(this, line.takeLast(220))
         }
+
+        val src = CecMessageParser.extractSrc(line)
+        val params = CecMessageParser.extractParams(line)
+
+        // 只要 CEC 指令中帶有實體位址（如 Report Physical Address、Active Source、Inactive Source 等），更新邏輯位址對應的 HDMI 埠
+        if (src != null && src != 0 && params.isNotEmpty()) {
+            val port = CecMessageParser.parsePortFromAddressByte(params.getOrNull(0))
+            if (port != null && port in 1..3) {
+                logicalAddressToPort[src] = port
+            }
+        }
+
         if (normalized.contains("<image view on>")) {
             Log.i(TAG, "偵測到 CEC 喚醒訊號 (Image View On)！準備喚醒螢幕...")
             TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
@@ -311,38 +347,92 @@ class CecLogReaderService : Service() {
         } else if (normalized.contains("<active source>")) {
             // Active Source carries the source physical address, e.g. 10 00 for
             // HDMI 1 or 30 00 for HDMI 3.  Its first nibble is the TV input port.
+            if (src != null && src != 0) {
+                CecMessageParser.parsePortFromAddressByte(params.getOrNull(0))?.let {
+                    if (it in 1..3) logicalAddressToPort[src] = it
+                }
+            }
             switchToPhysicalAddress(line, "CEC Active Source", 0)
         } else if (normalized.contains("<routing change>")) {
             // Routing Change contains old and new physical addresses.  Use the
             // new address (the third parameter) when a source uses routing rather
             // than broadcasting Active Source.
+            if (params.size >= 3) {
+                val newPort = CecMessageParser.parsePortFromAddressByte(params.getOrNull(2))
+                if (src != null && src != 0 && newPort != null && newPort in 1..3) {
+                    logicalAddressToPort[src] = newPort
+                }
+            }
             switchToPhysicalAddress(line, "CEC Routing Change", 2)
         } else if (normalized.contains("<inactive source>")) {
-            Log.i(TAG, "偵測到 CEC 待機訊號 (InActive Source)！準備關閉螢幕...")
-            goToSleep()
+            val sourcePort = CecMessageParser.parsePortFromAddressByte(params.getOrNull(0)) ?: src?.let { logicalAddressToPort[it] }
+            handleCecInactiveSource(sourcePort, src)
         } else if (normalized.contains("<standby>")) {
-            // Report Power Status 01 is only a response to the TV's periodic
-            // polling request, not a CEC Standby command.  Treating it as Standby
-            // caused a screen-lock attempt every time the TV polled a sleeping
-            // playback device.
-            Log.i(TAG, "偵測到 CEC Standby 指令，準備關閉螢幕...")
+            handleCecStandby(src)
+        }
+    }
+
+    private fun handleCecInactiveSource(sourcePort: Int?, src: Int?) {
+        val currentViewingPort = HdmiViewerActivity.getActiveViewingPort()
+        val isVideoActive = HdmiViewerActivity.isVideoRenderingActive
+        val isViewerActive = HdmiViewerActivity.isViewingActive
+
+        val decision = CecMessageParser.evaluateSleepAction(
+            sourcePort = sourcePort,
+            src = src,
+            currentViewingPort = currentViewingPort,
+            isVideoActive = isVideoActive,
+            isViewerActive = isViewerActive
+        )
+
+        Log.i(TAG, "CEC <Inactive Source> 判斷結果: shouldSleep=${decision.shouldSleep}, reason=${decision.reason}")
+        CecDebugLog.add(this, "<Inactive Source> → ${decision.reason}")
+
+        if (decision.shouldSleep) {
             goToSleep()
+        } else {
+            lastIgnoredStandbyTime = System.currentTimeMillis()
+        }
+    }
+
+    private fun handleCecStandby(src: Int?) {
+        val isFromTv = (src == 0)
+        val sourcePort = src?.let { logicalAddressToPort[it] }
+        val currentViewingPort = HdmiViewerActivity.getActiveViewingPort()
+        val isVideoActive = HdmiViewerActivity.isVideoRenderingActive
+        val isViewerActive = HdmiViewerActivity.isViewingActive
+
+        val decision = CecMessageParser.evaluateSleepAction(
+            sourcePort = sourcePort,
+            src = src,
+            currentViewingPort = currentViewingPort,
+            isVideoActive = isVideoActive,
+            isViewerActive = isViewerActive,
+            isFromTvItself = isFromTv
+        )
+
+        Log.i(TAG, "CEC <Standby> 判斷結果 (src=$src, port=$sourcePort): shouldSleep=${decision.shouldSleep}, reason=${decision.reason}")
+        CecDebugLog.add(this, "<Standby> (src ${src ?: "?"}) → ${decision.reason}")
+
+        if (decision.shouldSleep) {
+            goToSleep()
+        } else {
+            lastIgnoredStandbyTime = System.currentTimeMillis()
         }
     }
 
     private fun switchToPhysicalAddress(line: String, event: String, addressParameterIndex: Int) {
-        val params = "params:\\s*((?:[0-9a-fA-F]{2}(?:\\s+|$))+)".toRegex(RegexOption.IGNORE_CASE)
-            .find(line)
-            ?.groupValues
-            ?.get(1)
-            ?.trim()
-            ?.split(Regex("\\s+"))
-            ?: return
+        val params = CecMessageParser.extractParams(line)
         val firstAddressByte = params.getOrNull(addressParameterIndex) ?: return
-        val port = firstAddressByte.firstOrNull()?.digitToIntOrNull(16)
+        val port = CecMessageParser.parsePortFromAddressByte(firstAddressByte)
         if (port == null || port !in 1..4) {
             Log.w(TAG, "$event has unsupported physical address byte: $firstAddressByte")
             return
+        }
+
+        val src = CecMessageParser.extractSrc(line)
+        if (src != null && src != 0 && port in 1..3) {
+            logicalAddressToPort[src] = port
         }
 
         Log.i(TAG, "偵測到 $event（HDMI $port）")
@@ -373,22 +463,35 @@ class CecLogReaderService : Service() {
      * 因為 TCL 未公開文件，所以嘗試所有可能的 key 名稱。
      */
     private fun extractPortFromIntent(intent: Intent): Int? {
+        val src = intent.getIntExtra("logical_address", -1)
+            .takeIf { it in 0..15 }
+            ?: intent.getIntExtra("src", -1).takeIf { it in 0..15 }
+
         for (key in arrayOf("port", "hdmi_port", "source_port", "input_port", "hdmi_id")) {
             val v = intent.getIntExtra(key, -1)
-            if (v in 1..3) return v
+            if (v in 1..3) {
+                if (src != null && src != 0) logicalAddressToPort[src] = v
+                return v
+            }
         }
         // 嘗試從 physical address 推算 port（首 nibble = port）
         val physAddr = intent.getIntExtra("physical_address", -1)
         if (physAddr > 0) {
             val p = (physAddr shr 12) and 0xF
-            if (p in 1..3) return p
+            if (p in 1..3) {
+                if (src != null && src != 0) logicalAddressToPort[src] = p
+                return p
+            }
         }
         // 嘗試字串型態的 physical address（例如 "1000", "3000"）
         for (key in arrayOf("physical_address", "phyAddr", "address")) {
             val str = intent.getStringExtra(key)
             if (str != null) {
                 val p = str.firstOrNull()?.digitToIntOrNull(16)
-                if (p != null && p in 1..3) return p
+                if (p != null && p in 1..3) {
+                    if (src != null && src != 0) logicalAddressToPort[src] = p
+                    return p
+                }
             }
         }
         return null
