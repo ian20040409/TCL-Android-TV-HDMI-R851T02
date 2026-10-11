@@ -27,13 +27,30 @@
             android:orientation="vertical"
             android:padding="12dp">
 
-            <!-- App 圖示：固定尺寸，關閉無障礙描述減少無效綁定 -->
-            <ImageView
-                android:id="@+id/iv_app_icon"
+            <!-- App 圖示：使用 FrameLayout 包裝，以支援疊加圖示 -->
+            <FrameLayout
                 android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:contentDescription="@null"
-                android:scaleType="fitCenter" />
+                android:layout_height="64dp">
+
+                <ImageView
+                    android:id="@+id/iv_app_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="fitCenter" />
+
+                <!-- 停用圖示標記 -->
+                <ImageView
+                    android:id="@+id/iv_disabled_badge"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="-2dp"
+                    android:layout_marginBottom="-2dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/app_disable"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <!-- App 名稱：Material 字級規範，限制單行防排版重算 -->
             <TextView

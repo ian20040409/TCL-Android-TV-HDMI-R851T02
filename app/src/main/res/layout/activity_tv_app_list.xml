@@ -57,7 +57,7 @@
             android:textColor="#E2E8F0"
             app:backgroundTint="@color/tv_button_bg_color"
             app:strokeColor="@color/tv_button_stroke_color"
-            app:strokeWidth="1.5dp"
+            app:strokeWidth="3dp"
             app:cornerRadius="20dp"
             app:icon="@drawable/settings_48px"
             app:iconTint="#94A3B8"
@@ -71,7 +71,7 @@
             android:textColor="#E2E8F0"
             app:backgroundTint="@color/tv_button_bg_color"
             app:strokeColor="@color/tv_button_stroke_color"
-            app:strokeWidth="1.5dp"
+            app:strokeWidth="3dp"
             app:cornerRadius="20dp"
             app:icon="@drawable/settings_input_hdmi_24px"
             app:iconTint="#94A3B8"
@@ -86,7 +86,7 @@
             android:textColor="#E2E8F0"
             app:backgroundTint="@color/tv_button_bg_color"
             app:strokeColor="@color/tv_button_stroke_color"
-            app:strokeWidth="1.5dp"
+            app:strokeWidth="3dp"
             app:cornerRadius="20dp"
             android:visibility="gone" />
 
@@ -98,7 +98,7 @@
             android:textColor="#E2E8F0"
             app:backgroundTint="@color/tv_button_bg_color"
             app:strokeColor="@color/tv_button_stroke_color"
-            app:strokeWidth="1.5dp"
+            app:strokeWidth="3dp"
             app:cornerRadius="20dp"
             android:visibility="gone" />
 

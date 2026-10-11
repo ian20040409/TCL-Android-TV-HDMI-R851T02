@@ -326,7 +326,7 @@ class MainViewBuilder(private val activity: MainActivity) {
 
     private fun createPillSelector(density: Float): Drawable {
         val radius = 24f * density
-        val strokeFocused = (2.5f * density + 0.5f).toInt()
+        val strokeFocused = (3.5f * density + 0.5f).toInt()
         val strokeNormal = (1.5f * density + 0.5f).toInt()
 
         fun rect(fillColor: Int, strokeWidth: Int, strokeColor: Int) = GradientDrawable().apply {
@@ -347,7 +347,7 @@ class MainViewBuilder(private val activity: MainActivity) {
             )
             addState(
                 intArrayOf(),
-                rect(0xFF18181B.toInt(), strokeNormal, 0xFF2E2E33.toInt())
+                rect(0xFF18181B.toInt(), strokeNormal, Color.TRANSPARENT)
             )
         }
     }

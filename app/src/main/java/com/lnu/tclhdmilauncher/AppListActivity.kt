@@ -467,7 +467,7 @@ class AppListActivity : AppCompatActivity() {
                 isChecked = (tab.category == currentCategory)
                 chipBackgroundColor = ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_chip_bg_color)
                 chipStrokeColor = ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_chip_stroke_color)
-                chipStrokeWidth = dpToPx(1).toFloat()
+                chipStrokeWidth = dpToPx(3).toFloat()
                 setTextColor(ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_chip_text_color))
                 setOnClickListener {
                     selectCategory(tab.category)
@@ -935,6 +935,7 @@ class AppListActivity : AppCompatActivity() {
         val tvName: TextView = itemView.findViewById(R.id.tv_app_name)
         val tvBadge: TextView = itemView.findViewById(R.id.tv_badge)
         val cbSelect: CheckBox = itemView.findViewById(R.id.cb_select)
+        val ivDisabledBadge: ImageView = itemView.findViewById(R.id.iv_disabled_badge)
 
         var currentApp: AppItem? = null
         var boundPackage: String = ""
@@ -947,10 +948,12 @@ class AppListActivity : AppCompatActivity() {
                 tvName.text = app.label
                 tvName.setTextColor(Color.WHITE)
                 ivIcon.alpha = 1.0f
+                ivDisabledBadge.visibility = View.GONE
             } else {
                 tvName.text = getString(R.string.app_disabled_suffix, app.label)
                 tvName.setTextColor(0xFF64748B.toInt())
                 ivIcon.alpha = 0.5f
+                ivDisabledBadge.visibility = View.VISIBLE
             }
 
             // 開機自動啟動標記
