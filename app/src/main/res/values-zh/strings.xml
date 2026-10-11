@@ -89,6 +89,12 @@
     <string name="app_list_title">應用程式</string>
     <string name="app_list_hint">[OK] 啟動  •  [長按 OK] 更多選項  •  [返回] 回上頁</string>
     <string name="app_list_empty">沒有找到可啟動的應用程式</string>
+    <string name="tab_all">全部 (%d)</string>
+    <string name="tab_recent">最近使用 (%d)</string>
+    <string name="tab_tv">TV 應用 (%d)</string>
+    <string name="tab_mobile">手機 App (%d)</string>
+    <string name="tab_system">系統應用 (%d)</string>
+    <string name="tab_frozen">已停用 (%d)</string>
     <string name="section_recent">最近使用  (%d)</string>
     <string name="section_tv_apps">TV 應用程式  (%d)</string>
     <string name="section_mobile_apps">手機 App  (%d)</string>
@@ -226,6 +232,8 @@
     <string name="toast_freeze_success">已透過 Shizuku %1$s %2$s</string>
     <string name="toast_shizuku_fail">Shizuku 操作失敗，請確認 Shizuku 正在執行並已授權</string>
     <string name="title_selected_count">已選取 %d 個</string>
+    <string name="btn_batch_action">批次操作</string>
+    <string name="btn_cancel">取消</string>
     <string name="menu_batch_freeze">停用 (凍結) 已選取</string>
     <string name="menu_batch_unfreeze">啟用 (解凍) 已選取</string>
     <string name="menu_select_all">全選</string>

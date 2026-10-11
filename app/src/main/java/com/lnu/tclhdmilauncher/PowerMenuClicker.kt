@@ -14,13 +14,13 @@ object PowerMenuClicker {
                 if (rootNode != null) {
                     Log.i("PowerMenuClicker", "Searching for power off button in dialog")
                     if (clickNodeByText(rootNode, "休眠") ||
-                        clickNodeByText(rootNode, "關機") ||
-                        clickNodeByText(rootNode, "Power off") ||
                         clickNodeByText(rootNode, "待機") ||
-                        clickNodeByText(rootNode, "Sleep")) {
-                        Log.i("PowerMenuClicker", "Successfully clicked power off button")
+                        clickNodeByText(rootNode, "螢幕關閉") ||
+                        clickNodeByText(rootNode, "Sleep") ||
+                        clickNodeByText(rootNode, "Standby")) {
+                        Log.i("PowerMenuClicker", "Successfully clicked sleep button")
                     } else {
-                        Log.w("PowerMenuClicker", "Could not find power off button")
+                        Log.w("PowerMenuClicker", "Could not find sleep button (will not click shutdown to prevent cold power off)")
                     }
                     rootNode.recycle()
                 } else {

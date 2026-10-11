@@ -8,6 +8,36 @@ import rikka.shizuku.Shizuku
 object ShizukuHelper {
     private const val TAG = "ShizukuHelper"
 
+    /**
+     * =========================================================================
+     * Shizuku 下載與版本設定 (Shizuku Download Configuration)
+     * =========================================================================
+     * 以後若要更換 Shizuku 來源、版本或直接下載連結，只需修改此處設定即可快速生效！
+     */
+    object DownloadConfig {
+        /** GitHub 倉庫 (擁有者/專案名稱) */
+        const val GITHUB_REPO = "thedjchi/Shizuku"
+
+        /** GitHub 專案首頁網址 */
+        const val REPO_URL = "https://github.com/$GITHUB_REPO"
+
+        /**
+         * GitHub API 最新 Release 查詢網址
+         * 優先透過 GitHub API 動態取得最新發布的 APK 下載連結
+         */
+        const val API_LATEST_RELEASE_URL = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
+
+        /**
+         * 備用 / 預設 APK 直接下載連結 (Fallback URL)
+         * 當 GitHub API 遭遇頻率限制 (例如未登入時的 403 Rate Limit)、逾時或網路問題時，
+         * 會自動回退使用此直接下載連結，確保電視端下載與安裝不中斷。
+         */
+        const val DIRECT_APK_URL = "https://github.com/thedjchi/Shizuku/releases/download/v13.7.0-thedjchi/shizuku-v13.7.0-thedjchi.apk"
+
+        /** 本地下載儲存檔案名稱 */
+        const val APK_FILE_NAME = "Shizuku_latest.apk"
+    }
+
     fun isShizukuInstalled(context: Context): Boolean {
         return try {
             context.packageManager.getPackageInfo("moe.shizuku.privileged.api", 0)
@@ -188,48 +218,74 @@ object ShizukuHelper {
     private val networkExecutor = java.util.concurrent.Executors.newCachedThreadPool()
 
     /**
-     * 透過 GitHub API 自動獲取最新版 Shizuku 的 APK 下載連結
+     * 透過 GitHub API 自動獲取最新版 Shizuku 的 APK 下載連結。
+     * 若 API 遭遇頻率限制 (例如未登入時的 403 Rate Limit)、逾時或網路問題，會自動回退使用 DownloadConfig.DIRECT_APK_URL。
      */
     fun fetchLatestShizukuApk(onResult: (String?) -> Unit) {
         networkExecutor.execute {
+            var resolvedUrl: String? = null
             try {
-                val url = java.net.URL("https://api.github.com/repos/RikkaApps/Shizuku/releases/latest")
-                val connection = url.openConnection() as java.net.HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.setRequestProperty("Accept", "application/vnd.github+json")
-                connection.setRequestProperty("User-Agent", "TCL-HDMI-Launcher")
-                
-                if (connection.responseCode == 200) {
-                    val jsonResponse = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonObject = org.json.JSONObject(jsonResponse)
-                    val assets = jsonObject.getJSONArray("assets")
-                    
-                    for (i in 0 until assets.length()) {
-                        val asset = assets.getJSONObject(i)
-                        if (asset.getString("name").endsWith(".apk")) {
-                            val downloadUrl = asset.getString("browser_download_url")
-                            onResult(downloadUrl)
-                            return@execute
+                val apiUrl = DownloadConfig.API_LATEST_RELEASE_URL
+                if (apiUrl.isNotBlank()) {
+                    val url = java.net.URL(apiUrl)
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 10000
+                    connection.setRequestProperty("Accept", "application/vnd.github+json")
+                    connection.setRequestProperty("User-Agent", "TCL-HDMI-Launcher")
+
+                    if (connection.responseCode == 200) {
+                        val jsonResponse = connection.inputStream.bufferedReader().use { it.readText() }
+                        val jsonObject = org.json.JSONObject(jsonResponse)
+                        val assets = jsonObject.optJSONArray("assets")
+                        if (assets != null) {
+                            for (i in 0 until assets.length()) {
+                                val asset = assets.getJSONObject(i)
+                                val assetName = asset.optString("name", "")
+                                if (assetName.endsWith(".apk")) {
+                                    val downloadUrl = asset.optString("browser_download_url")
+                                    if (downloadUrl.isNotBlank()) {
+                                        Log.i(TAG, "Found latest APK via GitHub API: $downloadUrl")
+                                        resolvedUrl = downloadUrl
+                                        break
+                                    }
+                                }
+                            }
                         }
+                    } else {
+                        Log.w(TAG, "GitHub API returned HTTP ${connection.responseCode}, falling back to direct URL")
                     }
                 }
-                onResult(null)
             } catch (e: Exception) {
-                e.printStackTrace()
-                onResult(null)
+                Log.w(TAG, "Failed to query GitHub API: ${e.message}, falling back to direct URL")
             }
+
+            // 若 API 解析成功則使用，否則自動回退至備用直接下載連結
+            val finalUrl = resolvedUrl ?: DownloadConfig.DIRECT_APK_URL.takeIf { it.isNotBlank() }
+            if (finalUrl != null) {
+                Log.i(TAG, "Resolved Shizuku download URL: $finalUrl")
+            } else {
+                Log.e(TAG, "No download URL available for Shizuku")
+            }
+            onResult(finalUrl)
         }
     }
 
     fun getDownloadedApkFile(context: Context): java.io.File? {
         val downloadsDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
             ?: context.cacheDir
-        val apkFile = java.io.File(downloadsDir, "Shizuku_latest.apk")
-        if (apkFile.exists() && apkFile.length() > 0) {
-            val pm = context.packageManager
-            val info = pm.getPackageArchiveInfo(apkFile.absolutePath, 0)
-            if (info != null) {
-                return apkFile
+        val candidates = listOf(
+            java.io.File(downloadsDir, DownloadConfig.APK_FILE_NAME),
+            java.io.File(downloadsDir, "Shizuku_latest.apk")
+        ).distinct()
+        val pm = context.packageManager
+        for (apkFile in candidates) {
+            if (apkFile.exists() && apkFile.length() > 0) {
+                val info = pm.getPackageArchiveInfo(apkFile.absolutePath, 0)
+                if (info != null) {
+                    return apkFile
+                }
             }
         }
         return null
@@ -284,8 +340,8 @@ object ShizukuHelper {
 
                 val downloadsDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
                     ?: context.cacheDir
-                val apkFile = java.io.File(downloadsDir, "Shizuku_latest.apk")
-                val tempFile = java.io.File(downloadsDir, "Shizuku_latest.apk.tmp")
+                val apkFile = java.io.File(downloadsDir, DownloadConfig.APK_FILE_NAME)
+                val tempFile = java.io.File(downloadsDir, "${DownloadConfig.APK_FILE_NAME}.tmp")
                 if (tempFile.exists()) {
                     tempFile.delete()
                 }

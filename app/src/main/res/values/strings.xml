@@ -89,6 +89,12 @@
     <string name="app_list_title">Applications</string>
     <string name="app_list_hint">[OK] Open  •  [Hold OK] More Options  •  [Back] Return</string>
     <string name="app_list_empty">No launchable applications found</string>
+    <string name="tab_all">All (%d)</string>
+    <string name="tab_recent">Recent (%d)</string>
+    <string name="tab_tv">TV Apps (%d)</string>
+    <string name="tab_mobile">Mobile Apps (%d)</string>
+    <string name="tab_system">System (%d)</string>
+    <string name="tab_frozen">Disabled (%d)</string>
     <string name="section_recent">Recently Used (%d)</string>
     <string name="section_tv_apps">TV Apps (%d)</string>
     <string name="section_mobile_apps">Sideloaded / Mobile Apps (%d)</string>
@@ -232,6 +238,8 @@
     <string name="toast_freeze_success">Successfully %1$s %2$s via Shizuku</string>
     <string name="toast_shizuku_fail">Shizuku operation failed, please ensure Shizuku is running and authorized</string>
     <string name="title_selected_count">%d Selected</string>
+    <string name="btn_batch_action">Batch Action</string>
+    <string name="btn_cancel">Cancel</string>
     <string name="menu_batch_freeze">Disable (Freeze) Selected</string>
     <string name="menu_batch_unfreeze">Enable (Unfreeze) Selected</string>
     <string name="menu_select_all">Select All</string>

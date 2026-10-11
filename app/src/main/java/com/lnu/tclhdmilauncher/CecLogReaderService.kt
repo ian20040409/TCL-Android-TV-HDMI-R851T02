@@ -35,6 +35,7 @@ class CecLogReaderService : Service() {
     private var pendingFallbackRunnable: Runnable? = null
     private val logicalAddressToPort = java.util.concurrent.ConcurrentHashMap<Int, Int>()
     @Volatile private var lastIgnoredStandbyTime: Long = 0
+    @Volatile private var lastSleepCommandTime: Long = 0
 
     private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, _ ->
         cecHandler.post { restartLogcatReader() }
@@ -268,9 +269,9 @@ class CecLogReaderService : Service() {
             while (isReading && !serviceDestroyed && generation == logcatGeneration) {
                 var process: Process? = null
                 try {
-                    val command = "logcat -b all -v time -s " +
+                    val command = "logcat -T 1 -v time -s " +
                         "HdmiCecController HdmiCecLocalDeviceTv HdmiCecLocalDevice " +
-                        "HdmiControlService HdmiCecNetwork HdmiCecMessage HdmiCec CecLogReaderService 2>&1"
+                        "HdmiControlService HdmiCecNetwork HdmiCecMessage HdmiCec 2>&1"
                     val useShizuku = ShizukuHelper.isShizukuPermissionGranted()
                     process = if (useShizuku) {
                         ShizukuHelper.startShellProcess(command)
@@ -282,8 +283,14 @@ class CecLogReaderService : Service() {
                     CecDebugLog.add(this@CecLogReaderService, "Logcat reader: ${if (useShizuku) "Shizuku shell" else "app process"}")
 
                     val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    var isFirstLine = true
                     while (isReading && !serviceDestroyed && generation == logcatGeneration) {
                         val line = reader.readLine() ?: break
+                        if (isFirstLine) {
+                            isFirstLine = false
+                            // -T 1 提供的一行定位錨點為過去的歷史緩存，予以丟棄，只處理此後產生的即時日誌
+                            continue
+                        }
                         processLogLine(line)
                     }
                     if (isReading && !serviceDestroyed && generation == logcatGeneration) {
@@ -323,6 +330,17 @@ class CecLogReaderService : Service() {
     }
 
     private fun processLogLine(line: String) {
+        // 絕對不可解析本服務自身輸出的日誌，防止形成無窮自觸發反饋迴圈
+        if (line.contains("CecLogReaderService", ignoreCase = true)) return
+
+        val isHardwareCecMessage = line.contains("command:<") ||
+            line.contains("HdmiCecController") ||
+            line.contains("HdmiControlService") ||
+            line.contains("HdmiCecLocalDevice") ||
+            line.contains("HdmiCecNetwork") ||
+            line.contains("HdmiCecMessage")
+        if (!isHardwareCecMessage) return
+
         val normalized = line.lowercase(java.util.Locale.ROOT)
         if (line.contains("command:<") || normalized.contains("<active source>") || normalized.contains("<routing change>") || normalized.contains("<inactive source>") || normalized.contains("<standby>")) {
             CecDebugLog.add(this, line.takeLast(220))
@@ -573,6 +591,13 @@ class CecLogReaderService : Service() {
     }
 
     private fun goToSleep() {
+        val now = System.currentTimeMillis()
+        if (now - lastSleepCommandTime < 6000L) {
+            Log.i(TAG, "6 秒內已有休眠請求正在處理，忽略重複觸發")
+            return
+        }
+        lastSleepCommandTime = now
+
         if (!MainActivity.isAccessibilityServiceEnabled(this)) {
             Log.w(TAG, "無障礙服務未啟用，無法執行休眠指令")
             CecDebugLog.add(this, "Standby failed: WakeGuard Accessibility Service is disabled")

@@ -47,6 +47,7 @@ class WakeAccessibilityService : AccessibilityService() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 "com.tcl.action.cec.MSG_VIEW_ON" -> {
+                    cancelPendingSleepRetry()
                     Log.i(TAG, "（無障礙服務）收到系統 MSG_VIEW_ON 廣播，觸發 CEC 喚醒")
                     TclHdmiApplication.lastCecWakeTime = System.currentTimeMillis()
                     TclHdmiApplication.wakeScreen(context)
@@ -54,6 +55,7 @@ class WakeAccessibilityService : AccessibilityService() {
                 }
                 Intent.ACTION_SCREEN_ON,
                 Intent.ACTION_USER_PRESENT -> {
+                    cancelPendingSleepRetry()
                     if (System.currentTimeMillis() - TclHdmiApplication.lastCecWakeTime < 15000) {
                         Log.i(TAG, "Ignoring wake to launcher in AccessibilityService because CEC woke the screen recently.")
                         return
@@ -88,11 +90,20 @@ class WakeAccessibilityService : AccessibilityService() {
     }
 
     private var lastSleepRequestTime = 0L
+    private var pendingSleepRetryRunnable: Runnable? = null
+
+    private fun cancelPendingSleepRetry() {
+        pendingSleepRetryRunnable?.let {
+            handler.removeCallbacks(it)
+            pendingSleepRetryRunnable = null
+            Log.i(TAG, "已取消排隊中的休眠重試")
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "ACTION_SLEEP") {
             val retryCount = intent.getIntExtra("RETRY_COUNT", 0)
-            if (retryCount > 3) {
+            if (retryCount > 1) {
                 Log.w(TAG, "休眠重試次數達上限 ($retryCount)，放棄重試。")
                 return super.onStartCommand(intent, flags, startId)
             }
@@ -100,37 +111,40 @@ class WakeAccessibilityService : AccessibilityService() {
             // Debounce logic for the initial sleep request (retryCount == 0)
             if (retryCount == 0) {
                 val now = System.currentTimeMillis()
-                if (now - lastSleepRequestTime < 5000L) {
-                    Log.i(TAG, "忽略休眠請求：5 秒內已有其他休眠請求正在處理。")
+                if (now - lastSleepRequestTime < 6000L) {
+                    Log.i(TAG, "忽略休眠請求：6 秒內已有其他休眠請求正在處理。")
                     return super.onStartCommand(intent, flags, startId)
                 }
                 lastSleepRequestTime = now
             }
 
-            Log.i(TAG, "收到休眠請求，嘗試關閉螢幕 (第 $retryCount 次重試)")
+            cancelPendingSleepRetry()
+            Log.i(TAG, "收到休眠請求，嘗試關閉螢幕 (第 $retryCount 次)")
             
             Thread {
                 val success = PowerHelper.sleepScreen(this)
                 
-                // 根據使用者要求：間隔 1 秒重試，直到螢幕關閉
-                handler.postDelayed({
-                    val displayManager = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
-                    val isScreenOn = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
-                    if (retryCount > 0 && HdmiViewerActivity.isViewingActive && HdmiViewerActivity.isVideoRenderingActive) {
+                val retryAction = Runnable {
+                    pendingSleepRetryRunnable = null
+                    val pm = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                    val isInteractive = pm?.isInteractive ?: true
+                    if (HdmiViewerActivity.isViewingActive && HdmiViewerActivity.isVideoRenderingActive) {
                         Log.i(TAG, "偵測到 HDMI 視訊已恢復渲染播放中，中止休眠重試。")
-                        return@postDelayed
+                        return@Runnable
                     }
-                    if (isScreenOn) {
-                        Log.i(TAG, "螢幕尚未關閉，1 秒後重試休眠指令...")
-                        val retryIntent = Intent(this, WakeAccessibilityService::class.java).apply {
+                    if (isInteractive && retryCount < 1) {
+                        Log.i(TAG, "螢幕在 2 秒後仍處於互動/開啟狀態，補發一次休眠指令...")
+                        val retryIntent = Intent(this@WakeAccessibilityService, WakeAccessibilityService::class.java).apply {
                             action = "ACTION_SLEEP"
                             putExtra("RETRY_COUNT", retryCount + 1)
                         }
                         startService(retryIntent)
                     } else {
-                        Log.i(TAG, "螢幕已成功關閉，停止重試。")
+                        Log.i(TAG, "螢幕已成功關閉或已完成重試，停止後續操作。")
                     }
-                }, 1000)
+                }
+                pendingSleepRetryRunnable = retryAction
+                handler.postDelayed(retryAction, 2000L)
             }.start()
         }
         return super.onStartCommand(intent, flags, startId)
@@ -195,6 +209,7 @@ class WakeAccessibilityService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        cancelPendingSleepRetry()
         val keyCode = event.keyCode
         // The input/source key is often mapped as TV_INPUT; some TCL remotes use
         // AV_INPUT or STB_INPUT.  Outside this app, open our HDMI launcher rather

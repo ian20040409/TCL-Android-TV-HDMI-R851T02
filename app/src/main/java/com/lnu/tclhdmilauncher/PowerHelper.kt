@@ -63,6 +63,22 @@ object PowerHelper {
                 Log.i(TAG, "GLOBAL_ACTION_LOCK_SCREEN result: $success")
             }
             
+            // 2. 優先注入 KEYCODE_SLEEP (223) - Android TV 標準休眠鍵（純休眠，絕不 toggle 誤開機）
+            var shizukuSuccess = false
+            if (ShizukuHelper.isShizukuPermissionGranted()) {
+                val exitCode = ShizukuHelper.executeShellCommand("input keyevent 223")
+                shizukuSuccess = (exitCode == 0)
+            } else {
+                val process = Runtime.getRuntime().exec("input keyevent 223")
+                process.waitFor()
+                shizukuSuccess = process.exitValue() == 0
+            }
+            if (shizukuSuccess) {
+                Log.i(TAG, "Executed input keyevent 223 (SLEEP) successfully")
+                success = true
+            }
+
+            // 3. 若皆未成功，才嘗試電源對話框點擊「休眠/待機」
             if (!success) {
                 success = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG)
                 Log.i(TAG, "GLOBAL_ACTION_POWER_DIALOG result: $success")
@@ -71,35 +87,6 @@ object PowerHelper {
                 }
             }
 
-            if (!success) {
-                Log.i(TAG, "Attempting input keyevent 223 for sleep")
-                var shizukuSuccess = false
-                if (ShizukuHelper.isShizukuPermissionGranted()) {
-                    val exitCode = ShizukuHelper.executeShellCommand("input keyevent 223")
-                    shizukuSuccess = (exitCode == 0)
-                }
-
-                if (shizukuSuccess) {
-                    success = true
-                } else {
-                    val process = Runtime.getRuntime().exec("input keyevent 223")
-                    process.waitFor()
-                    success = process.exitValue() == 0
-                }
-                
-                Thread.sleep(500)
-                val displayManager = service.getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
-                val isScreenOnAfter223 = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY).state != android.view.Display.STATE_OFF
-                
-                if (isScreenOnAfter223) {
-                    Log.i(TAG, "Screen still on, trying fallback input keyevent 26")
-                    if (ShizukuHelper.isShizukuPermissionGranted()) {
-                        ShizukuHelper.executeShellCommand("input keyevent 26")
-                    } else {
-                        Runtime.getRuntime().exec("input keyevent 26")
-                    }
-                }
-            }
             return success
         } catch (e: Exception) {
             Log.e(TAG, "Sleep execution failed", e)

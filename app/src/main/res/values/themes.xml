@@ -67,4 +67,18 @@
         <item name="guidedActionItemCheckmarkStyle">@style/OobeGuidedActionItemCheckmark</item>
         <item name="guidedActionsElevation">0dp</item>
     </style>
+
+    <!-- App 清單抽屜主題：結合 Material Components 與純黑底，提供 MaterialCardView 支援 -->
+    <style name="Theme.AppList" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:colorBackground">#121212</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="colorPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#38BDF8</item>
+    </style>
 </resources>

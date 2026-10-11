@@ -1,99 +1,108 @@
 package com.lnu.tclhdmilauncher
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.graphics.Color
-import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.StateListDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.text.TextUtils
 import android.util.ArrayMap
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.widget.AbsListView
-import android.widget.AdapterView
-import android.widget.BaseAdapter
+import android.widget.CheckBox
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.leanback.widget.BaseGridView
+import androidx.leanback.widget.VerticalGridView
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import java.text.Collator
 import java.util.concurrent.Executors
 
 /**
- * 原生極致輕量 App 清單啟動器
- * - 100% 純程式碼建構 View（消除 LayoutInflater 反射與 XML I/O）
- * - 移除 getInstalledApplications(GET_META_DATA) 重型 Binder IPC，直接由 queryIntentActivities 建構清單
- * - 快取 ComponentName：點擊啟動 App 時 0 PackageManager 查詢開銷
- * - 雙階段極速渲染：先載入文字清單（< 15ms 瞬間顯示），App 圖示依可視範圍背景非同步延遲載入（避免一次解碼 60+ 圖示造成 GC 卡頓）
+ * 結合 Material Components (MDC) 與 Android TV 原生 Leanback 佈局的 App List 啟動器
+ * - 使用 MaterialCardView 作為項目基底，ColorStateList 控制邊框與背景反饋
+ * - cardElevation 設為 0dp，避免低階電視 GPU 動態陰影掉幀
+ * - VerticalGridView 固定 5 欄 (app:numberOfColumns="5")，鎖定欄數降低測量開銷
+ * - windowAlignment = BaseGridView.WINDOW_ALIGN_BOTH_EDGE，滾動時平順對齊
+ * - 頂部按鈕與分類過濾採用 Material 原生 MaterialButton 與 Chip / ChipGroup
+ * - 保留開機自動啟動倒數、Shizuku 應用凍結/解凍、批次操作與遠端遙控器 DPAD 最佳化
  */
-class AppListActivity : Activity() {
+class AppListActivity : AppCompatActivity() {
 
     companion object {
         private const val PREFS_RECENT = "app_list_recent"
         private const val KEY_RECENT_PKGS = "recent_pkgs"
         private const val RECENT_SEPARATOR = "|"
-        private const val MAX_RECENT_COUNT = 8
-
-        private const val VIEW_TYPE_SECTION = 0
-        private const val VIEW_TYPE_APP = 1
+        private const val MAX_RECENT_COUNT = 10
 
         @Volatile
         var isForegroundFocused: Boolean = false
             internal set
     }
 
-    private sealed class ListItem {
-        data class Section(val title: String) : ListItem()
-        data class App(
-            val label: String,
-            val packageName: String,
-            val componentName: ComponentName,
-            val isLeanback: Boolean,
-            val appInfo: ApplicationInfo,
-            val isSystem: Boolean,
-            val isDisableable: Boolean
-        ) : ListItem()
+    data class AppItem(
+        val label: String,
+        val packageName: String,
+        val componentName: ComponentName,
+        val isLeanback: Boolean,
+        val appInfo: ApplicationInfo,
+        val isSystem: Boolean,
+        val isDisableable: Boolean
+    )
+
+    enum class Category {
+        ALL, RECENT, TV, MOBILE, SYSTEM, FROZEN
     }
 
-    private lateinit var listView: ListView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var tvEmpty: TextView
-    private lateinit var tvAutoOpenBanner: TextView
-    private lateinit var btnSettings: LinearLayout
-    private lateinit var btnHdmi: LinearLayout
-
+    private lateinit var vgvApps: VerticalGridView
     private lateinit var tvTitle: TextView
     private lateinit var tvHint: TextView
-    private lateinit var btnBatchAction: LinearLayout
-    private lateinit var btnCancelSelect: LinearLayout
+    private lateinit var btnSettings: MaterialButton
+    private lateinit var btnHdmi: MaterialButton
+    private lateinit var btnBatchAction: MaterialButton
+    private lateinit var btnCancelSelect: MaterialButton
+    private lateinit var hsvCategories: HorizontalScrollView
+    private lateinit var chipGroupCategories: ChipGroup
+    private lateinit var tvAutoOpenBanner: TextView
+    private lateinit var progressBar: ProgressBar
+    private lateinit var tvEmpty: TextView
 
+    private var currentCategory = Category.ALL
     private var isMultiSelectMode = false
     private val selectedPackages = HashSet<String>()
 
-    private val items = ArrayList<ListItem>(64)
+    private val allApps = ArrayList<AppItem>()
+    private val recentApps = ArrayList<AppItem>()
+    private val tvUserApps = ArrayList<AppItem>()
+    private val mobileUserApps = ArrayList<AppItem>()
+    private val systemApps = ArrayList<AppItem>()
+    private val frozenApps = ArrayList<AppItem>()
+    private val displayedApps = ArrayList<AppItem>()
+
     private val iconCache = ArrayMap<String, Drawable>(64)
     private val loadingIcons = HashSet<String>(32)
-    private lateinit var adapter: AppListAdapter
+    private lateinit var adapter: AppCardAdapter
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private val bgExecutor = Executors.newSingleThreadExecutor()
     private var isDestroyedFlag = false
@@ -122,10 +131,8 @@ class AppListActivity : Activity() {
         }
     }
 
-    // Ordered list of recently launched package names (most recent first)
     private val recentPackages = ArrayDeque<String>(MAX_RECENT_COUNT)
 
-    /** Load recent package list from SharedPreferences (background-safe). */
     private fun loadRecentPackages(): List<String> {
         val raw = getSharedPreferences(PREFS_RECENT, Context.MODE_PRIVATE)
             .getString(KEY_RECENT_PKGS, "") ?: ""
@@ -133,7 +140,6 @@ class AppListActivity : Activity() {
         else raw.split(RECENT_SEPARATOR).filter { it.isNotBlank() }
     }
 
-    /** Push a package to the front of the recents list and persist it. */
     private fun saveRecentPackage(pkg: String) {
         recentPackages.remove(pkg)
         recentPackages.addFirst(pkg)
@@ -145,41 +151,43 @@ class AppListActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(buildContentView())
+        setContentView(R.layout.activity_tv_app_list)
 
-        adapter = AppListAdapter()
-        listView.adapter = adapter
+        initViews()
+        setupGridView()
 
-        listView.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
-            cancelAutoOpenCountdown()
-            val item = items.getOrNull(pos)
-            if (item is ListItem.App) {
-                if (isMultiSelectMode) {
-                    toggleSelection(item.packageName)
-                } else {
-                    launchApp(item)
-                }
-            }
-        }
-
-        listView.onItemLongClickListener = AdapterView.OnItemLongClickListener { _, _, pos, _ ->
-            cancelAutoOpenCountdown()
-            val item = items.getOrNull(pos)
-            if (item is ListItem.App) {
-                if (isMultiSelectMode) {
-                    showBatchActionDialog()
-                } else {
-                    showAppMenu(item)
-                }
-                true
-            } else {
-                false
-            }
-        }
+        adapter = AppCardAdapter()
+        vgvApps.adapter = adapter
 
         loadApps()
-
         isAutoOpenCancelled = false
+    }
+
+    private fun initViews() {
+        vgvApps = findViewById(R.id.vgv_apps)
+        tvTitle = findViewById(R.id.tv_page_title)
+        tvHint = findViewById(R.id.tv_page_hint)
+        btnSettings = findViewById(R.id.btn_settings)
+        btnHdmi = findViewById(R.id.btn_hdmi)
+        btnBatchAction = findViewById(R.id.btn_batch_action)
+        btnCancelSelect = findViewById(R.id.btn_cancel_select)
+        hsvCategories = findViewById(R.id.hsv_categories)
+        chipGroupCategories = findViewById(R.id.chip_group_categories)
+        tvAutoOpenBanner = findViewById(R.id.tv_auto_open_banner)
+        progressBar = findViewById(R.id.progress_bar)
+        tvEmpty = findViewById(R.id.tv_empty)
+
+        btnSettings.setOnClickListener { openSettings() }
+        btnHdmi.setOnClickListener { returnToMainActivity() }
+        btnBatchAction.setOnClickListener { showBatchActionDialog() }
+        btnCancelSelect.setOnClickListener { exitMultiSelectMode() }
+    }
+
+    private fun setupGridView() {
+        vgvApps.setNumColumns(5)
+        // 讓焦點項目滾動時自動對齊視窗垂直中央
+        vgvApps.windowAlignment = BaseGridView.WINDOW_ALIGN_BOTH_EDGE
+        vgvApps.windowAlignmentOffsetPercent = 50f
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -216,6 +224,19 @@ class AppListActivity : Activity() {
         isActivityResumed = false
         isForegroundFocused = false
         cancelAutoOpenCountdown()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        loadApps()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        isForegroundFocused = false
+        cancelAutoOpenCountdown()
+        iconCache.clear()
+        loadingIcons.clear()
     }
 
     override fun onDestroy() {
@@ -256,7 +277,7 @@ class AppListActivity : Activity() {
     }
 
     private fun launchAutoOpenPackage(pkg: String, label: String) {
-        val loadedApp = items.firstOrNull { it is ListItem.App && it.packageName == pkg } as? ListItem.App
+        val loadedApp = allApps.firstOrNull { it.packageName == pkg }
         if (loadedApp != null) {
             launchApp(loadedApp)
             return
@@ -276,12 +297,10 @@ class AppListActivity : Activity() {
 
     private fun loadApps() {
         progressBar.visibility = View.VISIBLE
-        listView.visibility = View.GONE
+        vgvApps.visibility = View.GONE
         tvEmpty.visibility = View.GONE
 
-        // Read recents on the main thread (SharedPreferences is main-thread-safe)
         val savedRecents = loadRecentPackages()
-        // Sync in-memory list from prefs (in case activity was recreated)
         recentPackages.clear()
         recentPackages.addAll(savedRecents)
 
@@ -289,8 +308,7 @@ class AppListActivity : Activity() {
             val pm = packageManager
             val selfPkg = packageName
 
-            // 直接查詢 LEANBACK_LAUNCHER 與 LAUNCHER，加入 MATCH_DISABLED_COMPONENTS(512) 以顯示被凍結的 App
-            val flags = android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS
+            val flags = PackageManager.MATCH_DISABLED_COMPONENTS
             val leanbackResolves = pm.queryIntentActivities(
                 Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), flags
             )
@@ -298,7 +316,6 @@ class AppListActivity : Activity() {
                 Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), flags
             )
 
-            // 以 packageName 去重：優先保留 TV Leanback 入口
             val resolvedMap = ArrayMap<String, Pair<ResolveInfo, Boolean>>(64)
             for (ri in leanbackResolves) {
                 val pkg = ri.activityInfo?.packageName ?: continue
@@ -313,12 +330,11 @@ class AppListActivity : Activity() {
                 }
             }
 
-            val tvUserApps = ArrayList<ListItem.App>(24)
-            val mobileUserApps = ArrayList<ListItem.App>(16)
-            val systemApps = ArrayList<ListItem.App>(32)
-            val frozenApps = ArrayList<ListItem.App>(16)
-            // Map for quick recent-app lookup
-            val pkgToApp = ArrayMap<String, ListItem.App>(resolvedMap.size)
+            val tvAppsList = ArrayList<AppItem>(24)
+            val mobileAppsList = ArrayList<AppItem>(16)
+            val systemAppsList = ArrayList<AppItem>(32)
+            val frozenAppsList = ArrayList<AppItem>(16)
+            val pkgToApp = ArrayMap<String, AppItem>(resolvedMap.size)
 
             for (i in 0 until resolvedMap.size) {
                 val (ri, isLeanback) = resolvedMap.valueAt(i)
@@ -336,7 +352,7 @@ class AppListActivity : Activity() {
                     pkg
                 }
 
-                val app = ListItem.App(
+                val app = AppItem(
                     label = label,
                     packageName = pkg,
                     componentName = ComponentName(pkg, actInfo.name),
@@ -347,72 +363,162 @@ class AppListActivity : Activity() {
                 )
 
                 pkgToApp[pkg] = app
-                
+
                 when {
-                    !appInfo.enabled -> frozenApps.add(app)
-                    isSystem -> systemApps.add(app)
-                    isLeanback -> tvUserApps.add(app)
-                    else -> mobileUserApps.add(app)
+                    !appInfo.enabled -> frozenAppsList.add(app)
+                    isSystem -> systemAppsList.add(app)
+                    isLeanback -> tvAppsList.add(app)
+                    else -> mobileAppsList.add(app)
                 }
             }
 
             val col = Collator.getInstance()
-            val comp = Comparator<ListItem.App> { a, b -> col.compare(a.label, b.label) }
-            tvUserApps.sortWith(comp)
-            mobileUserApps.sortWith(comp)
-            systemApps.sortWith(comp)
-            frozenApps.sortWith(comp)
+            val comp = Comparator<AppItem> { a, b -> col.compare(a.label, b.label) }
+            tvAppsList.sortWith(comp)
+            mobileAppsList.sortWith(comp)
+            systemAppsList.sortWith(comp)
+            frozenAppsList.sortWith(comp)
 
-            // Build recent apps list (preserve recency order, skip stale packages)
-            val recentApps = savedRecents.mapNotNull { pkgToApp[it] }.filter { it.appInfo.enabled }
+            val recentsList = savedRecents.mapNotNull { pkgToApp[it] }.filter { it.appInfo.enabled }
 
-            val result = ArrayList<ListItem>(
-                recentApps.size + tvUserApps.size + mobileUserApps.size + systemApps.size + frozenApps.size + 5
-            )
-            if (recentApps.isNotEmpty()) {
-                result.add(ListItem.Section(getString(R.string.section_recent, recentApps.size)))
-                result.addAll(recentApps)
-            }
-            if (tvUserApps.isNotEmpty()) {
-                result.add(ListItem.Section(getString(R.string.section_tv_apps, tvUserApps.size)))
-                result.addAll(tvUserApps)
-            }
-            if (mobileUserApps.isNotEmpty()) {
-                result.add(ListItem.Section(getString(R.string.section_mobile_apps, mobileUserApps.size)))
-                result.addAll(mobileUserApps)
-            }
-            if (systemApps.isNotEmpty()) {
-                result.add(ListItem.Section(getString(R.string.section_system_apps, systemApps.size)))
-                result.addAll(systemApps)
-            }
-            if (frozenApps.isNotEmpty()) {
-                result.add(ListItem.Section(getString(R.string.section_frozen_apps, frozenApps.size)))
-                result.addAll(frozenApps)
-            }
+            // 全部應用列表：TV 用戶應用 -> 手機應用 -> 系統應用 -> 已停用應用
+            val combinedAll = ArrayList<AppItem>(tvAppsList.size + mobileAppsList.size + systemAppsList.size + frozenAppsList.size)
+            combinedAll.addAll(tvAppsList)
+            combinedAll.addAll(mobileAppsList)
+            combinedAll.addAll(systemAppsList)
+            combinedAll.addAll(frozenAppsList)
 
             mainHandler.post {
                 if (isDestroyedFlag || isFinishing) return@post
-                items.clear()
-                items.addAll(result)
-                adapter.notifyDataSetChanged()
+
+                allApps.clear()
+                allApps.addAll(combinedAll)
+
+                recentApps.clear()
+                recentApps.addAll(recentsList)
+
+                tvUserApps.clear()
+                tvUserApps.addAll(tvAppsList)
+
+                mobileUserApps.clear()
+                mobileUserApps.addAll(mobileAppsList)
+
+                systemApps.clear()
+                systemApps.addAll(systemAppsList)
+
+                frozenApps.clear()
+                frozenApps.addAll(frozenAppsList)
 
                 progressBar.visibility = View.GONE
-                if (items.isEmpty()) {
+
+                setupFilterTabs()
+                filterAndDisplayApps()
+
+                if (displayedApps.isEmpty()) {
                     tvEmpty.visibility = View.VISIBLE
+                    vgvApps.visibility = View.GONE
                 } else {
-                    listView.visibility = View.VISIBLE
-                    if (!btnSettings.hasFocus() && !btnHdmi.hasFocus()) {
-                        listView.requestFocus()
-                        val firstApp = items.indexOfFirst { it is ListItem.App }
-                        if (firstApp >= 0) listView.setSelection(firstApp)
+                    tvEmpty.visibility = View.GONE
+                    vgvApps.visibility = View.VISIBLE
+                    if (!isMultiSelectMode) {
+                        vgvApps.requestFocus()
+                        vgvApps.scrollToPosition(0)
                     }
                 }
             }
         }
     }
 
+    private fun isHeaderFocused(): Boolean {
+        return btnSettings.hasFocus() || btnHdmi.hasFocus() ||
+                btnBatchAction.hasFocus() || btnCancelSelect.hasFocus() ||
+                chipGroupCategories.hasFocus()
+    }
 
-    private fun loadIconAsync(app: ListItem.App) {
+    private data class TabData(val category: Category, val title: String)
+
+    private fun setupFilterTabs() {
+        chipGroupCategories.removeAllViews()
+
+        val tabs = ArrayList<TabData>()
+        tabs.add(TabData(Category.ALL, getString(R.string.tab_all, allApps.size)))
+        if (recentApps.isNotEmpty()) {
+            tabs.add(TabData(Category.RECENT, getString(R.string.tab_recent, recentApps.size)))
+        }
+        if (tvUserApps.isNotEmpty()) {
+            tabs.add(TabData(Category.TV, getString(R.string.tab_tv, tvUserApps.size)))
+        }
+        if (mobileUserApps.isNotEmpty()) {
+            tabs.add(TabData(Category.MOBILE, getString(R.string.tab_mobile, mobileUserApps.size)))
+        }
+        if (systemApps.isNotEmpty()) {
+            tabs.add(TabData(Category.SYSTEM, getString(R.string.tab_system, systemApps.size)))
+        }
+        if (frozenApps.isNotEmpty()) {
+            tabs.add(TabData(Category.FROZEN, getString(R.string.tab_frozen, frozenApps.size)))
+        }
+
+        for (tab in tabs) {
+            val chip = Chip(this).apply {
+                text = tab.title
+                isCheckable = true
+                isClickable = true
+                isFocusable = true
+                isChecked = (tab.category == currentCategory)
+                chipBackgroundColor = ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_chip_bg_color)
+                chipStrokeColor = ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_chip_stroke_color)
+                chipStrokeWidth = dpToPx(1).toFloat()
+                setTextColor(ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_chip_text_color))
+                setOnClickListener {
+                    selectCategory(tab.category)
+                }
+            }
+            chipGroupCategories.addView(chip)
+        }
+    }
+
+    private fun selectCategory(cat: Category) {
+        currentCategory = cat
+        for (i in 0 until chipGroupCategories.childCount) {
+            val child = chipGroupCategories.getChildAt(i) as? Chip ?: continue
+            val tabData = child.text.toString()
+            val matches = when (cat) {
+                Category.ALL -> tabData.startsWith(getString(R.string.tab_all, 0).substringBefore("("))
+                Category.RECENT -> tabData.startsWith(getString(R.string.tab_recent, 0).substringBefore("("))
+                Category.TV -> tabData.startsWith(getString(R.string.tab_tv, 0).substringBefore("("))
+                Category.MOBILE -> tabData.startsWith(getString(R.string.tab_mobile, 0).substringBefore("("))
+                Category.SYSTEM -> tabData.startsWith(getString(R.string.tab_system, 0).substringBefore("("))
+                Category.FROZEN -> tabData.startsWith(getString(R.string.tab_frozen, 0).substringBefore("("))
+            }
+            child.isChecked = matches
+        }
+        filterAndDisplayApps()
+    }
+
+    private fun filterAndDisplayApps() {
+        displayedApps.clear()
+        when (currentCategory) {
+            Category.ALL -> displayedApps.addAll(allApps)
+            Category.RECENT -> displayedApps.addAll(recentApps)
+            Category.TV -> displayedApps.addAll(tvUserApps)
+            Category.MOBILE -> displayedApps.addAll(mobileUserApps)
+            Category.SYSTEM -> displayedApps.addAll(systemApps)
+            Category.FROZEN -> displayedApps.addAll(frozenApps)
+        }
+
+        adapter.notifyDataSetChanged()
+
+        if (displayedApps.isEmpty()) {
+            tvEmpty.visibility = View.VISIBLE
+            vgvApps.visibility = View.GONE
+        } else {
+            tvEmpty.visibility = View.GONE
+            vgvApps.visibility = View.VISIBLE
+            vgvApps.post { vgvApps.scrollToPosition(0) }
+        }
+    }
+
+    private fun loadIconAsync(app: AppItem) {
         val pkg = app.packageName
         if (iconCache.containsKey(pkg) || !loadingIcons.add(pkg)) return
 
@@ -429,7 +535,6 @@ class AppListActivity : Activity() {
                     iconCache[pkg] = icon
                     updateVisibleRowIcon(pkg, icon)
                 } else {
-                    // 載入失敗時移除快取鍵，允許下次可見時重試
                     loadingIcons.remove(pkg)
                 }
             }
@@ -437,14 +542,44 @@ class AppListActivity : Activity() {
     }
 
     private fun updateVisibleRowIcon(pkg: String, icon: Drawable) {
-        val first = listView.firstVisiblePosition
-        val last = listView.lastVisiblePosition
-        for (pos in first..last) {
-            val child = listView.getChildAt(pos - first) ?: continue
-            val holder = child.tag as? AppViewHolder ?: continue
+        for (i in 0 until vgvApps.childCount) {
+            val child = vgvApps.getChildAt(i) ?: continue
+            val holder = vgvApps.getChildViewHolder(child) as? AppCardViewHolder ?: continue
             if (holder.boundPackage == pkg) {
                 holder.ivIcon.clearColorFilter()
                 holder.ivIcon.setImageDrawable(icon)
+            }
+        }
+    }
+
+    private fun launchApp(app: AppItem) {
+        cancelAutoOpenCountdown()
+        if (!app.appInfo.enabled) {
+            Toast.makeText(this, getString(R.string.toast_unfreeze_first, app.label), Toast.LENGTH_SHORT).show()
+            return
+        }
+        saveRecentPackage(app.packageName)
+        try {
+            WakeAccessibilityService.temporarilyIgnorePackage(app.packageName)
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(
+                    if (app.isLeanback) Intent.CATEGORY_LEANBACK_LAUNCHER
+                    else Intent.CATEGORY_LAUNCHER
+                )
+                component = app.componentName
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            val fallback = packageManager.getLeanbackLaunchIntentForPackage(app.packageName)
+                ?: packageManager.getLaunchIntentForPackage(app.packageName)
+            if (fallback != null) {
+                try {
+                    WakeAccessibilityService.temporarilyIgnorePackage(app.packageName)
+                    fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(fallback)
+                } catch (_: Exception) {
+                }
             }
         }
     }
@@ -465,7 +600,7 @@ class AppListActivity : Activity() {
         }
     }
 
-    private fun showAppMenu(app: ListItem.App) {
+    private fun showAppMenu(app: AppItem) {
         val isCurrentlyAutoOpen = SettingsRepository.getAutoOpenPackage(this) == app.packageName
         val options = ArrayList<MenuOption>(6).apply {
             add(MenuOption(getString(R.string.menu_open)) {
@@ -514,73 +649,23 @@ class AppListActivity : Activity() {
             .show()
     }
 
-    override fun onStart() {
-        super.onStart()
-        // 從外部 App 返回時重新載入清單，確保「最近使用」區段即時更新
-        loadApps()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        isForegroundFocused = false
-        cancelAutoOpenCountdown()
-        // 進入背景時釋放圖示快取，確保外部 App 執行時 0 點陣圖常駐記憶體；
-        // 且「不」呼叫 finish()，讓 AppListActivity 持續擋在 MainActivity 上方，
-        // 確保外部 App 轉場或關閉時絕對不會誤喚醒底層的 MainActivity 計時器！
-        iconCache.clear()
-        loadingIcons.clear()
-    }
-
-    private fun launchApp(app: ListItem.App) {
-        cancelAutoOpenCountdown()
-        if (!app.appInfo.enabled) {
-            android.widget.Toast.makeText(this, getString(R.string.toast_unfreeze_first, app.label), android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
-        saveRecentPackage(app.packageName)
-        try {
-            WakeAccessibilityService.temporarilyIgnorePackage(app.packageName)
-            val intent = Intent(Intent.ACTION_MAIN).apply {
-                addCategory(
-                    if (app.isLeanback) Intent.CATEGORY_LEANBACK_LAUNCHER
-                    else Intent.CATEGORY_LAUNCHER
-                )
-                component = app.componentName
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-            }
-            startActivity(intent)
-        } catch (_: Exception) {
-            val fallback = packageManager.getLeanbackLaunchIntentForPackage(app.packageName)
-                ?: packageManager.getLaunchIntentForPackage(app.packageName)
-            if (fallback != null) {
-                try {
-                    WakeAccessibilityService.temporarilyIgnorePackage(app.packageName)
-                    fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(fallback)
-                } catch (_: Exception) {
-                }
-            }
-        }
-    }
-
-    private fun uninstallApp(app: ListItem.App) {
+    private fun uninstallApp(app: AppItem) {
         startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.packageName}")))
     }
 
-    private fun toggleAppFreeze(app: ListItem.App, freeze: Boolean) {
+    private fun toggleAppFreeze(app: AppItem, freeze: Boolean) {
         val success = ShizukuHelper.setAppDisabled(app.packageName, freeze)
         if (success) {
             val action = if (freeze) getString(R.string.action_disable) else getString(R.string.action_enable)
-            android.widget.Toast.makeText(this, getString(R.string.toast_freeze_success, action, app.label), android.widget.Toast.LENGTH_SHORT).show()
-            loadApps() // 重新載入列表
+            Toast.makeText(this, getString(R.string.toast_freeze_success, action, app.label), Toast.LENGTH_SHORT).show()
+            loadApps()
         } else {
-            // 如果 Shizuku 未授權或失敗，提示並引導至 Shizuku 設定與檢測頁面
-            android.widget.Toast.makeText(this, getString(R.string.toast_shizuku_fail), android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_shizuku_fail), Toast.LENGTH_SHORT).show()
             startActivity(Intent(this, ShizukuSettingsActivity::class.java))
         }
     }
 
-    private fun openAppInfo(app: ListItem.App) {
+    private fun openAppInfo(app: AppItem) {
         startActivity(
             Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -629,6 +714,7 @@ class AppListActivity : Activity() {
             tvHint.visibility = View.GONE
             btnSettings.visibility = View.GONE
             btnHdmi.visibility = View.GONE
+            hsvCategories.visibility = View.GONE
             btnBatchAction.visibility = View.VISIBLE
             btnCancelSelect.visibility = View.VISIBLE
             btnBatchAction.requestFocus()
@@ -637,6 +723,7 @@ class AppListActivity : Activity() {
             tvHint.visibility = View.VISIBLE
             btnSettings.visibility = View.VISIBLE
             btnHdmi.visibility = View.VISIBLE
+            hsvCategories.visibility = View.VISIBLE
             btnBatchAction.visibility = View.GONE
             btnCancelSelect.visibility = View.GONE
         }
@@ -644,7 +731,7 @@ class AppListActivity : Activity() {
 
     private fun showBatchActionDialog() {
         if (selectedPackages.isEmpty()) return
-        
+
         val options = ArrayList<MenuOption>()
         options.add(MenuOption(getString(R.string.menu_batch_freeze)) {
             executeBatchFreeze(true)
@@ -655,7 +742,7 @@ class AppListActivity : Activity() {
         options.add(MenuOption(getString(R.string.menu_select_all)) {
             selectAllApps()
         })
-        
+
         val items = options.map { it.title }.toTypedArray()
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle(getString(R.string.title_batch_action, selectedPackages.size))
@@ -665,12 +752,10 @@ class AppListActivity : Activity() {
             .setNegativeButton(getString(R.string.dialog_cancel), null)
             .show()
     }
-    
+
     private fun selectAllApps() {
-        for (item in items) {
-            if (item is ListItem.App) {
-                selectedPackages.add(item.packageName)
-            }
+        for (item in displayedApps) {
+            selectedPackages.add(item.packageName)
         }
         updateHeaderUI()
         adapter.notifyDataSetChanged()
@@ -678,7 +763,7 @@ class AppListActivity : Activity() {
 
     private fun executeBatchFreeze(freeze: Boolean) {
         progressBar.visibility = View.VISIBLE
-        listView.visibility = View.GONE
+        vgvApps.visibility = View.GONE
         bgExecutor.execute {
             var successCount = 0
             var failCount = 0
@@ -692,10 +777,10 @@ class AppListActivity : Activity() {
                 val action = if (freeze) getString(R.string.action_disable_upper) else getString(R.string.action_enable_upper)
                 val successStr = getString(R.string.toast_batch_success, action, successCount)
                 val failStr = if (failCount > 0) getString(R.string.toast_batch_fail, failCount) else ""
-                android.widget.Toast.makeText(
-                    this@AppListActivity, 
-                    successStr + failStr, 
-                    android.widget.Toast.LENGTH_SHORT
+                Toast.makeText(
+                    this@AppListActivity,
+                    successStr + failStr,
+                    Toast.LENGTH_SHORT
                 ).show()
                 exitMultiSelectMode()
                 loadApps()
@@ -734,23 +819,74 @@ class AppListActivity : Activity() {
                     }
                 }
             }
+
             if (event.keyCode == KeyEvent.KEYCODE_MENU || event.keyCode == KeyEvent.KEYCODE_SETTINGS) {
-                if (isMultiSelectMode) showBatchActionDialog() else openSettings()
+                if (isMultiSelectMode) {
+                    showBatchActionDialog()
+                } else {
+                    val focusedChild = vgvApps.focusedChild
+                    val holder = focusedChild?.let { vgvApps.findContainingViewHolder(it) } as? AppCardViewHolder
+                    if (holder != null && holder.currentApp != null) {
+                        showAppMenu(holder.currentApp!!)
+                    } else {
+                        openSettings()
+                    }
+                }
                 return true
             }
-            if (listView.hasFocus() && event.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                val firstAppPos = items.indexOfFirst { it is ListItem.App }
-                if (firstAppPos < 0 || listView.selectedItemPosition <= firstAppPos) {
-                    if (isMultiSelectMode) btnBatchAction.requestFocus() else btnSettings.requestFocus()
+
+            // 遙控器向上切換至標題/分類標籤
+            if (vgvApps.hasFocus() && event.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                val focusedChild = vgvApps.focusedChild
+                val position = focusedChild?.let { vgvApps.getChildAdapterPosition(it) } ?: -1
+                if (position in 0..4) { // 第一列
+                    if (isMultiSelectMode) {
+                        btnBatchAction.requestFocus()
+                    } else if (chipGroupCategories.childCount > 0) {
+                        var chipFocused = false
+                        for (i in 0 until chipGroupCategories.childCount) {
+                            val chip = chipGroupCategories.getChildAt(i) as? Chip
+                            if (chip?.isChecked == true) {
+                                chip.requestFocus()
+                                chipFocused = true
+                                break
+                            }
+                        }
+                        if (!chipFocused) chipGroupCategories.getChildAt(0)?.requestFocus()
+                    } else {
+                        btnSettings.requestFocus()
+                    }
                     return true
                 }
-            } else if ((btnSettings.hasFocus() || btnHdmi.hasFocus() || btnBatchAction.hasFocus() || btnCancelSelect.hasFocus()) && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (items.isNotEmpty()) {
-                    listView.requestFocus()
-                    val firstAppPos = items.indexOfFirst { it is ListItem.App }
-                    if (firstAppPos >= 0 && listView.selectedItemPosition < firstAppPos) {
-                        listView.setSelection(firstAppPos)
+            }
+
+            // 遙控器從分類標籤向上切換至設定按鈕
+            if (chipGroupCategories.hasFocus() && event.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                btnSettings.requestFocus()
+                return true
+            }
+
+            // 遙控器從設定/HDMI按鈕向下切換至分類標籤
+            if ((btnSettings.hasFocus() || btnHdmi.hasFocus()) && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (chipGroupCategories.childCount > 0) {
+                    var chipFocused = false
+                    for (i in 0 until chipGroupCategories.childCount) {
+                        val chip = chipGroupCategories.getChildAt(i) as? Chip
+                        if (chip?.isChecked == true) {
+                            chip.requestFocus()
+                            chipFocused = true
+                            break
+                        }
                     }
+                    if (!chipFocused) chipGroupCategories.getChildAt(0)?.requestFocus()
+                    return true
+                }
+            }
+
+            // 遙控器向下切換回網格
+            if (isHeaderFocused() && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (displayedApps.isNotEmpty()) {
+                    vgvApps.requestFocus()
                     return true
                 }
             }
@@ -764,459 +900,79 @@ class AppListActivity : Activity() {
                 exitMultiSelectMode()
                 return true
             }
+            if (currentCategory != Category.ALL) {
+                selectCategory(Category.ALL)
+                return true
+            }
             returnToMainActivity()
             return true
         }
         return super.onKeyDown(keyCode, event)
     }
 
-    // ── 純程式碼建構介面（消除 XML LayoutInflater 與多餘背景重繪） ─────────────
-    private fun buildContentView(): View {
+    private fun dpToPx(dp: Int): Int {
         val density = resources.displayMetrics.density
-        fun dp(v: Float): Int = (v * density + 0.5f).toInt()
-
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-            }
-        }
-
-        // 頂部標題列
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            clipChildren = false
-            clipToPadding = false
-            val pad = dp(20f)
-            setPadding(pad, pad, pad, pad)
-        }
-
-        val titleBox = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val ivTitleIcon = ImageView(this).apply {
-            setImageResource(R.drawable.apps_48px)
-            setColorFilter(0xFF60A5FA.toInt())
-        }
-        titleBox.addView(ivTitleIcon, LinearLayout.LayoutParams(dp(30f), dp(30f)).apply {
-            rightMargin = dp(12f)
-        })
-        tvTitle = TextView(this).apply {
-            text = getString(R.string.app_list_title)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(0xFFF8FAFC.toInt())
-            isSingleLine = true
-        }
-        titleBox.addView(tvTitle, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-        header.addView(titleBox, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        tvHint = TextView(this).apply {
-            text = getString(R.string.app_list_hint)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setTextColor(0xFF475569.toInt())
-            isSingleLine = true
-            ellipsize = TextUtils.TruncateAt.END
-        }
-        header.addView(tvHint, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply {
-            leftMargin = dp(16f)
-            rightMargin = dp(16f)
-        })
-
-        // 設定按鈕（開啟 SettingsActivity）
-        val (settingsBtn, _, _) = createHeaderPillButton(
-            iconRes = R.drawable.settings_48px,
-            label = getString(R.string.btn_settings),
-            density = density
-        ) {
-            openSettings()
-        }
-        btnSettings = settingsBtn
-        header.addView(btnSettings, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            rightMargin = dp(10f)
-        })
-
-        // HDMI 訊號源切換按鈕
-        val (hdmiBtn, _, _) = createHeaderPillButton(
-            iconRes = R.drawable.settings_input_hdmi_24px,
-            label = getString(R.string.btn_hdmi_selector),
-            density = density
-        ) {
-            returnToMainActivity()
-        }
-        btnHdmi = hdmiBtn
-        header.addView(btnHdmi, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        val (batchBtn, _, _) = createHeaderPillButton(
-            iconRes = R.drawable.settings_48px,
-            label = "批次操作",
-            density = density
-        ) {
-            showBatchActionDialog()
-        }
-        btnBatchAction = batchBtn
-        btnBatchAction.visibility = View.GONE
-        header.addView(btnBatchAction, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            rightMargin = dp(10f)
-        })
-
-        val (cancelSelBtn, _, _) = createHeaderPillButton(
-            iconRes = 0,
-            label = "取消",
-            density = density
-        ) {
-            exitMultiSelectMode()
-        }
-        btnCancelSelect = cancelSelBtn
-        btnCancelSelect.visibility = View.GONE
-        header.addView(btnCancelSelect, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        val idSettings = View.generateViewId()
-        val idHdmi = View.generateViewId()
-        val idBatch = View.generateViewId()
-        val idCancel = View.generateViewId()
-        btnSettings.id = idSettings
-        btnHdmi.id = idHdmi
-        btnBatchAction.id = idBatch
-        btnCancelSelect.id = idCancel
-
-        btnSettings.nextFocusLeftId = idSettings
-        btnSettings.nextFocusRightId = idHdmi
-
-        btnHdmi.nextFocusLeftId = idSettings
-        btnHdmi.nextFocusRightId = idHdmi
-
-        btnBatchAction.nextFocusLeftId = idBatch
-        btnBatchAction.nextFocusRightId = idCancel
-
-        btnCancelSelect.nextFocusLeftId = idBatch
-        btnCancelSelect.nextFocusRightId = idCancel
-
-        root.addView(header, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
-        // 分隔線
-        val dividerView = View(this).apply {
-            setBackgroundColor(0xFF1E293B.toInt())
-        }
-        root.addView(dividerView, LinearLayout.LayoutParams(MATCH_PARENT, 1))
-
-        // 開機/喚醒自動啟動倒數提示橫幅
-        tvAutoOpenBanner = TextView(this).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(0xFF38BDF8.toInt())
-            setBackgroundColor(0xFF0F172A.toInt())
-            gravity = Gravity.CENTER
-            val vPad = dp(10f)
-            setPadding(dp(20f), vPad, dp(20f), vPad)
-            visibility = View.GONE
-        }
-        root.addView(tvAutoOpenBanner, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
-        // 載入中指示器
-        progressBar = ProgressBar(this).apply {
-            visibility = View.GONE
-        }
-        root.addView(progressBar, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            gravity = Gravity.CENTER_HORIZONTAL
-            topMargin = dp(80f)
-        })
-
-        // 空清單提示
-        tvEmpty = TextView(this).apply {
-            text = getString(R.string.app_list_empty)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-            setTextColor(0xFF64748B.toInt())
-            gravity = Gravity.CENTER
-            visibility = View.GONE
-        }
-        root.addView(tvEmpty, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
-            topMargin = dp(80f)
-        })
-
-        // App 清單 ListView
-        listView = ListView(this).apply {
-            visibility = View.GONE
-            isVerticalScrollBarEnabled = true
-            isScrollbarFadingEnabled = true
-            divider = ColorDrawable(0xFF1E293B.toInt())
-            dividerHeight = 1
-            selector = createListSelector(density)
-            isDrawSelectorOnTop = false
-            isFocusable = true
-            isFocusableInTouchMode = true
-        }
-        root.addView(listView, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
-
-        return root
+        return (dp * density + 0.5f).toInt()
     }
 
-    private fun createHeaderPillButton(
-        iconRes: Int,
-        label: String,
-        density: Float,
-        onClickAction: () -> Unit
-    ): Triple<LinearLayout, TextView, ImageView?> {
-        fun dp(v: Float): Int = (v * density + 0.5f).toInt()
-        val radius = 24f * density
-        val strokeFocused = (2.5f * density + 0.5f).toInt()
-        val strokeNormal = (1.5f * density + 0.5f).toInt()
+    inner class AppCardAdapter : RecyclerView.Adapter<AppCardViewHolder>() {
+        override fun getItemCount(): Int = displayedApps.size
 
-        fun rect(fillColor: Int, strokeWidth: Int, strokeColor: Int) = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = radius
-            setColor(fillColor)
-            setStroke(strokeWidth, strokeColor)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppCardViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_tv_app_card, parent, false)
+            return AppCardViewHolder(view)
         }
 
-        val bgSelector = StateListDrawable().apply {
-            addState(
-                intArrayOf(android.R.attr.state_focused),
-                rect(0xFF2563EB.toInt(), strokeFocused, 0xFF93C5FD.toInt())
-            )
-            addState(
-                intArrayOf(android.R.attr.state_pressed),
-                rect(0xFF1D4ED8.toInt(), strokeFocused, 0xFFBFDBFE.toInt())
-            )
-            addState(
-                intArrayOf(),
-                rect(0xFF18181B.toInt(), strokeNormal, 0xFF2E2E33.toInt())
-            )
-        }
-
-        val iv = if (iconRes != 0) {
-            ImageView(this).apply {
-                val d = getDrawable(iconRes)?.mutate()
-                setImageDrawable(d)
-                setColorFilter(0xFF94A3B8.toInt())
-            }
-        } else null
-
-        val tv = TextView(this).apply {
-            text = label
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(0xFFE2E8F0.toInt())
-            isSingleLine = true
-            ellipsize = TextUtils.TruncateAt.END
-        }
-
-        val button = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            val hPad = dp(16f)
-            val vPad = dp(9f)
-            setPadding(hPad, vPad, hPad, vPad)
-            isFocusable = true
-            isFocusableInTouchMode = false
-            isClickable = true
-            background = bgSelector
-
-            if (iv != null) {
-                addView(iv, LinearLayout.LayoutParams(dp(20f), dp(20f)).apply {
-                    rightMargin = dp(8f)
-                })
-            }
-            addView(tv, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-            setOnClickListener { onClickAction() }
-            setOnFocusChangeListener { v, hasFocus ->
-                val scale = if (hasFocus) 1.08f else 1.0f
-                v.animate().scaleX(scale).scaleY(scale).setDuration(120).start()
-                v.elevation = if (hasFocus) dp(6f).toFloat() else 0f
-            }
-        }
-
-        return Triple(button, tv, iv)
-    }
-
-    private fun createListSelector(density: Float): Drawable {
-        val strokeWidth = (2f * density + 0.5f).toInt()
-        val focused = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            setColor(0xFF1E3A5F.toInt())
-            setStroke(strokeWidth, 0xFF2563EB.toInt())
-        }
-        val focusedPressed = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            setColor(0xFF1D4ED8.toInt())
-            setStroke(strokeWidth, 0xFF93C5FD.toInt())
-        }
-        val pressed = ColorDrawable(0xFF1D4ED8.toInt())
-        val transparent = ColorDrawable(Color.TRANSPARENT)
-
-        return StateListDrawable().apply {
-            addState(
-                intArrayOf(android.R.attr.state_focused, android.R.attr.state_pressed),
-                focusedPressed
-            )
-            addState(
-                intArrayOf(android.R.attr.state_focused),
-                focused
-            )
-            addState(
-                intArrayOf(android.R.attr.state_pressed),
-                pressed
-            )
-            addState(intArrayOf(), transparent)
-        }
-    }
-
-    inner class AppListAdapter : BaseAdapter() {
-
-        override fun getCount() = items.size
-        override fun getItem(pos: Int): Any? = items[pos]
-        override fun getItemId(pos: Int) = pos.toLong()
-        override fun getViewTypeCount() = 2
-        override fun getItemViewType(pos: Int) =
-            if (items[pos] is ListItem.Section) VIEW_TYPE_SECTION else VIEW_TYPE_APP
-
-        override fun isEnabled(pos: Int) = items[pos] is ListItem.App
-
-        override fun getView(pos: Int, convertView: View?, parent: ViewGroup): View =
-            when (val item = items[pos]) {
-                is ListItem.Section -> getSectionView(item, convertView, parent)
-                is ListItem.App -> getAppView(item, convertView)
-            }
-
-        private fun getSectionView(
-            section: ListItem.Section,
-            convertView: View?,
-            parent: ViewGroup
-        ): View {
-            val tv = (convertView as? TextView) ?: TextView(parent.context).also { tv ->
-                tv.setPadding(dpToPx(20), dpToPx(18), dpToPx(20), dpToPx(8))
-                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                tv.setTextColor(0xFF64748B.toInt())
-                tv.isAllCaps = true
-                tv.letterSpacing = 0.08f
-                tv.isFocusable = false
-                tv.isClickable = false
-            }
-            tv.text = section.title
-            return tv
-        }
-
-        private fun getAppView(app: ListItem.App, convertView: View?): View {
-            val view: View
-            val holder: AppViewHolder
-
-            if (convertView == null || convertView.tag !is AppViewHolder) {
-                holder = createAppRowViewHolder()
-                view = holder.rootView
-                view.tag = holder
-            } else {
-                view = convertView
-                holder = convertView.tag as AppViewHolder
-            }
-
+        override fun onBindViewHolder(holder: AppCardViewHolder, position: Int) {
+            val app = displayedApps[position]
             holder.bind(app)
-            return view
         }
     }
 
-    private fun createAppRowViewHolder(): AppViewHolder {
-        val hPad = dpToPx(20)
-        val iconSize = dpToPx(48)
+    inner class AppCardViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val cardView: MaterialCardView = itemView.findViewById(R.id.card_view)
+        val ivIcon: ImageView = itemView.findViewById(R.id.iv_app_icon)
+        val tvName: TextView = itemView.findViewById(R.id.tv_app_name)
+        val tvBadge: TextView = itemView.findViewById(R.id.tv_badge)
+        val cbSelect: CheckBox = itemView.findViewById(R.id.cb_select)
 
-        val row = LinearLayout(this).apply {
-            layoutParams = AbsListView.LayoutParams(MATCH_PARENT, dpToPx(72))
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(hPad, 0, hPad, 0)
-            isFocusable = false
-            isClickable = false
-        }
-
-        val ivIcon = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.FIT_CENTER
-        }
-        row.addView(ivIcon, LinearLayout.LayoutParams(iconSize, iconSize))
-
-        val textCol = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dpToPx(16), 0, 0, 0)
-        }
-
-        val tvLabel = TextView(this).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-            setTextColor(0xFFF1F5F9.toInt())
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-        }
-        textCol.addView(tvLabel, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        val tvPkg = TextView(this).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTextColor(0xFF475569.toInt())
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-        }
-        textCol.addView(tvPkg, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-
-        row.addView(textCol, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
-
-        val tvBadge = TextView(this).apply {
-            text = getString(R.string.badge_auto_open)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(0xFF38BDF8.toInt())
-            visibility = View.GONE
-        }
-        row.addView(tvBadge, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            leftMargin = dpToPx(12)
-        })
-
-        val cbSelect = android.widget.CheckBox(this).apply {
-            isFocusable = false
-            isClickable = false
-            visibility = View.GONE
-        }
-        row.addView(cbSelect, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-            leftMargin = dpToPx(16)
-        })
-
-        return AppViewHolder(row, ivIcon, tvLabel, tvPkg, tvBadge, cbSelect)
-    }
-
-    private inner class AppViewHolder(
-        val rootView: View,
-        val ivIcon: ImageView,
-        val tvLabel: TextView,
-        val tvPkg: TextView,
-        val tvBadge: TextView,
-        val cbSelect: android.widget.CheckBox
-    ) {
+        var currentApp: AppItem? = null
         var boundPackage: String = ""
 
-        fun bind(app: ListItem.App) {
+        fun bind(app: AppItem) {
+            currentApp = app
             boundPackage = app.packageName
-            
+
             if (app.appInfo.enabled) {
-                tvLabel.text = app.label
-                tvLabel.setTextColor(Color.WHITE)
-                tvPkg.text = app.packageName
+                tvName.text = app.label
+                tvName.setTextColor(Color.WHITE)
+                ivIcon.alpha = 1.0f
             } else {
-                tvLabel.text = getString(R.string.app_disabled_suffix, app.label)
-                tvLabel.setTextColor(0xFF64748B.toInt()) // Gray color for disabled
-                tvPkg.text = app.packageName + getString(R.string.app_frozen_suffix)
-            }
-            
-            tvBadge.visibility = if (SettingsRepository.getAutoOpenPackage(this@AppListActivity) == app.packageName) {
-                View.VISIBLE
-            } else {
-                View.GONE
+                tvName.text = getString(R.string.app_disabled_suffix, app.label)
+                tvName.setTextColor(0xFF64748B.toInt())
+                ivIcon.alpha = 0.5f
             }
 
+            // 開機自動啟動標記
+            val isAutoOpen = SettingsRepository.getAutoOpenPackage(this@AppListActivity) == app.packageName
+            tvBadge.visibility = if (isAutoOpen) View.VISIBLE else View.GONE
+
+            // 批次選取狀態
             if (isMultiSelectMode) {
                 cbSelect.visibility = View.VISIBLE
-                cbSelect.isChecked = selectedPackages.contains(app.packageName)
+                val isSelected = selectedPackages.contains(app.packageName)
+                cbSelect.isChecked = isSelected
+                if (isSelected) {
+                    cardView.strokeColor = 0xFF38BDF8.toInt()
+                } else {
+                    cardView.setStrokeColor(ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_card_stroke_color))
+                }
             } else {
                 cbSelect.visibility = View.GONE
+                cardView.setStrokeColor(ContextCompat.getColorStateList(this@AppListActivity, R.color.tv_card_stroke_color))
             }
 
+            // 圖示異步載入
             val cached = iconCache[app.packageName]
             if (cached != null) {
                 ivIcon.clearColorFilter()
@@ -1225,6 +981,25 @@ class AppListActivity : Activity() {
                 ivIcon.setImageResource(R.drawable.apps_48px)
                 ivIcon.setColorFilter(0xFF334155.toInt())
                 loadIconAsync(app)
+            }
+
+            cardView.setOnClickListener {
+                cancelAutoOpenCountdown()
+                if (isMultiSelectMode) {
+                    toggleSelection(app.packageName)
+                } else {
+                    launchApp(app)
+                }
+            }
+
+            cardView.setOnLongClickListener {
+                cancelAutoOpenCountdown()
+                if (isMultiSelectMode) {
+                    showBatchActionDialog()
+                } else {
+                    showAppMenu(app)
+                }
+                true
             }
         }
     }

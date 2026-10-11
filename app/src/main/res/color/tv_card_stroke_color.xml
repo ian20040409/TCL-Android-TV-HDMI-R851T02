@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 焦點切換：獲得焦點時為白色高亮線框，平常透明 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FFFFFF" />
+    <item android:color="@android:color/transparent" />
+</selector>

@@ -99,7 +99,7 @@
         <activity
             android:name=".AppListActivity"
             android:exported="false"
-            android:theme="@style/Theme.PureBlackDarkOnly"
+            android:theme="@style/Theme.AppList"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing" />
 
