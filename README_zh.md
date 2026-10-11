@@ -17,12 +17,18 @@
 
 ## 核心特色 (Highlights)
 
-- ⏱️ **開機自動倒數**：電視開機或按下 Home 鍵，倒數結束自動切換至預設 HDMI 埠。
-- 🔢 **遙控器數字鍵直達**：按下 `1`、`2`、`3` 立即跳轉至 HDMI 1 / 2 / 3。
+- ⏱️ **開機自動倒數**：電視開機或按下 Home 鍵，倒數結束自動切換至預設 HDMI 埠（方向鍵任意鍵可中斷倒數）。
+- 🔢 **遙控器數字鍵直達**：按下 `1`、`2`、`3` 立即秒切 HDMI 1 / 2 / 3（無論在桌面或播放器中皆有效）。
 - 📺 **自建原生 TvView 播放器**：基於 Android TIF（`TvView`）硬體直通，徹底終結對臃腫 `com.tcl.tv` 的依賴。
 - 🎮 **4K HDR & Dolby Vision**：支援 4K @ 60Hz 直通，無多餘浮層與 Toast 殘影瑕疵。
+- 🧠 **來源感知 CEC 智慧休眠與切換**：
+  - 智慧判斷僅在「當前觀看中的 HDMI 裝置」發出休眠時才連動電視關機，徹底解決背景裝置（如 Dock 中的 Switch）休眠誤關電視的問題。
+  - 主動攔截並壓制 TCL 韌體 `com.tcl.voicestandby` 導致的異常關機。
+- 📱 **全新卡片式 TV 應用程式庫**：專為電視遙控器最佳化的格狀抽屜，支援分類標籤（全部 / 最近 / TV 版 / 手機版 / 系統 / 已凍結），長按可管理或凍結應用程式。
+- 🚀 **靈活啟動模式 (App Mode)**：除了 HDMI 直通模式，亦可設定開機自動直達指定串流 App（YouTube / Netflix 等）或以 App 抽屜為主畫面。
+- ⚡ **Shizuku 一鍵無痛配置**：內建 [Shizuku TV 版](https://github.com/thedjchi/Shizuku/releases) APK 下載，一鍵自動授予 `READ_LOGS` 權限並**自動開啟無障礙待機守護**，免去手動翻找電視系統選單。
 - 🖤 **純黑介面設計 (`#000000`)**：專為暗室家庭劇院與 OLED / QLED 局部控光最佳化。
-- 🛠️ **原生 Leanback 設定與導覽精靈**：直覺 10 呎電視介面，並提供一鍵呼叫 TCL 原廠畫質/音效設定 (`com.tcl.settings`)。
+- 🛠️ **原生 Leanback 設定與除錯**：完整 10 呎電視設定選單、按鍵重定向 (Button Mapper)、一鍵呼叫 TCL 原廠畫質選單 (`com.tcl.settings`)，以及內建即時 CEC 事件除錯視窗。
 
 ---
 
@@ -57,26 +63,39 @@ adb shell am force-stop com.google.android.tvlauncher
 *(隨時可透過 `adb shell pm enable com.google.android.tvlauncher` 還原)*
 
 ### 4. 啟用待機守護與 CEC 自動切換（建議）
-- **待機喚醒守護 (無障礙服務)**：點擊狀態列的「喚醒守護」，在系統設定中開啟，可避免待機喚醒黑屏並提供 Home 鍵重定向。
-- **CEC 自動切換**：授予讀取日誌權限，外接設備開機時自動跳轉對應端口：
-  ```bash
-  adb shell pm grant com.lnu.tclhdmilauncher android.permission.READ_LOGS
-  adb shell am force-stop com.lnu.tclhdmilauncher
-  ```
-  *(亦可透過內建整合之 **Shizuku** 自動授權)*
+
+本 App 需無障礙服務確保待機喚醒穩定與 Home 鍵重定向，並透過日誌監聽實現 CEC 外接設備開機自動換源。
+
+- **方法 A：透過 Shizuku 一鍵自動啟用（最推薦，最省事）**  
+  若電視已運行 [Shizuku（推薦電視適配版：thedjchi/Shizuku）](https://github.com/thedjchi/Shizuku/releases)（亦可直接在 Launcher 設定內一鍵下載安裝），在 Launcher 設定中點擊 Shizuku 授權：
+  - 自動授予 `READ_LOGS` 日誌讀取權限
+  - **自動透過 Shell 啟用「喚醒守護 (Wake Guard)」無障礙服務**，無需手動翻找電視無障礙設定
+- **方法 B：手動 ADB 指令與設定**  
+  1. 授予 CEC 日誌讀取權限：
+     ```bash
+     adb shell pm grant com.lnu.tclhdmilauncher android.permission.READ_LOGS
+     adb shell am force-stop com.lnu.tclhdmilauncher
+     ```
+  2. 點擊狀態列的「喚醒守護」，於系統設定中開啟「TCL HDMI 喚醒守護」無障礙服務（或透過 ADB 一鍵啟用）：
+     ```bash
+     adb shell settings put secure enabled_accessibility_services com.lnu.tclhdmilauncher/.WakeAccessibilityService
+     ```
 
 ---
 
 ## 遙控器操作指南
 
-| 按鍵 | 操作說明 |
-|---|---|
-| **方向鍵 (D-Pad)** | 移動焦點；在倒數進行時按任意方向鍵**取消自動跳轉** |
-| **OK / 確認鍵** | 進入選取之 HDMI 埠或 App（在 HDMI 卡片上**長按 OK** 設為開機預設） |
-| **數字鍵 `1` / `2` / `3`** | 秒切 HDMI 1 / 2 / 3（桌面與播放器內皆有效） |
-| **輸入源鍵 (INPUT)** | 循環切換 HDMI 1 ➔ HDMI 2 ➔ HDMI 3 |
-| **設定鍵 (SETTINGS)** | 開啟啟動器設定 / 一鍵開啟 TCL 原廠畫質選單 (`com.tcl.settings`) |
-| **返回 / 選單 (BACK/MENU)** | 離開對話框或自播放器返回桌面 |
+| 介面 | 按鍵 | 操作說明 |
+|---|---|---|
+| **全部介面** | **數字鍵 `1` / `2` / `3`** | 秒切 HDMI 1 / 2 / 3（無論在桌面或播放器中皆有效） |
+| **全部介面** | **輸入源鍵 (INPUT)** | 依序循環切換 HDMI 1 ➔ HDMI 2 ➔ HDMI 3 |
+| **主畫面** | **方向鍵 (D-Pad)** | 移動焦點；在倒數進行時按任意方向鍵**取消自動跳轉** |
+| **主畫面** | **OK / 確認鍵** | 進入選取之 HDMI 埠或 App；在 HDMI 卡片上**長按 OK** 設為預設開機埠 |
+| **主畫面** | **設定鍵 (SETTINGS / MENU)** | 開啟啟動器設定選單 |
+| **HDMI 播放器** | **設定鍵 (SETTINGS)** | 一鍵呼叫 TCL 原廠畫質 / 音效設定選單 (`com.tcl.settings`) |
+| **HDMI 播放器** | **返回鍵 (BACK / MENU)** | 退出播放畫面，返回桌面 |
+| **應用程式庫** | **OK / 確認鍵** | 開啟選取之應用程式 |
+| **應用程式庫** | **選單鍵 (MENU) / 長按 OK** | 呼叫 App 操作選單（應用程式資訊、解除安裝、透過 Shizuku 凍結/解凍） |
 
 ---
 
@@ -97,7 +116,7 @@ adb shell am force-stop com.google.android.tvlauncher
 本專案完全開源無商業行為，尊重用戶隱私：
 - **`READ_LOGS`**：程式碼內僅過濾 `HdmiCecController` 相關標籤以識別 CEC 訊號埠，絕無資料寫入或網路傳輸。
 - **無障礙服務 (`WakeAccessibilityService`)**：僅監聽螢幕點亮與視窗狀態以防假死，絕不蒐集密碼或個人隱私。
-- **Shizuku API**：僅用於本機 IPC 調用指令（自動授權、凍結背景 App），無任何外部通訊。
+- **Shizuku API**：僅用於本機 IPC 調用指令（自動授權、自動啟用無障礙、凍結背景 App），無任何外部通訊。
 
 ---
 
