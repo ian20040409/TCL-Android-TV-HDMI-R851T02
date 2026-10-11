@@ -4,14 +4,18 @@ package com.lnu.tclhdmilauncher
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.leanback.preference.LeanbackSettingsFragmentCompat
 import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceScreen
 
@@ -103,13 +107,93 @@ class SettingsActivity : FragmentActivity() {
 
             pm.findPreference<Preference>("pref_button_mapper")?.summary = buttonMapperSummary(ctx)
 
+            updateSystemPreferences()
+        }
+
+        private fun updateSystemPreferences() {
+            val ctx = requireContext()
+            val pm = preferenceManager
+            val packageManager = ctx.packageManager
+
+            val systemCategory = pm.findPreference<PreferenceCategory>("pref_category_system")
             val tclPref = pm.findPreference<Preference>("pref_tcl_settings")
-            val isTcl = DeviceHelper.isTclDevice(ctx)
-            tclPref?.isVisible = isTcl
-            if (isTcl) {
-                tclPref?.isEnabled = true
-                tclPref?.summary = getString(R.string.setting_tcl_settings_desc)
+            val androidPref = pm.findPreference<Preference>("pref_android_settings")
+
+            // 1. TCL 原廠設定：依據 com.tcl.settings 動態取得 App 圖示與包名
+            val tclAppInfo = try {
+                packageManager.getApplicationInfo("com.tcl.settings", 0)
+            } catch (_: Exception) {
+                null
             }
+
+            if (tclAppInfo != null) {
+                tclPref?.apply {
+                    isVisible = true
+                    isEnabled = true
+                    title = getString(R.string.setting_tcl_settings_title)
+                    summary = tclAppInfo.packageName
+                    try {
+                        val icon = tclAppInfo.loadIcon(packageManager)
+                        if (icon != null) {
+                            this.icon = icon
+                        }
+                    } catch (_: Exception) {}
+                }
+            } else {
+                tclPref?.isVisible = false
+            }
+
+            // 2. Android 系統設定：依據系統設定套件動態取得 App 圖示與包名
+            val androidAppInfo = findAndroidSettingsAppInfo(packageManager)
+            if (androidAppInfo != null) {
+                androidPref?.apply {
+                    isVisible = true
+                    isEnabled = true
+                    title = getString(R.string.setting_android_settings_title)
+                    summary = androidAppInfo.packageName
+                    try {
+                        val icon = androidAppInfo.loadIcon(packageManager)
+                        if (icon != null) {
+                            this.icon = icon
+                        }
+                    } catch (_: Exception) {}
+                }
+            } else {
+                androidPref?.isVisible = false
+            }
+
+            // 3. 若無任何可用設定，整塊系統設定區塊不要出現
+            systemCategory?.isVisible = (tclPref?.isVisible == true || androidPref?.isVisible == true)
+        }
+
+        private fun findAndroidSettingsAppInfo(pm: PackageManager): ApplicationInfo? {
+            // 1. 優先檢查 Android TV 原生設定 (com.android.tv.settings)
+            try {
+                return pm.getApplicationInfo("com.android.tv.settings", 0)
+            } catch (_: Exception) {}
+
+            // 2. 解析標準設定 Intent (排除 TCL 設定)
+            val actions = listOf(
+                Settings.ACTION_SETTINGS,
+                "android.settings.TV_SETTINGS",
+                "android.settings.SETTINGS"
+            )
+            for (action in actions) {
+                try {
+                    val resolveInfo = pm.resolveActivity(Intent(action), PackageManager.MATCH_DEFAULT_ONLY)
+                    val pkg = resolveInfo?.activityInfo?.packageName
+                    if (!pkg.isNullOrBlank() && pkg != "com.tcl.settings") {
+                        return resolveInfo.activityInfo?.applicationInfo ?: pm.getApplicationInfo(pkg, 0)
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // 3. 標準 AOSP 設定 (com.android.settings)
+            try {
+                return pm.getApplicationInfo("com.android.settings", 0)
+            } catch (_: Exception) {}
+
+            return null
         }
 
         override fun onPreferenceTreeClick(preference: Preference): Boolean {
